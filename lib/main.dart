@@ -1,0 +1,128 @@
+import 'package:flutter/material.dart';
+import 'controllers/app_state.dart';
+import 'controllers/app_state_provider.dart';
+import 'views/home_screen.dart';
+
+void main() {
+  runApp(const OhmSafeAppContainer());
+}
+
+class OhmSafeAppContainer extends StatefulWidget {
+  const OhmSafeAppContainer({super.key});
+
+  @override
+  State<OhmSafeAppContainer> createState() => _OhmSafeAppContainerState();
+}
+
+class _OhmSafeAppContainerState extends State<OhmSafeAppContainer> {
+  final AppState _appState = AppState();
+
+  @override
+  void dispose() {
+    _appState.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppStateProvider(
+      notifier: _appState,
+      child: const OhmSafeApp(),
+    );
+  }
+}
+
+class OhmSafeApp extends StatefulWidget {
+  const OhmSafeApp({super.key});
+
+  @override
+  State<OhmSafeApp> createState() => _OhmSafeAppState();
+}
+
+class _OhmSafeAppState extends State<OhmSafeApp> {
+  ThemeMode _themeMode = ThemeMode.light;
+
+  void _toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const orangeAccent = Color(0xFFFF5A00);
+    const darkBlueBg = Color(0xFF0B0F19);
+    const darkBlueCard = Color(0xFF1E293B);
+
+    return MaterialApp(
+      title: 'OhmSafe Pro',
+      debugShowCheckedModeBanner: false,
+      themeMode: _themeMode,
+      
+      // Light Theme configuration
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primaryColor: orangeAccent,
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        cardColor: Colors.white,
+        dividerColor: const Color(0xFFECECF1),
+        textTheme: const TextTheme(
+          titleLarge: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E293B),
+            fontFamily: 'System',
+          ),
+          bodyLarge: TextStyle(
+            color: Color(0xFF1E293B),
+            fontFamily: 'System',
+          ),
+          bodyMedium: TextStyle(
+            color: Color(0xFF64748B),
+            fontFamily: 'System',
+          ),
+        ),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: orangeAccent,
+          brightness: Brightness.light,
+          primary: orangeAccent,
+          surface: const Color(0xFFF8F8FA),
+        ),
+        useMaterial3: true,
+      ),
+
+      // Dark Theme configuration
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primaryColor: orangeAccent,
+        scaffoldBackgroundColor: darkBlueBg,
+        cardColor: darkBlueCard,
+        dividerColor: const Color(0xFF334155),
+        textTheme: const TextTheme(
+          titleLarge: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontFamily: 'System',
+          ),
+          bodyLarge: TextStyle(
+            color: Color(0xFFF8FAFC),
+            fontFamily: 'System',
+          ),
+          bodyMedium: TextStyle(
+            color: Color(0xFF94A3B8),
+            fontFamily: 'System',
+          ),
+        ),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: orangeAccent,
+          brightness: Brightness.dark,
+          primary: orangeAccent,
+          background: darkBlueBg,
+          surface: const Color(0xFF111827),
+        ),
+        useMaterial3: true,
+      ),
+      
+      home: HomeScreen(onToggleTheme: _toggleTheme),
+    );
+  }
+}
