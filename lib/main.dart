@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'controllers/app_state.dart';
 import 'controllers/app_state_provider.dart';
-import 'views/home_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(const OhmSafeAppContainer());
