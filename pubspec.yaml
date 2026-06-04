@@ -38,6 +38,7 @@ dependencies:
   image_picker: ^1.1.2
   # He fijado la versión a una más estable para evitar errores de compilación web
   file_picker: ^8.1.4
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

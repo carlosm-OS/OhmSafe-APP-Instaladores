@@ -6,6 +6,7 @@ import 'perimeter_inspection_screen.dart';
 import 'fence_installation_screen.dart';
 import 'link_energizer_screen.dart';
 import 'instalaciones_screen.dart';
+import 'cierre_instalacion_screen.dart';
 
 // --- TRUCK ANIMATION PAGE ---
 class TruckAnimationPage extends StatefulWidget {
@@ -333,6 +334,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   bool _step3Completed = false;
   bool _step4Completed = false;
   bool _step5Completed = false;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -708,35 +710,18 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         isActive: _step4Completed && !_step5Completed,
                         isCompleted: _step5Completed,
                         onTap: (_step4Completed && !_step5Completed)
-                            ? () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    backgroundColor: theme.cardColor,
-                                    title: Text(
-                                      "Cierre de instalación",
-                                      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                                    ),
-                                    content: Text(
-                                      "Realizando configuraciones finales en la central del equipo... ¡Configurado con éxito!",
-                                      style: TextStyle(color: theme.textTheme.bodyMedium?.color),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          setState(() {
-                                            _step5Completed = true;
-                                          });
-                                        },
-                                        child: const Text("Aceptar", style: TextStyle(color: Color(0xFFFF5A00))),
-                                      ),
-                                    ],
+                            ? () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CierreInstalacionScreen(ticket: widget.ticket),
                                   ),
                                 );
+                                if (result == 'cierre_completed') {
+                                  setState(() {
+                                    _step5Completed = true;
+                                  });
+                                }
                               }
                             : null,
                       ),
@@ -748,7 +733,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _step5Completed
-                                ? () => _showSignatureDialog(context)
+                                ? () => _submitFinalInstallation(context)
                                 : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _step5Completed
@@ -841,151 +826,159 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
               ),
             ),
           ),
+          if (_isSubmitting)
+            _buildLoadingOverlay(isDark),
         ],
       ),
     );
   }
 
-  void _showSignatureDialog(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    List<Offset> points = [];
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+  Widget _buildLoadingOverlay(bool isDark) {
+    return Container(
+      color: Colors.black.withOpacity(0.6),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          margin: const EdgeInsets.symmetric(horizontal: 40),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 10)),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              CircularProgressIndicator(
+                color: Color(0xFFFF5A00),
+                strokeWidth: 3.5,
               ),
-              backgroundColor: theme.cardColor,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      "Firma de Conformidad",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
+              SizedBox(height: 20),
+              Text(
+                "Enviando Cierre...",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                "Verificando localización y firmas",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitFinalInstallation(BuildContext context) async {
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    // Simulated network delay (2.5 seconds)
+    await Future.delayed(const Duration(milliseconds: 2500));
+
+    if (mounted) {
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      // Show beautiful success dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(28.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Por medio de la presente, el cliente firma de conformidad y acepta la entrega de la instalación OhmSafe completada con éxito.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
-                        height: 1.4,
-                      ),
+                    child: Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.green.shade600,
+                      size: 48,
                     ),
-                    const SizedBox(height: 20),
-                    
-                    // Signature Drawing Pad
-                    Container(
-                      height: 150,
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: theme.dividerColor.withOpacity(0.5),
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: Builder(
-                          builder: (canvasContext) {
-                            return GestureDetector(
-                              onPanUpdate: (details) {
-                                final renderBox = canvasContext.findRenderObject() as RenderBox;
-                                final localPosition = renderBox.globalToLocal(details.globalPosition);
-                                setState(() {
-                                  points = List.from(points)..add(localPosition);
-                                });
-                              },
-                              onPanEnd: (details) {
-                                setState(() {
-                                  points = List.from(points)..add(const Offset(-1, -1));
-                                });
-                              },
-                              child: CustomPaint(
-                                painter: SignaturePainter(points, isDark ? Colors.white : Colors.black),
-                                size: Size.infinite,
-                              ),
-                            );
-                          }
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "¡Instalación Finalizada!",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              points.clear();
-                            });
-                          },
-                          child: const Text("Limpiar firma", style: TextStyle(color: Color(0xFFFF5A00))),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            "Cancelar",
-                            style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Los datos de cierre, evidencias fotográficas geo-localizadas y la firma de conformidad han sido enviados con éxito.",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close dialog
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => InstalacionesScreen(
+                              completedTicketTitle: widget.ticket["title"],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: points.isNotEmpty
-                          ? () {
-                              Navigator.pop(context); // Cerrar dialog
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => InstalacionesScreen(
-                                    completedTicketTitle: widget.ticket["title"],
-                                  ),
-                                ),
-                                (route) => false,
-                              );
-                            }
-                          : null,
+                          (route) => false,
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF5A00),
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                        disabledForegroundColor: isDark ? Colors.white30 : Colors.white70,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 0,
                       ),
                       child: const Text(
-                        "Firmar y finalizar",
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        "Volver a Instalaciones",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            );
-          },
-        );
-      },
-    );
+            ),
+          );
+        },
+      );
+    }
   }
 
   Widget _buildStepItem(
@@ -1114,27 +1107,4 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
       ),
     );
   }
-}
-
-class SignaturePainter extends CustomPainter {
-  final List<Offset> points;
-  final Color color;
-  SignaturePainter(this.points, this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 3.0;
-
-    for (int i = 0; i < points.length - 1; i++) {
-      if (points[i] != const Offset(-1, -1) && points[i + 1] != const Offset(-1, -1)) {
-        canvas.drawLine(points[i], points[i + 1], paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(SignaturePainter oldDelegate) => true;
 }
