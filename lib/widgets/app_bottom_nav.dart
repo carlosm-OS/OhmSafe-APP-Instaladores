@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/help_screen.dart';
+import '../screens/profile_main_screen.dart';
 
 class AppBottomNav extends StatelessWidget {
   final String currentTab;
@@ -24,7 +25,7 @@ class AppBottomNav extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildNavItem(context, Icons.person_outline_rounded, "Perfil", currentTab == "Perfil"),
+            _buildNavItem(context, Icons.person_outline_rounded, "Mi cuenta", currentTab == "Perfil"),
             const VerticalDivider(width: 1, color: Colors.white12, indent: 15, endIndent: 15),
             _buildNavItem(context, Icons.home_filled, "Home", currentTab == "Home"),
             const VerticalDivider(width: 1, color: Colors.white12, indent: 15, endIndent: 15),
@@ -52,9 +53,17 @@ class AppBottomNav extends StatelessWidget {
           );
         } else if (label == "Home" && currentTab != "Home") {
           Navigator.popUntil(context, (route) => route.isFirst);
-        } else if (label == "Perfil" && currentTab != "Perfil") {
-          // El perfil es parte de la pantalla de Home
-          Navigator.popUntil(context, (route) => route.isFirst);
+        } else if (label == "Mi cuenta" && currentTab != "Perfil") {
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const ProfileMainScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              transitionDuration: const Duration(milliseconds: 200),
+            ),
+          );
         }
       },
       behavior: HitTestBehavior.opaque,

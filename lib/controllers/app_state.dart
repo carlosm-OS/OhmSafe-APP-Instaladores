@@ -6,10 +6,79 @@ import '../services/hubspot_service.dart';
 class AppState extends ChangeNotifier {
   final HubspotService _hubspotService = HubspotService();
 
-  final String installerName = "Juan Mora";
+  String _installerName = "Juan Mora";
+  String get installerName => _installerName;
+
   final String installerId = "65243";
   final String installerRole = "Instalador";
   final String installerAvatar = "avatar.png";
+
+  String _installerPhone = "55 5266 7879";
+  String get installerPhone => _installerPhone;
+
+  String _installerEmail = "juan@ohmsafe.com";
+  String get installerEmail => _installerEmail;
+
+  String _installerCurp = "JMY790428HDFM01";
+  String get installerCurp => _installerCurp;
+
+  void updateInstallerInfo({
+    required String name,
+    required String phone,
+    required String email,
+    required String curp,
+  }) {
+    _installerName = name;
+    _installerPhone = phone;
+    _installerEmail = email;
+    _installerCurp = curp;
+    notifyListeners();
+  }
+
+  String _bankHolder = "Juan Mora";
+  String get bankHolder => _bankHolder;
+
+  String _bankClabe = "5552667879000";
+  String get bankClabe => _bankClabe;
+
+  String _bankName = "BBVA";
+  String get bankName => _bankName;
+
+  String _bankAccount = "876283712";
+  String get bankAccount => _bankAccount;
+
+  void updateBankInfo({
+    required String holder,
+    required String clabe,
+    required String name,
+    required String account,
+  }) {
+    _bankHolder = holder;
+    _bankClabe = clabe;
+    _bankName = name;
+    _bankAccount = account;
+    notifyListeners();
+  }
+
+  String? _customAvatarPath;
+  String? get customAvatarPath => _customAvatarPath;
+
+  void updateAvatarPath(String path) {
+    _customAvatarPath = path;
+    notifyListeners();
+  }
+
+  String? _taxCertificatePath;
+  String? get taxCertificatePath => _taxCertificatePath;
+
+  String? _taxCertificateName;
+  String? get taxCertificateName => _taxCertificateName;
+
+  void updateTaxCertificate(String? path, String? name) {
+    _taxCertificatePath = path;
+    _taxCertificateName = name;
+    notifyListeners();
+  }
 
   int _instalacionesCount = 3;
   int _reparacionesCount = 0;

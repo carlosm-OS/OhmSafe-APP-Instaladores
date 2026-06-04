@@ -10,6 +10,7 @@ class HubspotService {
       details: [
         "Abierto por 1 días",
         "Fecha de Creación: 7/02/2026",
+        "Metraje: 70m",
         "Dirección: Nellie Campobello 129 Col. Sn Pedro, CDMX"
       ],
       user: "Alfredo López",
@@ -18,7 +19,12 @@ class HubspotService {
       id: 2,
       title: "Ticket de Instalación Hogar Seguro Pago Mensual",
       isUrgent: false,
-      details: [],
+      details: [
+        "Abierto por 3 días",
+        "Fecha de Creación: 22/05/2026",
+        "Metraje: 35m",
+        "Dirección: Av. Universidad 1200 Col. Xoco, Benito Juárez"
+      ],
       user: "Sonia Morales",
     ),
     Ticket(
@@ -28,6 +34,7 @@ class HubspotService {
       details: [
         "Abierto por 0 días",
         "Fecha de Creación: 25/05/2026",
+        "Metraje: 40m",
         "Dirección: Av. Horacio 450, Polanco, CDMX"
       ],
       user: "Alfredo López",
@@ -39,6 +46,7 @@ class HubspotService {
       details: [
         "Abierto por 3 días",
         "Fecha de Creación: 22/05/2026",
+        "Metraje: 15m",
         "Dirección: Temístocles 89, Miguel Hidalgo, CDMX"
       ],
       user: "Sonia Morales",

@@ -84,6 +84,11 @@ class _MenuItemTileState extends State<MenuItemTile> with SingleTickerProviderSt
         iconColor = const Color(0xFF9333EA);
         iconData = Icons.cached_rounded;
         break;
+      case "Reportar incidencias":
+        iconBgColor = isDark ? const Color(0xFF3B2424) : const Color(0xFFFEE2E2);
+        iconColor = const Color(0xFFEF4444);
+        iconData = Icons.warning_amber_rounded;
+        break;
       default:
         iconBgColor = isDark ? const Color(0xFF2D3748) : const Color(0xFFEDF2F7);
         iconColor = isDark ? Colors.white70 : const Color(0xFF4A5568);
