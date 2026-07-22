@@ -4,6 +4,7 @@ import '../widgets/app_bottom_nav.dart';
 import 'route_details_screen.dart';
 import 'perimeter_inspection_screen.dart';
 import 'fence_installation_screen.dart';
+import 'reparacion_screen.dart';
 import 'link_energizer_screen.dart';
 import 'instalaciones_screen.dart';
 import 'cierre_instalacion_screen.dart';
@@ -336,6 +337,16 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   bool _step5Completed = false;
   bool _isSubmitting = false;
 
+  /// El paso 3 es una variante: instalación de cerca por defecto, o
+  /// reparación cuando el ticket es de tipo reparación. Se detecta por
+  /// el campo `type` del ticket o, en su defecto, por el título.
+  bool get _isReparacion {
+    final type = (widget.ticket["type"] as String?)?.toLowerCase() ?? '';
+    if (type.contains('reparacion') || type.contains('reparación')) return true;
+    final title = (widget.ticket["title"] as String?)?.toLowerCase() ?? '';
+    return title.contains('reparacion') || title.contains('reparación');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -659,8 +670,12 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                       _buildStepItem(
                         context,
                         number: "3",
-                        title: "Instalación de cerca eléctrica",
-                        subtitle: "Proceso de instalación de cerca en el perímetro",
+                        title: _isReparacion
+                            ? "Reparación de cerca eléctrica"
+                            : "Instalación de cerca eléctrica",
+                        subtitle: _isReparacion
+                            ? "Costeo de hilos, componentes y energizador"
+                            : "Proceso de instalación de cerca en el perímetro",
                         isActive: _step2Completed && !_step3Completed,
                         isCompleted: _step3Completed,
                         onTap: (_step2Completed && !_step3Completed)
@@ -668,10 +683,15 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => FenceInstallationScreen(ticket: widget.ticket),
+                                    builder: (_) => _isReparacion
+                                        ? ReparacionScreen(ticket: widget.ticket)
+                                        : FenceInstallationScreen(ticket: widget.ticket),
                                   ),
                                 );
-                                if (result == 'installation_completed') {
+                                final expected = _isReparacion
+                                    ? 'reparacion_completed'
+                                    : 'installation_completed';
+                                if (result == expected) {
                                   setState(() {
                                     _step3Completed = true;
                                   });
