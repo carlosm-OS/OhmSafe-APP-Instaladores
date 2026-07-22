@@ -54,7 +54,6 @@ class _HiloDanado {
 class _ReparacionScreenState extends State<ReparacionScreen> {
   static const orangeAccent = Color(0xFFFF5A00);
   static const darkCard = Color(0xFF1E293B);
-  static const successGreen = Color(0xFF15803D);
   static const warnRed = Color(0xFFD43F00);
 
   final List<_HiloDanado> _hilos = [_HiloDanado()];
@@ -630,22 +629,23 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: orangeAccent,
+              color: const Color(0xFF0F172A),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: orangeAccent, width: 1.5),
             ),
             child: Column(
               children: [
-                const Text('COSTO TOTAL DEL EVENTO',
+                Text('COSTO TOTAL DEL EVENTO',
                     style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1,
-                        color: Colors.white)),
+                        color: Colors.white.withOpacity(0.7))),
                 Text(_peso(_moTotal + _matTotal),
                     style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white)),
+                        color: orangeAccent)),
               ],
             ),
           ),
@@ -685,7 +685,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
       width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: successGreen,
+          backgroundColor: orangeAccent,
           disabledBackgroundColor: theme.dividerColor,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
