@@ -42,6 +42,22 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
 
   final List<Map<String, dynamic>> _ticketTemplates = [
     {
+      "title": "Ticket de Reparación de Cerca Eléctrica",
+      "type": "reparacion",
+      "status": "Por hacer",
+      "isUrgent": true,
+      "details": {
+        "openDays": "1",
+        "createdDate": "21/07/2026",
+        "metraje": "65m",
+        "direccion": "Cerrada de Puebla 45 Col. Roma Norte, Cuauhtémoc",
+        "ciudad": "CDMX",
+        "cp": "06700",
+        "telefono": "55 2233 4455"
+      },
+      "user": "Mariana Ríos"
+    },
+    {
       "title": "Ticket de Instalación Fortress + Pago Anual",
       "status": "Por hacer",
       "isUrgent": false,
