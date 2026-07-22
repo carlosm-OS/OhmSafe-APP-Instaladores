@@ -42,6 +42,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   final _photoCommentsController = TextEditingController();
   String? _step1Error;
 
+  // Reparación: evidencias fotográficas dinámicas (se agregan una a una).
+  // Guardamos ids estables; la etiqueta visible ("Foto N") se calcula por
+  // posición, y la clave de almacenamiento por id se mantiene fija.
+  final List<int> _repairPhotoSlots = [1];
+  int _repairPhotoCounter = 1;
+
   // Step 2 State: Remote control and packaging photos
   final _serialNumberController = TextEditingController();
   String? _boxPhotoPath;
@@ -264,14 +270,51 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     }
   }
 
+  // ----- Reparación: manejo de fotos de evidencia dinámicas -----
+  String _repairKey(int id) => 'Reparación foto $id';
+
+  // Solo se puede agregar otra foto cuando todas las actuales ya se tomaron.
+  bool get _canAddRepairPhoto =>
+      _repairPhotoSlots.every((id) => _simulatedPhotos.contains(_repairKey(id)));
+
+  void _addRepairPhotoSlot() {
+    setState(() {
+      _repairPhotoCounter++;
+      _repairPhotoSlots.add(_repairPhotoCounter);
+    });
+  }
+
+  void _removeRepairPhotoSlot(int id) {
+    final key = _repairKey(id);
+    setState(() {
+      _repairPhotoSlots.remove(id);
+      _photoPaths.remove(key);
+      _photoLocations.remove(key);
+      _photoTimestamps.remove(key);
+      _geoMismatches.remove(key);
+      _simulatedPhotos.remove(key);
+    });
+  }
+
+  // ¿Están cubiertas las evidencias fotográficas del paso 1?
+  bool _evidenciasCompletas() {
+    if (_isReparacion) {
+      // Al menos una foto y sin slots vacíos.
+      if (_repairPhotoSlots.isEmpty) return false;
+      for (final id in _repairPhotoSlots) {
+        if (!_simulatedPhotos.contains(_repairKey(id))) return false;
+      }
+      return true;
+    }
+    for (String cat in _categories) {
+      if (!_simulatedPhotos.contains(cat)) return false;
+    }
+    return true;
+  }
+
   // Validate Step 1
   bool _validateStep1() {
-    // All 4 categories must be in _simulatedPhotos
-    for (String cat in _categories) {
-      if (!_simulatedPhotos.contains(cat)) {
-        return false;
-      }
-    }
+    if (!_evidenciasCompletas()) return false;
 
     // Anti-fraud validation: if any photo has location mismatch, comments must be provided
     bool hasMismatch = _geoMismatches.values.contains(true);
@@ -300,11 +343,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Helper to validate all conditions for the final submit button
   bool _canSubmitCierre() {
-    // a) Las 4 categorías fotográficas estén en la lista _simulatedPhotos.
-    for (String cat in _categories) {
-      if (!_simulatedPhotos.contains(cat)) {
-        return false;
-      }
+    // a) Las evidencias fotográficas estén completas (4 categorías en
+    //    instalación, o al menos una foto de reparación sin slots vacíos).
+    if (!_evidenciasCompletas()) {
+      return false;
     }
     // b) La firma haya sido capturada (valida que no esté vacía).
     if (!_signatureConfirmed || _signaturePoints.isEmpty) {
@@ -328,9 +370,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (!_validateStep1()) {
         bool hasMismatch = _geoMismatches.values.contains(true);
         setState(() {
-          _step1Error = hasMismatch 
-            ? "⚠️ Alerta de fraude. Se detectó discrepancia de ubicación. Justifica las anomalías en el campo de texto." 
-            : "Por favor, toma las 4 fotografías obligatorias.";
+          _step1Error = hasMismatch
+            ? "⚠️ Alerta de fraude. Se detectó discrepancia de ubicación. Justifica las anomalías en el campo de texto."
+            : (_isReparacion
+                ? "Agrega al menos una foto de la reparación (sin dejar fotos pendientes de captura)."
+                : "Por favor, toma las 4 fotografías obligatorias.");
         });
         return;
       }
@@ -596,7 +640,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          "EVIDENCIAS FOTOGRÁFICAS OBLIGATORIAS",
+          _isReparacion
+              ? "EVIDENCIAS DE LA REPARACIÓN"
+              : "EVIDENCIAS FOTOGRÁFICAS OBLIGATORIAS",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -606,7 +652,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          "Captura las fotografías requeridas en el lugar de la instalación. El sistema verificará de forma segura las coordenadas de localización.",
+          _isReparacion
+              ? "Agrega las fotografías de la reparación realizada. Toma la primera y, si necesitas otra, pulsa \"Agregar foto\". El sistema verifica las coordenadas de cada captura."
+              : "Captura las fotografías requeridas en el lugar de la instalación. El sistema verificará de forma segura las coordenadas de localización.",
           style: TextStyle(
             fontSize: 13,
             color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
@@ -615,8 +663,15 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 20),
 
-        // 4 Categories photo panels
-        ..._categories.map((cat) => _buildPhotoCategoryCard(cat, brandDark, brandOrange)),
+        // Fotos: en reparación, lista dinámica que se agrega una a una;
+        // en instalación, las 4 categorías fijas.
+        if (_isReparacion) ...[
+          ..._repairPhotoSlots.asMap().entries.map(
+                (e) => _buildRepairPhotoCard(e.value, e.key, brandDark, brandOrange),
+              ),
+          _buildAddRepairPhotoButton(brandOrange),
+        ] else
+          ..._categories.map((cat) => _buildPhotoCategoryCard(cat, brandDark, brandOrange)),
 
         // Anti-fraud GPS mismatch warning banner
         if (anyGeoMismatch) ...[
@@ -817,6 +872,140 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   ),
                 ),
         ],
+      ),
+    );
+  }
+
+  // Tarjeta de una foto de evidencia de reparación (etiqueta "Foto N" por
+  // posición; datos guardados con clave estable por id). Permite reemplazar
+  // la foto y eliminar el slot si hay más de uno.
+  Widget _buildRepairPhotoCard(int id, int index, Color brandDark, Color brandOrange) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final key = _repairKey(id);
+    final hasPhoto = _photoPaths[key] != null;
+    final isMismatched = _geoMismatches[key] ?? false;
+    final isCapturing = _capturingCategory == key;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isMismatched
+              ? Colors.redAccent
+              : (hasPhoto ? Colors.green.shade200 : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+        ),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 50,
+              height: 50,
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              child: hasPhoto
+                  ? const Icon(Icons.check_circle, color: Color(0xFFFF8D28), size: 28)
+                  : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Foto ${index + 1}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                if (hasPhoto) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        isMismatched ? Icons.gps_off_rounded : Icons.gps_fixed_rounded,
+                        size: 13,
+                        color: isMismatched ? Colors.redAccent : Colors.green,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isMismatched ? "Desfase GPS (>200m)" : "Verificado",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isMismatched ? Colors.redAccent : Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else
+                  Text(
+                    "Pendiente de captura",
+                    style: TextStyle(fontSize: 11, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
+                  ),
+              ],
+            ),
+          ),
+          // Eliminar slot (solo si hay más de una foto)
+          if (_repairPhotoSlots.length > 1)
+            IconButton(
+              onPressed: isCapturing ? null : () => _removeRepairPhotoSlot(id),
+              icon: const Icon(Icons.close_rounded, size: 20, color: Colors.redAccent),
+            ),
+          // Capturar / reemplazar
+          isCapturing
+              ? const SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF8D28)),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  onPressed: () => _simulatePhotoCapture(key),
+                  icon: Icon(
+                    hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
+                    color: hasPhoto ? Colors.green : brandOrange,
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+
+  // Botón "Agregar foto": habilitado solo cuando todas las fotos actuales
+  // ya se tomaron (flujo de una en una).
+  Widget _buildAddRepairPhotoButton(Color brandOrange) {
+    final theme = Theme.of(context);
+    final enabled = _canAddRepairPhoto;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      child: SizedBox(
+        height: 48,
+        child: OutlinedButton.icon(
+          onPressed: enabled ? _addRepairPhotoSlot : null,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: brandOrange,
+            side: BorderSide(
+              color: enabled ? brandOrange : theme.dividerColor,
+              width: 1.5,
+            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          icon: const Icon(Icons.add_a_photo_rounded, size: 18),
+          label: const Text(
+            "Agregar foto",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }
