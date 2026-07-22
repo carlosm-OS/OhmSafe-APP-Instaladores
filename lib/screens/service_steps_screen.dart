@@ -432,7 +432,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           width: double.infinity,
                           alignment: Alignment.center,
                           child: Text(
-                            "Instalaciones",
+                            _isReparacion ? "Reparaciones" : "Instalaciones",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 18,
@@ -699,37 +699,42 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                               }
                             : null,
                       ),
-                      _buildStepItem(
-                        context,
-                        number: "4",
-                        title: "Vinculación del energizador",
-                        subtitle: "Requiere escanear QR",
-                        isActive: _step3Completed && !_step4Completed,
-                        isCompleted: _step4Completed,
-                        onTap: (_step3Completed && !_step4Completed)
-                            ? () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => LinkEnergizerScreen(ticket: widget.ticket),
-                                  ),
-                                );
-                                if (result == 'device_linked') {
-                                  setState(() {
-                                    _step4Completed = true;
-                                  });
+                      // Vinculación del energizador: solo aplica a instalaciones.
+                      // En reparaciones este paso no existe.
+                      if (!_isReparacion)
+                        _buildStepItem(
+                          context,
+                          number: "4",
+                          title: "Vinculación del energizador",
+                          subtitle: "Requiere escanear QR",
+                          isActive: _step3Completed && !_step4Completed,
+                          isCompleted: _step4Completed,
+                          onTap: (_step3Completed && !_step4Completed)
+                              ? () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => LinkEnergizerScreen(ticket: widget.ticket),
+                                    ),
+                                  );
+                                  if (result == 'device_linked') {
+                                    setState(() {
+                                      _step4Completed = true;
+                                    });
+                                  }
                                 }
-                              }
-                            : null,
-                      ),
+                              : null,
+                        ),
+                      // Cierre: paso 4 en reparaciones (sin energizador) o 5 en
+                      // instalaciones. Se habilita tras el paso 3 en reparaciones.
                       _buildStepItem(
                         context,
-                        number: "5",
-                        title: "Cierre de la instalación",
+                        number: _isReparacion ? "4" : "5",
+                        title: _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
                         subtitle: "Configuración final",
-                        isActive: _step4Completed && !_step5Completed,
+                        isActive: (_isReparacion ? _step3Completed : _step4Completed) && !_step5Completed,
                         isCompleted: _step5Completed,
-                        onTap: (_step4Completed && !_step5Completed)
+                        onTap: ((_isReparacion ? _step3Completed : _step4Completed) && !_step5Completed)
                             ? () async {
                                 final result = await Navigator.push(
                                   context,
@@ -767,7 +772,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                               elevation: 0,
                             ),
                             child: Text(
-                              "Terminar instalación",
+                              _isReparacion ? "Terminar reparación" : "Terminar instalación",
                               style: TextStyle(
                                 color: _step5Completed
                                     ? Colors.white
