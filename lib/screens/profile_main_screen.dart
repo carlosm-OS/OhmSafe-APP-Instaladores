@@ -340,40 +340,48 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
+    // El color de fondo va en el Material (no en un Container decorado), para
+    // que el ListTile pinte su fondo/ripple directamente sobre él. Así se evita
+    // la aserción de Flutter "ListTile background color or ink splashes may be
+    // invisible" que ocurre cuando un DecoratedBox con color se interpone.
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
         color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF334155).withOpacity(0.5)
-              : const Color(0xFFE2E8F0).withOpacity(0.4),
-        ),
-      ),
-      child: ListTile(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => targetScreen),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-        leading: Icon(
-          icon,
-          color: const Color(0xFFFF5A00),
-          size: 22,
-        ),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => targetScreen),
           ),
-        ),
-        trailing: Icon(
-          Icons.chevron_right_rounded,
-          color: Colors.grey.shade400,
-          size: 22,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isDark
+                  ? const Color(0xFF334155).withOpacity(0.5)
+                  : const Color(0xFFE2E8F0).withOpacity(0.4),
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          leading: Icon(
+            icon,
+            color: const Color(0xFFFF5A00),
+            size: 22,
+          ),
+          title: Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+            ),
+          ),
+          trailing: Icon(
+            Icons.chevron_right_rounded,
+            color: Colors.grey.shade400,
+            size: 22,
+          ),
         ),
       ),
     );
