@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
+import 'reparaciones_screen.dart';
 import 'profile_main_screen.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/avatar_halo.dart';
@@ -124,7 +125,10 @@ class HomeScreen extends StatelessWidget {
                       MenuItemTile(
                         label: "Reparaciones",
                         count: state.reparacionesCount,
-                        onTap: () => _showComingSoon(context, "Reparaciones"),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ReparacionesScreen()),
+                        ),
                       ),
                       MenuItemTile(
                         label: "Mantenimientos",
