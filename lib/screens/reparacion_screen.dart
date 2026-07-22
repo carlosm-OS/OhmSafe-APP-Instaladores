@@ -693,6 +693,9 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
         ),
         onPressed: tieneAlgo
             ? () {
+                // Marca en el ticket si se cambió el energizador; el cierre
+                // solo pide serie/evidencia de control cuando esto es true.
+                widget.ticket['energizador_cambiado'] = _energizador > 0;
                 // En producción: enviar payload al backend y pasar al
                 // cierre con fotos geolocalizadas + firma (mismo patrón
                 // que CierreInstalacionScreen).

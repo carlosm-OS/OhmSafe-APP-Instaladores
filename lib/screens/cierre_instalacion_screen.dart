@@ -58,6 +58,19 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   bool _signatureConfirmed = false;
   String? _step3Error;
 
+  // ¿Es un cierre de reparación? (por tipo de ticket)
+  bool get _isReparacion {
+    final type = (widget.ticket["type"] as String?)?.toLowerCase() ?? '';
+    return type.contains('reparacion') || type.contains('reparación');
+  }
+
+  // En reparación, ReparacionScreen marca si se cambió el energizador.
+  bool get _energizadorCambiado => widget.ticket["energizador_cambiado"] == true;
+
+  // El paso "Equipo" (serie del control + evidencia) aplica en instalaciones
+  // siempre, y en reparaciones solo si se cambió el energizador.
+  bool get _requiereEquipo => !_isReparacion || _energizadorCambiado;
+
   @override
   void dispose() {
     _photoCommentsController.dispose();
@@ -271,14 +284,17 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Validate Step 2
   bool _validateStep2() {
+    // En reparación sin cambio de energizador no se pide serie ni evidencia.
+    if (!_requiereEquipo) return true;
+
     if (_serialNumberController.text.trim().isEmpty) return false;
     if (!_simulatedPhotos.contains("Caja/Serie")) return false;
-    
+
     // If box photo location mismatches, justification is mandatory
     if (_boxGeoMismatch && _step2CommentsController.text.trim().isEmpty) {
       return false;
     }
-    
+
     return true;
   }
 
@@ -294,8 +310,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (!_signatureConfirmed || _signaturePoints.isEmpty) {
       return false;
     }
-    // c) El número de serie del control remoto haya sido ingresado.
-    if (_serialNumberController.text.trim().isEmpty) {
+    // c) El número de serie del control remoto haya sido ingresado
+    //    (solo cuando aplica el paso de equipo).
+    if (_requiereEquipo && _serialNumberController.text.trim().isEmpty) {
       return false;
     }
     return true;
@@ -423,10 +440,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        const Text(
-                          "Instalaciones",
+                        Text(
+                          _isReparacion ? "Reparaciones" : "Instalaciones",
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
                           ),
@@ -460,7 +477,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 // Screen Subtitle
                 Center(
                   child: Text(
-                    "Cierre de instalación",
+                    _isReparacion ? "Cierre de la reparación" : "Cierre de instalación",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -810,6 +827,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final hasBoxPhoto = _boxPhotoPath != null;
 
+    // Reparación sin cambio de energizador: no hay control nuevo que
+    // registrar, así que no se piden serie ni evidencia de equipo.
+    if (!_requiereEquipo) {
+      return _buildStep2SinEquipo(brandDark, brandOrange);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1073,6 +1096,139 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     );
   }
 
+  // STEP 2 (variante): reparación sin cambio de energizador.
+  Widget _buildStep2SinEquipo(Color brandDark, Color brandOrange) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          "ENTREGA DE EQUIPO Y ACCESORIOS",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline_rounded, color: Color(0xFFFF8D28), size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Sin cambio de energizador",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: theme.textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "En esta reparación no se reemplazó el energizador, por lo que no se requiere registrar número de serie del control ni evidencia de equipo.",
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        height: 1.4,
+                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Comentarios opcionales del equipo (no obligatorio)
+        const SizedBox(height: 24),
+        Text(
+          "COMENTARIOS DE EQUIPO (OPCIONAL)",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _step2CommentsController,
+          maxLines: 3,
+          style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+          decoration: InputDecoration(
+            hintText: "Observaciones sobre el equipo existente (opcional)...",
+            filled: true,
+            fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFFF8D28), width: 1.5),
+            ),
+          ),
+        ),
+
+        // Navegación
+        const SizedBox(height: 32),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: OutlinedButton(
+                  onPressed: _prevStep,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: brandDark,
+                    side: BorderSide(color: isDark ? Colors.white24 : Colors.black12, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text(
+                    "Atrás",
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _nextStep,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF5A00),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: const Text("Siguiente", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   // STEP 3 CONTENT: Signature and termination
   Widget _buildStep3Signature(Color brandDark, Color brandOrange) {
     final theme = Theme.of(context);
@@ -1285,10 +1441,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    "TERMINAR INSTALACIÓN",
+                  child: Text(
+                    _isReparacion ? "TERMINAR REPARACIÓN" : "TERMINAR INSTALACIÓN",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                   ),
                 ),
               ),
