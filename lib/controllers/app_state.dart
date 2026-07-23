@@ -105,6 +105,20 @@ class AppState extends ChangeNotifier {
   String get syncStatusMessage => _syncStatusMessage;
   List<Ticket> get activeTickets => _activeTickets;
 
+  // Historial de tickets completados (instalaciones y reparaciones).
+  // En memoria durante la sesión; en producción vendría del backend.
+  final List<Map<String, dynamic>> _history = [];
+  List<Map<String, dynamic>> get history => List.unmodifiable(_history);
+
+  // Registra un ticket como completado, sellando la fecha de cierre.
+  void addCompletedTicket(Map<String, dynamic> ticket) {
+    final entry = Map<String, dynamic>.from(ticket);
+    entry['status'] = 'Completo';
+    entry['completedAt'] = DateTime.now();
+    _history.insert(0, entry); // el más reciente primero
+    notifyListeners();
+  }
+
   void adjustCount(String itemId, int delta) {
     switch (itemId) {
       case 'instalaciones':

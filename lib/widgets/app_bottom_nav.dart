@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/help_screen.dart';
 import '../screens/profile_main_screen.dart';
+import '../screens/historial_screen.dart';
 
 class AppBottomNav extends StatelessWidget {
   final String currentTab;
@@ -29,6 +30,8 @@ class AppBottomNav extends StatelessWidget {
             const VerticalDivider(width: 1, color: Colors.white12, indent: 15, endIndent: 15),
             _buildNavItem(context, Icons.home_filled, "Home", currentTab == "Home"),
             const VerticalDivider(width: 1, color: Colors.white12, indent: 15, endIndent: 15),
+            _buildNavItem(context, Icons.history_rounded, "Historial", currentTab == "Historial"),
+            const VerticalDivider(width: 1, color: Colors.white12, indent: 15, endIndent: 15),
             _buildNavItem(context, Icons.help_outline_rounded, "Ayuda", currentTab == "Ayuda"),
           ],
         ),
@@ -53,6 +56,17 @@ class AppBottomNav extends StatelessWidget {
           );
         } else if (label == "Home" && currentTab != "Home") {
           Navigator.popUntil(context, (route) => route.isFirst);
+        } else if (label == "Historial" && currentTab != "Historial") {
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const HistorialScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              transitionDuration: const Duration(milliseconds: 200),
+            ),
+          );
         } else if (label == "Mi cuenta" && currentTab != "Perfil") {
           Navigator.push(
             context,
@@ -68,15 +82,15 @@ class AppBottomNav extends StatelessWidget {
       },
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 26),
+            Icon(icon, color: color, size: 24),
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+              style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w600),
             ),
           ],
         ),

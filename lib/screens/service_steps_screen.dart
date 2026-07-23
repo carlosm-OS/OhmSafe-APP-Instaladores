@@ -7,7 +7,9 @@ import 'fence_installation_screen.dart';
 import 'reparacion_screen.dart';
 import 'link_energizer_screen.dart';
 import 'instalaciones_screen.dart';
+import 'reparaciones_screen.dart';
 import 'cierre_instalacion_screen.dart';
+import '../controllers/app_state_provider.dart';
 
 // --- TRUCK ANIMATION PAGE ---
 class TruckAnimationPage extends StatefulWidget {
@@ -915,6 +917,10 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
         _isSubmitting = false;
       });
 
+      final bool isRep = _isReparacion;
+      // Registra el ticket completado en el historial del instalador.
+      AppStateProvider.of(context).addCompletedTicket(widget.ticket);
+
       // Show beautiful success dialog
       showDialog(
         context: context,
@@ -945,18 +951,20 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    "¡Instalación Finalizada!",
-                    style: TextStyle(
+                  Text(
+                    isRep ? "¡Reparación Finalizada!" : "¡Instalación Finalizada!",
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    "Los datos de cierre, evidencias fotográficas geo-localizadas y la firma de conformidad han sido enviados con éxito.",
-                    style: TextStyle(
+                  Text(
+                    isRep
+                        ? "El costeo de la reparación, las evidencias fotográficas geo-localizadas y la firma de conformidad han sido enviados con éxito."
+                        : "Los datos de cierre, evidencias fotográficas geo-localizadas y la firma de conformidad han sido enviados con éxito.",
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
                       height: 1.5,
@@ -972,9 +980,11 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => InstalacionesScreen(
-                              completedTicketTitle: widget.ticket["title"],
-                            ),
+                            builder: (_) => isRep
+                                ? const ReparacionesScreen()
+                                : InstalacionesScreen(
+                                    completedTicketTitle: widget.ticket["title"],
+                                  ),
                           ),
                           (route) => false,
                         );
@@ -988,9 +998,9 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        "Volver a Instalaciones",
-                        style: TextStyle(
+                      child: Text(
+                        isRep ? "Volver a Reparaciones" : "Volver a Instalaciones",
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
