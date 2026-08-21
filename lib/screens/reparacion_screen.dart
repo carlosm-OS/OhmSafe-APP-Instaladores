@@ -368,54 +368,62 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Text('Dificultad de este hilo',
-                  style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color:
-                          theme.textTheme.bodyMedium?.color?.withOpacity(0.5))),
-              const Spacer(),
-              _difChips(theme, hilo),
-            ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Dificultad de este hilo',
+                style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color:
+                        theme.textTheme.bodyMedium?.color?.withOpacity(0.5))),
           ),
+          const SizedBox(height: 6),
+          _difChips(theme, hilo),
         ],
       ),
     );
   }
 
   Widget _difChips(ThemeData theme, _HiloDanado hilo) {
+    final vals = DificultadHilo.values;
+    // Chips que reparten el ancho disponible (Expanded) para no desbordar
+    // en pantallas angostas.
     return Row(
-      children: DificultadHilo.values.map((d) {
+      children: List.generate(vals.length, (i) {
+        final d = vals[i];
         final sel = hilo.dificultad == d;
-        return GestureDetector(
-          onTap: () => setState(() => hilo.dificultad = d),
-          child: Container(
-            margin: const EdgeInsets.only(left: 6),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: sel ? darkCard : theme.cardColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                  color: sel ? darkCard : theme.dividerColor, width: 1.4),
-            ),
-            child: Text(
-              d.pctExtra > 0
-                  ? '${d.etiqueta} +${d.pctExtra.toStringAsFixed(0)}%'
-                  : d.etiqueta,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: sel
-                    ? orangeAccent
-                    : theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => hilo.dificultad = d),
+            child: Container(
+              margin: EdgeInsets.only(left: i == 0 ? 0 : 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: sel ? darkCard : theme.cardColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: sel ? darkCard : theme.dividerColor, width: 1.4),
+              ),
+              child: Text(
+                d.pctExtra > 0
+                    ? '${d.etiqueta} +${d.pctExtra.toStringAsFixed(0)}%'
+                    : d.etiqueta,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: sel
+                      ? orangeAccent
+                      : theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                ),
               ),
             ),
           ),
         );
-      }).toList(),
+      }),
     );
   }
 
