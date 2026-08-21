@@ -3,7 +3,6 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../widgets/app_bottom_nav.dart';
-import 'instalaciones_screen.dart';
 
 class CierreInstalacionScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -37,8 +36,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   // Simulated photo list and capture states
   final List<String> _simulatedPhotos = [];
   String? _capturingCategory;
-  bool _isCapturingBox = false;
-  
+
   final _photoCommentsController = TextEditingController();
   String? _step1Error;
 
@@ -48,15 +46,13 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   final List<int> _repairPhotoSlots = [1];
   int _repairPhotoCounter = 1;
 
-  // Step 2 State: Remote control and packaging photos
-  final _serialNumberController = TextEditingController();
-  String? _boxPhotoPath;
-  Position? _boxLocation;
-  DateTime? _boxTimestamp;
-  bool _boxGeoMismatch = false;
-  
+  // Step 2 State: confirmación de entrega del equipo (checks, sin foto/serie).
+  bool _controlEntregado = false;        // Entregué el control remoto al cliente
+  bool _entregaConAnomalias = false;     // false = todo funcional; true = hubo anomalías
+  bool _anomFisica = false;              // Daño físico
+  bool _anomFuncionamiento = false;      // Falla de funcionamiento
+  bool _anomControl = false;             // El control remoto no funcionó
   final _step2CommentsController = TextEditingController();
-  bool _isScanning = false;
   String? _step2Error;
 
   // Step 3 State: Signature Canvas
@@ -80,7 +76,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   @override
   void dispose() {
     _photoCommentsController.dispose();
-    _serialNumberController.dispose();
     _step2CommentsController.dispose();
     super.dispose();
   }
@@ -174,61 +169,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     }
   }
 
-  // Simulated box photo capture for Step 2
-  Future<void> _simulateBoxPhotoCapture() async {
-    if (_isCapturingBox) return;
-
-    setState(() {
-      _isCapturingBox = true;
-      _step2Error = null;
-    });
-
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      final position = await _getCurrentLocation();
-      final timestamp = DateTime.now();
-      bool isMatched = true;
-      if (position != null) {
-        isMatched = _validateGeoLocation(position.latitude, position.longitude);
-      }
-
-      setState(() {
-        if (!_simulatedPhotos.contains("Caja/Serie")) {
-          _simulatedPhotos.add("Caja/Serie");
-        }
-        _boxPhotoPath = "simulated_path_box.png";
-        _boxLocation = position;
-        _boxTimestamp = timestamp;
-        _boxGeoMismatch = !isMatched;
-        _isCapturingBox = false;
-      });
-    }
-  }
-
-  // Simulate remote control serial barcode scanner
-  Future<void> _startBarcodeScan() async {
-    setState(() {
-      _isScanning = true;
-    });
-
-    // Animate scanning lines overlay
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (mounted) {
-      setState(() {
-        _serialNumberController.text = "RC-OHM-26-${100000 + (DateTime.now().millisecond * 9)}";
-        _isScanning = false;
-      });
-    }
-  }
-
   // Submit all details and complete installation
   Future<void> _submitCierreInstalacion() async {
     // Compile JSON Payload
     final List<String> urlsFotos = [
       ..._photoPaths.values.where((p) => p != null).map((p) => p!),
-      if (_boxPhotoPath != null) _boxPhotoPath!,
     ];
 
     final Map<String, dynamic> geoJson = {};
@@ -243,20 +188,21 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       }
     });
 
-    if (_boxLocation != null) {
-      geoJson["Caja/Serie"] = {
-        "lat": _boxLocation!.latitude,
-        "lng": _boxLocation!.longitude,
-        "timestamp": _boxTimestamp?.toIso8601String(),
-        "mismatch": _boxGeoMismatch
-      };
-    }
+    final anomalias = <String>[
+      if (_anomFisica) 'daño_fisico',
+      if (_anomFuncionamiento) 'falla_funcionamiento',
+      if (_anomControl) 'control_no_funciona',
+    ];
 
     final payload = {
       "ticket_id": widget.ticket["id"] ?? "999",
       "urls_fotos": urlsFotos,
       "geolocalizacion": geoJson,
-      "serie_control": _serialNumberController.text.trim(),
+      "entrega_equipo": {
+        "control_remoto_entregado": _controlEntregado,
+        "entrega_funcional": !_entregaConAnomalias,
+        "anomalias": anomalias,
+      },
       "firma_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJY...", // Simulado
       "comentarios_generales": "Paso 1: ${_photoCommentsController.text.trim()} | Paso 2: ${_step2CommentsController.text.trim()}",
     };
@@ -325,17 +271,20 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     return true;
   }
 
-  // Validate Step 2
+  // Validate Step 2 (entrega de equipo por confirmación, sin foto/serie)
   bool _validateStep2() {
-    // En reparación sin cambio de energizador no se pide serie ni evidencia.
+    // En reparación sin cambio de energizador no aplica el paso de equipo.
     if (!_requiereEquipo) return true;
 
-    if (_serialNumberController.text.trim().isEmpty) return false;
-    if (!_simulatedPhotos.contains("Caja/Serie")) return false;
+    // Debe confirmar la entrega del control remoto al cliente.
+    if (!_controlEntregado) return false;
 
-    // If box photo location mismatches, justification is mandatory
-    if (_boxGeoMismatch && _step2CommentsController.text.trim().isEmpty) {
-      return false;
+    // Si reporta anomalías, debe marcar al menos un tipo o describirlas.
+    if (_entregaConAnomalias) {
+      final algunaAnom = _anomFisica || _anomFuncionamiento || _anomControl;
+      if (!algunaAnom && _step2CommentsController.text.trim().isEmpty) {
+        return false;
+      }
     }
 
     return true;
@@ -352,9 +301,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (!_signatureConfirmed || _signaturePoints.isEmpty) {
       return false;
     }
-    // c) El número de serie del control remoto haya sido ingresado
-    //    (solo cuando aplica el paso de equipo).
-    if (_requiereEquipo && _serialNumberController.text.trim().isEmpty) {
+    // c) La confirmación de entrega de equipo esté completa (cuando aplica).
+    if (!_validateStep2()) {
       return false;
     }
     return true;
@@ -384,9 +332,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     } else if (_currentStep == 2) {
       if (!_validateStep2()) {
         setState(() {
-          _step2Error = _boxGeoMismatch
-            ? "⚠️ Ubicación de la foto de la caja no coincide. Justifica las anomalías."
-            : "Completa el número de serie y la foto de la caja.";
+          _step2Error = !_controlEntregado
+            ? "Confirma la entrega del control remoto al cliente."
+            : "Indica el tipo de anomalía o descríbela en los comentarios.";
         });
         return;
       }
@@ -412,8 +360,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     // OhmSafe Color System
     const brandDark = Color(0xFF2E3440);
     const brandOrange = Color(0xFFFF8D28);
-    final isStep1Valid = _validateStep1();
-    final isStep2Valid = _validateStep2();
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -585,10 +531,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
           // Shared bottom navigation bar overlay
           const AppBottomNav(),
-
-          // Simulated Barcode Scanner Viewfinder Overlay
-          if (_isScanning)
-            _buildScannerOverlay(brandDark),
 
           // Sending loading overlay
           if (_isLoading)
@@ -1010,14 +952,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     );
   }
 
-  // STEP 2 CONTENT: Equipment serial & box photo
+  // STEP 2 CONTENT: confirmación de entrega de equipo (checks, sin foto/serie)
   Widget _buildStep2Equipment(Color brandDark, Color brandOrange) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final hasBoxPhoto = _boxPhotoPath != null;
 
-    // Reparación sin cambio de energizador: no hay control nuevo que
-    // registrar, así que no se piden serie ni evidencia de equipo.
+    // Reparación sin cambio de energizador: no hay equipo que entregar.
     if (!_requiereEquipo) {
       return _buildStep2SinEquipo(brandDark, brandOrange);
     }
@@ -1026,7 +966,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          "ENTREGA DE EQUIPO Y ACCESORIOS",
+          "ENTREGA DE EQUIPO",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -1036,18 +976,32 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          "Registra el control remoto entregado vinculando su número de serie físico, y toma una foto de la caja con la etiqueta de serie.",
+          "Confirma la entrega del control remoto al cliente y el estado del equipo. No se requiere foto ni número de serie.",
           style: TextStyle(
             fontSize: 13,
             color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
             height: 1.4,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // Serial Number field with Barcode Scan Button
+        // Check: entrega del control remoto
+        _entregaCheckTile(
+          theme,
+          isDark,
+          value: _controlEntregado,
+          label: "Entregué el control remoto al cliente",
+          onChanged: (v) => setState(() {
+            _controlEntregado = v;
+            _step2Error = null;
+          }),
+          brandOrange: brandOrange,
+        ),
+        const SizedBox(height: 20),
+
+        // Estado de la entrega
         Text(
-          "NÚMERO DE SERIE DEL CONTROL",
+          "ESTADO DE LA ENTREGA",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -1055,183 +1009,85 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _serialNumberController,
-                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                decoration: InputDecoration(
-                  hintText: "Escribe o escanea el código...",
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: _startBarcodeScan,
-              child: Container(
-                height: 52,
-                width: 52,
-                decoration: BoxDecoration(
-                  color: brandDark,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 24),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
+        _entregaSegmented(theme, brandDark, brandOrange),
 
-        // Panel: Upload photo of box / serial label
-        Text(
-          "FOTO DE LA CAJA O ETIQUETA",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _boxGeoMismatch
-                ? Colors.redAccent
-                : (hasBoxPhoto ? Colors.green.shade200 : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+        // Si hubo anomalías: tipos + descripción
+        if (_entregaConAnomalias) ...[
+          const SizedBox(height: 20),
+          Text(
+            "TIPO DE ANOMALÍA",
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
             ),
           ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                  child: hasBoxPhoto
-                      ? const Icon(Icons.check_circle, color: Color(0xFFFF8D28), size: 28)
-                      : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Foto de Caja y Serie",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    if (hasBoxPhoto) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            _boxGeoMismatch ? Icons.gps_off_rounded : Icons.gps_fixed_rounded,
-                            size: 13,
-                            color: _boxGeoMismatch ? Colors.redAccent : Colors.green,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _boxGeoMismatch ? "Desfase GPS (>200m)" : "Verificado",
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: _boxGeoMismatch ? Colors.redAccent : Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              _isCapturingBox
-                  ? const SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF8D28)),
-                        ),
-                      ),
-                    )
-                  : IconButton(
-                      onPressed: _simulateBoxPhotoCapture,
-                      icon: Icon(
-                        hasBoxPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
-                        color: hasBoxPhoto ? Colors.green : brandOrange,
-                      ),
-                    ),
-            ],
+          const SizedBox(height: 8),
+          _entregaCheckTile(
+            theme,
+            isDark,
+            value: _anomFisica,
+            label: "Daño físico en el equipo",
+            onChanged: (v) => setState(() {
+              _anomFisica = v;
+              _step2Error = null;
+            }),
+            brandOrange: brandOrange,
           ),
-        ),
-
-        // GPS warning for box photo
-        if (_boxGeoMismatch) ...[
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.red.shade200),
+          const SizedBox(height: 8),
+          _entregaCheckTile(
+            theme,
+            isDark,
+            value: _anomFuncionamiento,
+            label: "Falla de funcionamiento",
+            onChanged: (v) => setState(() {
+              _anomFuncionamiento = v;
+              _step2Error = null;
+            }),
+            brandOrange: brandOrange,
+          ),
+          const SizedBox(height: 8),
+          _entregaCheckTile(
+            theme,
+            isDark,
+            value: _anomControl,
+            label: "El control remoto no funcionó",
+            onChanged: (v) => setState(() {
+              _anomControl = v;
+              _step2Error = null;
+            }),
+            brandOrange: brandOrange,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            "DESCRIPCIÓN DE LA ANOMALÍA",
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
             ),
-            child: Text(
-              "⚠️ Ubicación de la foto no coincide con la dirección del cliente. Justifica las anomalías para poder continuar.",
-              style: TextStyle(color: Colors.red.shade900, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _step2CommentsController,
+            maxLines: 3,
+            style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+            onChanged: (_) => setState(() => _step2Error = null),
+            decoration: InputDecoration(
+              hintText: "Describe la anomalía (obligatorio si no marcaste un tipo arriba)...",
+              filled: true,
+              fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFFF8D28), width: 1.5),
+              ),
             ),
           ),
         ],
-
-        // Anomaly justification
-        const SizedBox(height: 24),
-        Text(
-          "JUSTIFICACIÓN DE ANOMALÍAS DE EQUIPO",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _step2CommentsController,
-          maxLines: 3,
-          style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-          decoration: InputDecoration(
-            hintText: _boxGeoMismatch
-              ? "Explica las causas del desfase de GPS..."
-              : "Comentarios sobre el estado de la entrega...",
-            filled: true,
-            fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: _boxGeoMismatch ? Colors.redAccent : brandOrange,
-                width: 1.5,
-              ),
-            ),
-          ),
-        ),
 
         if (_step2Error != null) ...[
           const SizedBox(height: 16),
@@ -1242,7 +1098,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           ),
         ],
 
-        // Navigation Buttons
+        // Navegación
         const SizedBox(height: 32),
         Row(
           children: [
@@ -1282,6 +1138,89 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  // Fila-check reutilizable (tap para alternar).
+  Widget _entregaCheckTile(
+    ThemeData theme,
+    bool isDark, {
+    required bool value,
+    required String label,
+    required ValueChanged<bool> onChanged,
+    required Color brandOrange,
+  }) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: value ? brandOrange : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            width: value ? 1.6 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              value ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+              color: value ? brandOrange : Colors.grey,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textTheme.bodyLarge?.color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Segmentado: Todo funcional / Con anomalías.
+  Widget _entregaSegmented(ThemeData theme, Color brandDark, Color brandOrange) {
+    final opciones = ['Todo funcional', 'Con anomalías'];
+    final selected = _entregaConAnomalias ? 1 : 0;
+    return Row(
+      children: opciones.asMap().entries.map((e) {
+        final sel = e.key == selected;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() {
+              _entregaConAnomalias = e.key == 1;
+              _step2Error = null;
+            }),
+            child: Container(
+              margin: EdgeInsets.only(right: e.key == 0 ? 8 : 0),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: sel ? brandDark : theme.cardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: sel ? brandDark : theme.dividerColor),
+              ),
+              child: Text(
+                e.value,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: sel ? Colors.white : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -1641,65 +1580,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           ],
         ),
       ],
-    );
-  }
-
-  // Viewfinder barcode scanning camera simulation overlay
-  Widget _buildScannerOverlay(Color brandDark) {
-    return Container(
-      color: Colors.black.withOpacity(0.85),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              "Escaneando Serie del Control...",
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Alinea el código de barras en el visor",
-              style: TextStyle(color: Colors.white60, fontSize: 12),
-            ),
-            const SizedBox(height: 32),
-            
-            // Camera scanner frame
-            Container(
-              width: 260,
-              height: 150,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.white54, width: 2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Stack(
-                children: [
-                  // Laser scan line
-                  Positioned(
-                    left: 10,
-                    right: 10,
-                    top: 75,
-                    child: Container(
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.redAccent.withOpacity(0.8),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 48),
-            const CircularProgressIndicator(color: Color(0xFFFF8D28)),
-          ],
-        ),
-      ),
     );
   }
 
