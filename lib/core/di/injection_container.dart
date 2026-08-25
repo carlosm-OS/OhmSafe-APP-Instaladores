@@ -3,6 +3,11 @@ import '../network/dio_client.dart';
 import '../../features/home/domain/repositories/home_repository.dart';
 import '../../features/home/data/datasources/home_remote_data_source.dart';
 import '../../features/home/data/repositories/home_repository_impl.dart';
+import '../../features/ordenes/data/datasources/ordenes_data_source.dart';
+import '../../features/ordenes/data/datasources/ordenes_mock_data_source.dart';
+import '../../features/ordenes/data/datasources/ordenes_remote_data_source.dart';
+import '../../features/ordenes/data/repositories/ordenes_repository_impl.dart';
+import '../../features/ordenes/domain/repositories/ordenes_repository.dart';
 
 class sl {
   static final Map<Type, dynamic> _instances = {};
@@ -39,6 +44,16 @@ class sl {
     );
     registerLazySingleton<HomeRepository>(
       () => HomeRepositoryImpl(remoteDataSource: get<HomeRemoteDataSource>()),
+    );
+
+    // Órdenes de servicio: Mock o Api según el flag useMock (contract-first).
+    registerLazySingleton<OrdenesDataSource>(
+      () => envConfig.useMock
+          ? OrdenesMockDataSource()
+          : OrdenesRemoteDataSource(dioClient: get<DioClient>()),
+    );
+    registerLazySingleton<OrdenesRepository>(
+      () => OrdenesRepositoryImpl(dataSource: get<OrdenesDataSource>()),
     );
   }
 }

@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
 import 'controllers/app_state.dart';
 import 'controllers/app_state_provider.dart';
+import 'core/config/env_config.dart';
+import 'core/di/injection_container.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Configuración de entorno. useMock=true → la app corre 100% sin backend
+  // (datasources Mock con la forma del contrato). Para enchufar el backend
+  // real: useMock=false y apiBaseUrl al API del instalador.
+  const env = EnvConfig(
+    environment: Environment.development,
+    apiBaseUrl: 'https://api-dev.dashboard.ohmsafe.com/v1',
+    hubspotApiKey: '',
+    useMock: true,
+  );
+  await sl.init(env);
+
   runApp(const OhmSafeAppContainer());
 }
 

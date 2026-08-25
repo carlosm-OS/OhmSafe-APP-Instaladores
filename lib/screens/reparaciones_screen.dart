@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'service_steps_screen.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/entities/orden.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
 /// Sección Reparaciones (accesible desde el Home).
-/// Lista los tickets de reparación asignados; cada uno arranca el flujo
-/// de servicio, donde el paso 3 es la variante de Reparación
-/// (ReparacionScreen) porque el ticket lleva type: "reparacion".
+/// Carga las órdenes de reparación desde el repositorio (Mock o Api según
+/// `EnvConfig.useMock`) y cada una arranca el flujo de servicio, donde el
+/// paso 3 es la variante de Reparación.
 class ReparacionesScreen extends StatefulWidget {
   const ReparacionesScreen({super.key});
 
@@ -14,45 +17,53 @@ class ReparacionesScreen extends StatefulWidget {
 }
 
 class _ReparacionesScreenState extends State<ReparacionesScreen> {
-  int? _openTicketIndex = 0; // Primer ticket abierto por defecto
+  late final OrdenesRepository _repo;
 
-  /// Tickets de reparación. En producción vienen del backend
-  /// (HubSpot/Odoo); aquí como datos de prueba. El `type: "reparacion"`
-  /// es lo que dispara la variante de Reparación en el paso 3.
-  final List<Map<String, dynamic>> _repairTickets = [
-    {
-      "title": "Reparación de Cerca Eléctrica",
-      "type": "reparacion",
-      "status": "Por hacer",
-      "isUrgent": true,
-      "details": {
-        "openDays": "1",
-        "createdDate": "21/07/2026",
-        "metraje": "65m",
-        "direccion": "Cerrada de Puebla 45 Col. Roma Norte, Cuauhtémoc",
-        "ciudad": "CDMX",
-        "cp": "06700",
-        "telefono": "55 2233 4455"
-      },
-      "user": "Mariana Ríos"
-    },
-    {
-      "title": "Reparación por daño de energizador",
-      "type": "reparacion",
-      "status": "Por hacer",
-      "isUrgent": false,
-      "details": {
-        "openDays": "2",
-        "createdDate": "20/07/2026",
-        "metraje": "40m",
-        "direccion": "Av. Coyoacán 1500 Col. Del Valle, Benito Juárez",
-        "ciudad": "CDMX",
-        "cp": "03100",
-        "telefono": "55 7788 9900"
-      },
-      "user": "Ernesto Padilla"
-    },
-  ];
+  List<Orden> _ordenes = [];
+  bool _loading = true;
+  String? _error;
+  int? _openIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _repo = sl.get<OrdenesRepository>();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final result = await _repo.getOrdenes(tipo: 'reparacion');
+    if (!mounted) return;
+    result.fold(
+      (ordenes) => setState(() {
+        _ordenes = ordenes;
+        _loading = false;
+      }),
+      (failure) => setState(() {
+        _error = failure.message;
+        _loading = false;
+      }),
+    );
+  }
+
+  String _estadoLabel(String estado) {
+    switch (estado) {
+      case 'por_hacer':
+        return 'Por hacer';
+      case 'en_curso':
+        return 'En curso';
+      case 'completo':
+        return 'Completo';
+      case 'cancelado':
+        return 'Cancelado';
+      default:
+        return estado;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,19 +145,8 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                   ),
                 ),
 
-                // Tickets list
-                Expanded(
-                  child: _repairTickets.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: _repairTickets.length,
-                          itemBuilder: (context, index) {
-                            return _buildTicketCard(_repairTickets[index], index, index == _openTicketIndex);
-                          },
-                        ),
-                ),
+                // Lista / carga / error / vacío
+                Expanded(child: _buildBody(theme)),
               ],
             ),
           ),
@@ -158,12 +158,31 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
     );
   }
 
-  Widget _buildTicketCard(Map<String, dynamic> ticket, int index, bool isOpen) {
+  Widget _buildBody(ThemeData theme) {
+    if (_loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFFF5A00)),
+      );
+    }
+    if (_error != null) {
+      return _buildErrorState(theme);
+    }
+    if (_ordenes.isEmpty) {
+      return _buildEmptyState(theme);
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+      physics: const BouncingScrollPhysics(),
+      itemCount: _ordenes.length,
+      itemBuilder: (context, index) =>
+          _buildTicketCard(_ordenes[index], index, index == _openIndex),
+    );
+  }
+
+  Widget _buildTicketCard(Orden orden, int index, bool isOpen) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final details = ticket["details"] as Map<String, String>;
-    final status = ticket["status"] as String;
-    final isUrgent = ticket["isUrgent"] as bool? ?? false;
+    final status = _estadoLabel(orden.estado);
 
     Color statusBgColor;
     Color statusTextColor;
@@ -194,7 +213,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
         side: BorderSide(color: theme.dividerColor.withOpacity(0.5), width: 1.5),
       ),
       child: InkWell(
-        onTap: () => setState(() => _openTicketIndex = isOpen ? null : index),
+        onTap: () => setState(() => _openIndex = isOpen ? null : index),
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -207,7 +226,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      ticket["title"]!,
+                      orden.titulo,
                       style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, height: 1.4, color: theme.textTheme.bodyLarge?.color),
                     ),
                   ),
@@ -221,23 +240,23 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
               ),
               if (isOpen) ...[
                 const SizedBox(height: 16),
-                Text("Abierto por ${details["openDays"]} días", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color)),
+                Text("Abierto por ${orden.diasAbierto} días", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color)),
                 const SizedBox(height: 6),
-                _detailRow(theme, "Fecha de Creación: ", details["createdDate"]),
+                _detailRow(theme, "Fecha de Creación: ", orden.fechaCreacion),
                 const SizedBox(height: 6),
-                _detailRow(theme, "Metraje: ", details["metraje"]),
+                _detailRow(theme, "Metraje: ", orden.metraje),
                 const SizedBox(height: 6),
-                _detailRow(theme, "Dirección: ", details["direccion"]),
+                _detailRow(theme, "Dirección: ", orden.direccion),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    _detailRow(theme, "Ciudad: ", details["ciudad"]),
+                    _detailRow(theme, "Ciudad: ", orden.ciudad),
                     const SizedBox(width: 24),
-                    _detailRow(theme, "CP: ", details["cp"]),
+                    _detailRow(theme, "CP: ", orden.cp),
                   ],
                 ),
                 const SizedBox(height: 6),
-                _detailRow(theme, "Teléfono: ", details["telefono"]),
+                _detailRow(theme, "Teléfono: ", orden.telefono),
               ],
               const SizedBox(height: 12),
               Divider(height: 1, color: theme.dividerColor),
@@ -250,12 +269,12 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                       Icon(Icons.person_outline_rounded, size: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
                       const SizedBox(width: 8),
                       Text(
-                        ticket["user"]!,
+                        orden.cliente,
                         style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8), fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
-                  if (isUrgent)
+                  if (orden.urgente)
                     Row(
                       children: const [
                         Icon(Icons.circle, size: 8, color: Colors.red),
@@ -268,7 +287,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
               if (isOpen) ...[
                 const SizedBox(height: 18),
                 ElevatedButton(
-                  onPressed: () => _showConfirmationDialog(context, ticket),
+                  onPressed: () => _showConfirmationDialog(context, orden),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF5A00),
                     foregroundColor: Colors.white,
@@ -298,7 +317,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
     );
   }
 
-  void _showConfirmationDialog(BuildContext context, Map<String, dynamic> ticket) {
+  void _showConfirmationDialog(BuildContext context, Orden orden) {
     final theme = Theme.of(context);
     showDialog(
       context: context,
@@ -328,9 +347,10 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context); // Cerrar modal
+                      // Compat: el flujo de servicio aún consume Map<String,dynamic>.
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: ticket)),
+                        MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: orden.toTicketMap())),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -363,8 +383,36 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    final theme = Theme.of(context);
+  Widget _buildErrorState(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_off_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4)),
+          const SizedBox(height: 12),
+          Text("No se pudieron cargar las reparaciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40.0),
+            child: Text(
+              _error ?? '',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), height: 1.4),
+            ),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _cargar,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text("Reintentar"),
+            style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFFF5A00)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
