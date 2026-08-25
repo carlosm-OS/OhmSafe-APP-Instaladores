@@ -70,6 +70,38 @@ class DioClient {
     }
   }
 
+  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) async {
+    final uri = Uri.parse("${envConfig.apiBaseUrl}$path");
+
+    Map<String, String> mergedHeaders = {
+      'Authorization': 'Bearer ${envConfig.hubspotApiKey}',
+      'Content-Type': 'application/json',
+    };
+    if (headers != null) {
+      mergedHeaders.addAll(headers);
+    }
+
+    HttpClientRequest request = _HttpClientRequestImpl('POST', uri, mergedHeaders);
+    for (var interceptor in _interceptors) {
+      request = await interceptor.onRequest(request);
+    }
+
+    try {
+      final ioRequest = await _client.openUrl(request.method, request.uri);
+      request.headers.forEach((key, value) {
+        ioRequest.headers.set(key, value);
+      });
+      if (body != null) {
+        ioRequest.add(utf8.encode(jsonEncode(body)));
+      }
+      final ioResponse = await ioRequest.close();
+      final responseBody = await ioResponse.transform(utf8.decoder).join();
+      return _handleResponse(ioResponse.statusCode, responseBody);
+    } catch (e) {
+      throw const NetworkException();
+    }
+  }
+
   Map<String, dynamic> _handleResponse(int statusCode, String responseBody) {
     if (statusCode >= 200 && statusCode < 300) {
       return jsonDecode(responseBody) as Map<String, dynamic>;

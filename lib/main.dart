@@ -3,7 +3,7 @@ import 'controllers/app_state.dart';
 import 'controllers/app_state_provider.dart';
 import 'core/config/env_config.dart';
 import 'core/di/injection_container.dart';
-import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -137,7 +137,7 @@ class _OhmSafeAppState extends State<OhmSafeApp> {
         useMaterial3: true,
       ),
       
-      home: HomeScreen(onToggleTheme: _toggleTheme),
+      home: LoginScreen(onToggleTheme: _toggleTheme),
     );
   }
 }
