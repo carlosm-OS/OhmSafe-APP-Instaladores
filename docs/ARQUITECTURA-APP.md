@@ -17,7 +17,7 @@ Enchufar el backend real = cambiar `useMock: false` + rellenar los `*RemoteDataS
 
 ## Features actuales
 - **auth** — login del instalador (entrada por `LoginScreen`). Mock acepta cualquier credencial no vacía.
-- **ordenes** — órdenes de servicio (Reparaciones ya consume el repo; Instalaciones pendiente de migrar).
+- **ordenes** — órdenes de servicio. Lectura: Reparaciones e Instalaciones consumen el repo. Escritura: `iniciarRuta`, `marcarLlegada`, `guardarInspeccion`, `guardarReparacion`, `vincularEnergizador`, `guardarCierre` (Result). Cableadas hoy: `iniciarRuta` (diálogos de confirmación) y `guardarCierre` (pantalla de cierre); el resto está listo en el repo para cablearse en sus sub-pantallas.
 
 ## Pendiente al conectar backend real
 - Inyectar el `accessToken` de la sesión como header `Authorization` (interceptor en `DioClient`), en vez del default actual.

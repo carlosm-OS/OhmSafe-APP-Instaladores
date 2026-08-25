@@ -353,6 +353,21 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     );
   }
 
+  /// Reporta el inicio de ruta al backend (repo) y, si va bien, entra al flujo.
+  Future<void> _iniciarServicio(Orden orden) async {
+    final result = await _repo.iniciarRuta(orden.id);
+    if (!mounted) return;
+    result.fold(
+      (_) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: orden.toTicketMap())),
+      ),
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("No se pudo iniciar la ruta: ${failure.message}")),
+      ),
+    );
+  }
+
   void _showConfirmationDialog(BuildContext context, Orden orden) {
     final theme = Theme.of(context);
     showDialog(
@@ -375,7 +390,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: orden.toTicketMap())));
+                      _iniciarServicio(orden);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF5A00),

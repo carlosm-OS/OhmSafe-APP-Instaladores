@@ -100,4 +100,25 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       orElse: () => throw const ServerException('Orden no encontrada'),
     );
   }
+
+  // ---- Escritura (mock: simula latencia y confirma OK) ----
+  Future<void> _ok() => Future.delayed(const Duration(milliseconds: 300));
+
+  @override
+  Future<void> iniciarRuta(String id) => _ok();
+
+  @override
+  Future<void> marcarLlegada(String id) => _ok();
+
+  @override
+  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos}) => _ok();
+
+  @override
+  Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) => _ok();
+
+  @override
+  Future<void> vincularEnergizador(String id, {required String codigo}) => _ok();
+
+  @override
+  Future<void> guardarCierre(String id, Map<String, dynamic> cierre) => _ok();
 }

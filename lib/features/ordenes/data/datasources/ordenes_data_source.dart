@@ -7,4 +7,12 @@ import '../models/orden_model.dart';
 abstract class OrdenesDataSource {
   Future<List<OrdenModel>> getOrdenes({required String tipo});
   Future<OrdenModel> getOrden(String id);
+
+  // Acciones de escritura
+  Future<void> iniciarRuta(String id);
+  Future<void> marcarLlegada(String id);
+  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos});
+  Future<void> guardarReparacion(String id, Map<String, dynamic> costeo);
+  Future<void> vincularEnergizador(String id, {required String codigo});
+  Future<void> guardarCierre(String id, Map<String, dynamic> cierre);
 }

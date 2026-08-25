@@ -3,6 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
 class CierreInstalacionScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -207,13 +209,24 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       "comentarios_generales": "Paso 1: ${_photoCommentsController.text.trim()} | Paso 2: ${_step2CommentsController.text.trim()}",
     };
 
-    // Log the JSON Payload for submission
-    debugPrint("SUBMITTING INSTALLATION CLOSURE JSON PAYLOAD FROM WIZARD:");
+    debugPrint("ENVIANDO CIERRE:");
     debugPrint(const JsonEncoder.withIndent('  ').convert(payload));
 
-    if (mounted) {
-      Navigator.pop(context, 'cierre_completed');
-    }
+    // Enviar al backend vía repositorio (Mock o Api según EnvConfig.useMock).
+    setState(() => _isLoading = true);
+    final repo = sl.get<OrdenesRepository>();
+    final ticketId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    final result = await repo.guardarCierre(ticketId, payload);
+    if (!mounted) return;
+    result.fold(
+      (_) => Navigator.pop(context, 'cierre_completed'),
+      (failure) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("No se pudo enviar el cierre: ${failure.message}")),
+        );
+      },
+    );
   }
 
   // ----- Reparación: manejo de fotos de evidencia dinámicas -----

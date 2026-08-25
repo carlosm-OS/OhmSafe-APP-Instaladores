@@ -26,4 +26,36 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
     if (data.isEmpty) throw const ServerException('Orden no encontrada');
     return OrdenModel.fromJson(data);
   }
+
+  // ---- Escritura (POST según el contrato) ----
+  @override
+  Future<void> iniciarRuta(String id) async {
+    await dioClient.post('/instalador/ordenes/$id/iniciar-ruta');
+  }
+
+  @override
+  Future<void> marcarLlegada(String id) async {
+    await dioClient.post('/instalador/ordenes/$id/marcar-llegada');
+  }
+
+  @override
+  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos}) async {
+    await dioClient.post('/instalador/ordenes/$id/inspeccion-perimetro',
+        body: {'sinObstaculos': sinObstaculos, 'obstaculos': obstaculos});
+  }
+
+  @override
+  Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) async {
+    await dioClient.post('/instalador/ordenes/$id/reparacion', body: costeo);
+  }
+
+  @override
+  Future<void> vincularEnergizador(String id, {required String codigo}) async {
+    await dioClient.post('/instalador/ordenes/$id/vincular-energizador', body: {'codigo': codigo});
+  }
+
+  @override
+  Future<void> guardarCierre(String id, Map<String, dynamic> cierre) async {
+    await dioClient.post('/instalador/ordenes/$id/cierre', body: cierre);
+  }
 }
