@@ -77,7 +77,12 @@ class DioClient {
       final body = await ioResponse.transform(utf8.decoder).join();
 
       return _handleResponse(ioResponse.statusCode, body);
-    } catch (e) {
+    } on ServerException {
+      rethrow; // error HTTP del backend (>=400): no es falta de red
+    } on UnauthorizedException {
+      rethrow; // 401: credenciales/sesión inválida
+    } catch (_) {
+      // Cualquier otra excepción (socket, DNS, timeout) sí es falta de conexión.
       throw const NetworkException();
     }
   }
@@ -109,16 +114,36 @@ class DioClient {
       final ioResponse = await ioRequest.close();
       final responseBody = await ioResponse.transform(utf8.decoder).join();
       return _handleResponse(ioResponse.statusCode, responseBody);
-    } catch (e) {
+    } on ServerException {
+      rethrow; // error HTTP del backend (>=400): no es falta de red
+    } on UnauthorizedException {
+      rethrow; // 401: credenciales/sesión inválida
+    } catch (_) {
+      // Cualquier otra excepción (socket, DNS, timeout) sí es falta de conexión.
       throw const NetworkException();
     }
   }
 
+  /// Procesa la respuesta HTTP:
+  /// - 2xx → decodifica el JSON (`{success, data, ...}`).
+  /// - 401 → [UnauthorizedException] (credenciales/sesión).
+  /// - resto (>=400) → [ServerException].
+  /// En 401/>=400 intenta extraer el `message` que devuelve el backend
+  /// (`{ success:false, error, message }`) para mostrar algo útil.
   Map<String, dynamic> _handleResponse(int statusCode, String responseBody) {
     if (statusCode >= 200 && statusCode < 300) {
       return jsonDecode(responseBody) as Map<String, dynamic>;
-    } else {
-      throw ServerException("Respuesta fallida: $statusCode - $responseBody");
     }
+    String msg = "Respuesta fallida: $statusCode";
+    try {
+      final decoded = jsonDecode(responseBody);
+      if (decoded is Map && decoded['message'] is String) {
+        msg = decoded['message'] as String;
+      }
+    } catch (_) {
+      // cuerpo no-JSON: se queda el mensaje por defecto
+    }
+    if (statusCode == 401) throw UnauthorizedException(msg);
+    throw ServerException(msg);
   }
 }

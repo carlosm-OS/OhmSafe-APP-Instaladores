@@ -21,6 +21,9 @@ class AuthRepositoryImpl implements AuthRepository {
       final sesion = await dataSource.login(email: email, password: password);
       _sesion = sesion;
       return Success(sesion);
+    } on UnauthorizedException {
+      // 401 del backend = credenciales inválidas (mensaje claro para el login).
+      return const FailureResult(AuthFailure());
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message));
     } on NetworkException {

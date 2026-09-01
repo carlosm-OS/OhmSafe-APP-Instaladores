@@ -15,6 +15,9 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       final ordenes = await dataSource.getOrdenes(tipo: tipo);
       return Success(ordenes);
+    } on UnauthorizedException {
+      // 401 en una lectura/acción = sesión expirada.
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message));
     } on NetworkException {
@@ -29,6 +32,9 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       final orden = await dataSource.getOrden(id);
       return Success(orden);
+    } on UnauthorizedException {
+      // 401 en una lectura/acción = sesión expirada.
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message));
     } on NetworkException {
@@ -45,6 +51,9 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       await run();
       return const Success(true);
+    } on UnauthorizedException {
+      // 401 en una lectura/acción = sesión expirada.
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message));
     } on NetworkException {

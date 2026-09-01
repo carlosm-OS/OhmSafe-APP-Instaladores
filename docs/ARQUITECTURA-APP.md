@@ -16,9 +16,16 @@ datos Mock y luego enchufar el backend real sin reescribir UI.
 Enchufar el backend real = cambiar `useMock: false` + rellenar los `*RemoteDataSource`. La UI no cambia.
 
 ## Features actuales
-- **auth** — login del instalador (entrada por `LoginScreen`). Mock acepta cualquier credencial no vacía.
-- **ordenes** — órdenes de servicio. Lectura: Reparaciones e Instalaciones consumen el repo. Escritura: `iniciarRuta`, `marcarLlegada`, `guardarInspeccion`, `guardarReparacion`, `vincularEnergizador`, `guardarCierre` (Result). Cableadas hoy: `iniciarRuta` (diálogos de confirmación) y `guardarCierre` (pantalla de cierre); el resto está listo en el repo para cablearse en sus sub-pantallas.
+- **auth** — login del instalador (entrada por `LoginScreen`). Mock acepta cualquier credencial no vacía; en modo Api valida contra Odoo vía `POST /instalador/auth/login`. El `accessToken` de la sesión se inyecta como `Authorization: Bearer` en `DioClient.setAuthToken` tras el login.
+- **ordenes** — órdenes de servicio. Lectura: Reparaciones e Instalaciones consumen el repo. Escritura (todas cableadas a sus sub-pantallas): `iniciarRuta` (lista), `marcarLlegada` (RouteDetails), `guardarInspeccion` (PerimeterInspection), `guardarReparacion` (Reparacion), `vincularEnergizador` (LinkEnergizer, manda la MAC), `guardarCierre` (Cierre). Cada acción muestra un SnackBar y NO avanza el paso si el backend falla.
+
+## Manejo de errores (red vs credenciales)
+`DioClient` distingue: 401 → `UnauthorizedException` → `AuthFailure` ("Correo o contraseña incorrectos" en login / "Sesión expirada" en lecturas); otros HTTP>=400 → `ServerException`/`ServerFailure` (usa el `message` del backend); fallo real de socket → `NetworkException`/`NetworkFailure` ("Sin conexión a internet"). Antes un 401 se veía como "sin conexión"; ya no.
+
+## Correr contra el backend local (macOS)
+El repo vive en iCloud, que rompe la firma iOS. Camino que funciona: `flutter build macos --debug` (falla el codesign por "resource fork" de iCloud) → copiar el `.app` fuera de iCloud → `xattr -cr` → `codesign --force --deep --sign - --entitlements macos/Runner/DebugProfile.entitlements` → `open`. Requiere `com.apple.security.network.client` (ya agregado) y ATS `NSAllowsLocalNetworking` (ya en Info.plist) para hablar con `http://localhost:3001`. Web no sirve (DioClient usa `dart:io`).
 
 ## Pendiente al conectar backend real
-- Inyectar el `accessToken` de la sesión como header `Authorization` (interceptor en `DioClient`), en vez del default actual.
-- Migrar Instalaciones, perfil, cierre y tarifas al mismo patrón.
+- Persistir/renovar `refreshToken` (hoy el backend lo emite pero no lo persiste).
+- Evidencias/firma reales por S3 (URLs prefirmadas); hoy se mandan fileKeys simuladas.
+- Migrar perfil y datos bancarios/fiscales al mismo patrón repo.

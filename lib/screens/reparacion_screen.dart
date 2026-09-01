@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/repair_pricing.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
 /// ============================================================
 /// OHMSAFE ARMY — Sección Reparaciones
@@ -685,6 +687,39 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
     );
   }
 
+  bool _isSending = false;
+
+  /// Envía el costeo de la reparación al backend (mano de obra, material,
+  /// total y tipo de energizador → campos `x_costo_*`/`x_energizador_tipo` en
+  /// Odoo) y, solo si tiene éxito, avanza al cierre con 'reparacion_completed'.
+  Future<void> _completarReparacion() async {
+    if (_isSending) return;
+    // Marca en el ticket si se cambió el energizador; el cierre solo pide
+    // serie/evidencia de control cuando esto es true.
+    widget.ticket['energizador_cambiado'] = _energizador > 0;
+    final costeo = <String, dynamic>{
+      'energizador': switch (_energizador) { 1 => 'simple', 2 => 'bateria', _ => 'ninguno' },
+      'resumen': {
+        'manoObra': _moTotal,
+        'material': _matTotal,
+        'total': _moTotal + _matTotal,
+      },
+    };
+    setState(() => _isSending = true);
+    final id = (widget.ticket['id'] ?? widget.ticket['ticket_id'] ?? '').toString();
+    final result = await sl.get<OrdenesRepository>().guardarReparacion(id, costeo);
+    if (!mounted) return;
+    result.fold(
+      (_) => Navigator.pop(context, 'reparacion_completed'),
+      (failure) {
+        setState(() => _isSending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo guardar la reparación: ${failure.message}')),
+        );
+      },
+    );
+  }
+
   Widget _completarButton(ThemeData theme) {
     final tieneAlgo = _metrosHiloTotales > 0 ||
         _moPiezas > 0 ||
@@ -699,17 +734,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14)),
         ),
-        onPressed: tieneAlgo
-            ? () {
-                // Marca en el ticket si se cambió el energizador; el cierre
-                // solo pide serie/evidencia de control cuando esto es true.
-                widget.ticket['energizador_cambiado'] = _energizador > 0;
-                // En producción: enviar payload al backend y pasar al
-                // cierre con fotos geolocalizadas + firma (mismo patrón
-                // que CierreInstalacionScreen).
-                Navigator.pop(context, 'reparacion_completed');
-              }
-            : null,
+        onPressed: (tieneAlgo && !_isSending) ? _completarReparacion : null,
         child: const Text('Completar reparación',
             style: TextStyle(
                 fontSize: 15.5,

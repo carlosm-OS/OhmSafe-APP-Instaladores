@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'instalaciones_screen.dart';
 
 class PerimeterInspectionScreen extends StatefulWidget {
@@ -55,6 +57,31 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
   }
 
   bool get _hasSelection => _noObstaclesSelected || _selectedObstacles.isNotEmpty;
+
+  bool _isSending = false;
+
+  /// Guarda la inspección de perímetro en el backend (obstáculos + bandera
+  /// "sin obstáculos") y, solo si tiene éxito, regresa 'perimeter_completed'.
+  Future<void> _guardarInspeccion() async {
+    if (_isSending) return;
+    setState(() => _isSending = true);
+    final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    final result = await sl.get<OrdenesRepository>().guardarInspeccion(
+          id,
+          sinObstaculos: _noObstaclesSelected,
+          obstaculos: _selectedObstacles.toList(),
+        );
+    if (!mounted) return;
+    result.fold(
+      (_) => Navigator.pop(context, 'perimeter_completed'),
+      (failure) {
+        setState(() => _isSending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("No se pudo guardar la inspección: ${failure.message}")),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -268,10 +295,8 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _hasSelection
-                                ? () {
-                                    Navigator.pop(context, 'perimeter_completed');
-                                  }
+                            onPressed: (_hasSelection && !_isSending)
+                                ? _guardarInspeccion
                                 : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFF5A00),

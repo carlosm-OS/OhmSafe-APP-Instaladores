@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'instalaciones_screen.dart';
 
 class RouteDetailsScreen extends StatefulWidget {
@@ -12,6 +14,27 @@ class RouteDetailsScreen extends StatefulWidget {
 
 class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   bool _isCancelling = false;
+  bool _isSending = false;
+
+  /// Marca la llegada al sitio en el backend (paso "En sitio" en Odoo) y,
+  /// solo si tiene éxito, regresa 'arrived' para avanzar el flujo. Ante un
+  /// fallo muestra el error y NO avanza (la orden sigue en su estado previo).
+  Future<void> _marcarLlegada() async {
+    if (_isSending) return;
+    setState(() => _isSending = true);
+    final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    final result = await sl.get<OrdenesRepository>().marcarLlegada(id);
+    if (!mounted) return;
+    result.fold(
+      (_) => Navigator.pop(context, 'arrived'),
+      (failure) {
+        setState(() => _isSending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("No se pudo marcar la llegada: ${failure.message}")),
+        );
+      },
+    );
+  }
   final TextEditingController _reasonController = TextEditingController();
 
   @override
@@ -270,10 +293,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
-                              print("Llegada marcada");
-                              Navigator.pop(context, 'arrived');
-                            },
+                            onPressed: _isSending ? null : _marcarLlegada,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFF5A00),
                               foregroundColor: Colors.white,

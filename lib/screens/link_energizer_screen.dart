@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
 enum LinkState { input, scanning, validating }
 
@@ -106,6 +108,29 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       _bannerIsSuccess = isSuccess;
       _bannerText = text;
     });
+  }
+
+  bool _isSending = false;
+
+  /// Vincula el energizador a la orden en el backend (marca `x_estado_vinculacion`
+  /// y guarda la MAC en Odoo) y, solo si tiene éxito, regresa 'device_linked'.
+  Future<void> _vincularEnergizador() async {
+    if (_isSending) return;
+    setState(() => _isSending = true);
+    final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    final result = await sl
+        .get<OrdenesRepository>()
+        .vincularEnergizador(id, codigo: _macController.text.trim());
+    if (!mounted) return;
+    result.fold(
+      (_) => Navigator.pop(context, 'device_linked'),
+      (failure) {
+        setState(() => _isSending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("No se pudo vincular el energizador: ${failure.message}")),
+        );
+      },
+    );
   }
 
   bool get _allCompleted =>
@@ -662,11 +687,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _allCompleted
-                      ? () {
-                          Navigator.pop(context, 'device_linked');
-                        }
-                      : null,
+                  onPressed: (_allCompleted && !_isSending) ? _vincularEnergizador : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF5A00),
                     foregroundColor: Colors.white,

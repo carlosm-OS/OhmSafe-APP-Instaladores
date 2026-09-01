@@ -51,7 +51,10 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
 
   @override
   Future<void> vincularEnergizador(String id, {required String codigo}) async {
-    await dioClient.post('/instalador/ordenes/$id/vincular-energizador', body: {'qr': codigo});
+    // El valor escaneado es la MAC del energizador; se manda como `mac` (Odoo
+    // guarda x_mac_address) y como `qr` por compatibilidad con el contrato.
+    await dioClient.post('/instalador/ordenes/$id/vincular-energizador',
+        body: {'qr': codigo, 'mac': codigo});
   }
 
   @override
