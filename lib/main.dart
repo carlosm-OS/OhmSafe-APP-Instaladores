@@ -18,7 +18,7 @@ Future<void> main() async {
     environment: Environment.development,
     apiBaseUrl: 'http://localhost:3001/v1',
     hubspotApiKey: '',
-    useMock: true, // ← cambiar a false cuando el backend local esté arriba
+    useMock: false, // backend local arriba en http://localhost:3001/v1
   );
   await sl.init(env);
 
