@@ -1,5 +1,6 @@
 import '../../../../core/network/result.dart';
 import '../entities/orden.dart';
+import '../entities/tarifas.dart';
 
 /// Contrato de acceso a órdenes de servicio del instalador.
 /// Implementado por [OrdenesRepositoryImpl] sobre un datasource Mock o Api.
@@ -9,6 +10,9 @@ abstract class OrdenesRepository {
 
   /// Detalle de una orden.
   Future<Result<Orden>> getOrden(String id);
+
+  /// Tarifas del motor de costeo (precios vivos de Odoo). Ver [Tarifas].
+  Future<Result<Tarifas>> getTarifas();
 
   // ---- Acciones de escritura (reportan avance/cierre al backend) ----
 

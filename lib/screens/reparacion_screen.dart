@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/repair_pricing.dart';
 import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/entities/tarifas.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
 /// ============================================================
@@ -60,6 +61,35 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
 
   final List<_HiloDanado> _hilos = [_HiloDanado()];
 
+  /// Tarifas vivas de Odoo (vía backend). Arranca con los valores de respaldo
+  /// [Tarifas.defaults] y se refresca en [initState]; si el backend falla, la
+  /// calculadora sigue con el respaldo.
+  Tarifas _t = Tarifas.defaults();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarTarifas();
+  }
+
+  /// Baja las tarifas del backend (precios de los productos de Odoo). Cambiar
+  /// un precio en Odoo se refleja aquí en la siguiente apertura de la pantalla.
+  Future<void> _cargarTarifas() async {
+    final result = await sl.get<OrdenesRepository>().getTarifas();
+    if (!mounted) return;
+    result.fold(
+      (tarifas) => setState(() => _t = tarifas),
+      (_) {/* se conserva el respaldo Tarifas.defaults() */},
+    );
+  }
+
+  /// % extra de dificultad por hilo, tomado de las tarifas vivas.
+  double _pctExtra(DificultadHilo d) => switch (d) {
+        DificultadHilo.medio => _t.difMedioPct,
+        DificultadHilo.alto => _t.difAltoPct,
+        DificultadHilo.normal => 0,
+      };
+
   int _postesEsquina = 0;
   int _postesPaso = 0;
   int _abanicos = 0;
@@ -81,45 +111,45 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
   double get _moHilos => _hilos.fold(
       0,
       (s, h) =>
-          s + h.metros * RepairPricing.metroHilo * (1 + h.dificultad.pctExtra / 100));
+          s + h.metros * _t.metroHilo * (1 + _pctExtra(h.dificultad) / 100));
 
   double get _moPiezas =>
-      _postesEsquina * RepairPricing.posteEsquina +
-      _postesPaso * RepairPricing.postePaso +
-      _abanicos * RepairPricing.abanico +
-      _aisladoresSueltos * RepairPricing.aisladorSuelto +
-      _tensores * RepairPricing.tensor;
+      _postesEsquina * _t.posteEsquina +
+      _postesPaso * _t.postePaso +
+      _abanicos * _t.abanico +
+      _aisladoresSueltos * _t.aisladorSuelto +
+      _tensores * _t.tensor;
 
   double get _moEnergizador => switch (_energizador) {
-        1 => RepairPricing.energizadorSimple,
-        2 => RepairPricing.energizadorBateria,
+        1 => _t.energizadorSimple,
+        2 => _t.energizadorBateria,
         _ => 0,
       };
 
   double get _moTotal =>
-      RepairPricing.visita + _moHilos + _moPiezas + _moEnergizador;
+      _t.visita + _moHilos + _moPiezas + _moEnergizador;
 
   int get _postesCambiados => _postesEsquina + _postesPaso;
   int get _aisladoresEnPostes => _postesCambiados * widget.aisladoresPorPoste;
 
-  double get _matAlambre => RepairPricing.metrosPorRollo > 0
+  double get _matAlambre => _t.metrosPorRollo > 0
       ? _metrosHiloTotales *
-          (RepairPricing.rolloAlambre3kg / RepairPricing.metrosPorRollo)
+          (_t.rolloAlambre3kg / _t.metrosPorRollo)
       : 0;
 
   double get _matEnergizador => switch (_energizador) {
-        1 => RepairPricing.matEnergizadorSimple,
-        2 => RepairPricing.matEnergizadorBateria,
+        1 => _t.matEnergizadorSimple,
+        2 => _t.matEnergizadorBateria,
         _ => 0,
       };
 
   double get _matTotal =>
       _matAlambre +
-      _postesEsquina * RepairPricing.matPosteEsquina +
-      _postesPaso * RepairPricing.matPostePaso +
-      _abanicos * RepairPricing.matAbanico +
-      (_aisladoresEnPostes + _aisladoresSueltos) * RepairPricing.matAislador +
-      _tensores * RepairPricing.matTensor +
+      _postesEsquina * _t.matPosteEsquina +
+      _postesPaso * _t.matPostePaso +
+      _abanicos * _t.matAbanico +
+      (_aisladoresEnPostes + _aisladoresSueltos) * _t.matAislador +
+      _tensores * _t.matTensor +
       _matEnergizador;
 
   // --------------------- VALIDACIONES ---------------------
@@ -157,10 +187,10 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
           'Aisladores totales ($aisTotales) exceden los de la instalación ($aisInstalados)');
     }
     final largos =
-        _hilos.where((h) => h.metros > RepairPricing.tramoMaxMetros).length;
+        _hilos.where((h) => h.metros > _t.tramoMaxMetros).length;
     if (largos > 0) {
       msgs.add(
-          '$largos hilo(s) superan el tramo máximo de ${RepairPricing.tramoMaxMetros.toStringAsFixed(0)} m — válido si abarcan varios tramos, verificar con foto');
+          '$largos hilo(s) superan el tramo máximo de ${_t.tramoMaxMetros.toStringAsFixed(0)} m — válido si abarcan varios tramos, verificar con foto');
     }
     return msgs;
   }
@@ -171,13 +201,13 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
     final tocaCable = _metrosHiloTotales > 0;
     final partes = <String>[];
     if (tocaAislador &&
-        widget.edadCercaAnios < RepairPricing.vidaMinAisladorAnios) {
+        widget.edadCercaAnios < _t.vidaMinAisladorAnios) {
       partes.add(
-          'desgaste de aisladores en una cerca de ${widget.edadCercaAnios} año(s); vida mínima ${RepairPricing.vidaMinAisladorAnios} años');
+          'desgaste de aisladores en una cerca de ${widget.edadCercaAnios} año(s); vida mínima ${_t.vidaMinAisladorAnios} años');
     }
-    if (tocaCable && widget.edadCercaAnios < RepairPricing.vidaMinCableAnios) {
+    if (tocaCable && widget.edadCercaAnios < _t.vidaMinCableAnios) {
       partes.add(
-          'cable por desgaste antes de ${RepairPricing.vidaMinCableAnios} años');
+          'cable por desgaste antes de ${_t.vidaMinCableAnios} años');
     }
     if (partes.isEmpty) return null;
     return '${partes.join('; ')}. Pedir foto y validar con operaciones antes de autorizar.';
@@ -619,11 +649,11 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.8)),
           const SizedBox(height: 10),
-          _resumenRow('Visita / diagnóstico', RepairPricing.visita),
+          _resumenRow('Visita / diagnóstico', _t.visita),
           ..._hilos.asMap().entries.map((e) => _resumenRow(
                 'Hilo ${e.key + 1} — ${e.value.metros.toStringAsFixed(0)} m · ${e.value.dificultad.etiqueta}',
                 e.value.metros *
-                    RepairPricing.metroHilo *
+                    _t.metroHilo *
                     (1 + e.value.dificultad.pctExtra / 100),
               )),
           if (_moPiezas > 0) _resumenRow('Piezas (postes, abanicos, aisladores, tensores)', _moPiezas),

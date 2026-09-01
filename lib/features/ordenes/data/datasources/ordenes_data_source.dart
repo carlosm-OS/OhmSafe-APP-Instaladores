@@ -1,4 +1,5 @@
 import '../models/orden_model.dart';
+import '../../domain/entities/tarifas.dart';
 
 /// Fuente de datos de órdenes. Implementada por la variante Api (backend real)
 /// y la variante Mock (datos de prueba locales). El repositorio depende de
@@ -7,6 +8,9 @@ import '../models/orden_model.dart';
 abstract class OrdenesDataSource {
   Future<List<OrdenModel>> getOrdenes({required String tipo});
   Future<OrdenModel> getOrden(String id);
+
+  /// Tarifas del motor de costeo (precios de Odoo). Ver [Tarifas].
+  Future<Tarifas> getTarifas();
 
   // Acciones de escritura
   Future<void> iniciarRuta(String id);

@@ -1,6 +1,7 @@
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/orden_model.dart';
+import '../../domain/entities/tarifas.dart';
 import 'ordenes_data_source.dart';
 
 /// Variante Api: consume el backend real (`/v1/instalador/ordenes`).
@@ -25,6 +26,13 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
     final data = (response['data'] ?? response) as Map<String, dynamic>;
     if (data.isEmpty) throw const ServerException('Orden no encontrada');
     return OrdenModel.fromJson(data);
+  }
+
+  @override
+  Future<Tarifas> getTarifas() async {
+    final response = await dioClient.get('/instalador/tarifas-reparacion');
+    final data = (response['data'] ?? response) as Map<String, dynamic>;
+    return Tarifas.fromJson(data);
   }
 
   // ---- Escritura (POST según el contrato) ----

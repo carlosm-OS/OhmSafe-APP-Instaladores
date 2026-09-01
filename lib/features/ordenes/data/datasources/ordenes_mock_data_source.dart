@@ -1,5 +1,6 @@
 import '../../../../core/error/exceptions.dart';
 import '../models/orden_model.dart';
+import '../../domain/entities/tarifas.dart';
 import 'ordenes_data_source.dart';
 
 /// Variante Mock: datos de prueba locales con la forma del contrato.
@@ -99,6 +100,12 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       (o) => o.id == id,
       orElse: () => throw const ServerException('Orden no encontrada'),
     );
+  }
+
+  @override
+  Future<Tarifas> getTarifas() async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    return Tarifas.defaults(); // mock: usa los valores firmes locales
   }
 
   // ---- Escritura (mock: simula latencia y confirma OK) ----

@@ -2,6 +2,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/result.dart';
 import '../../domain/entities/orden.dart';
+import '../../domain/entities/tarifas.dart';
 import '../../domain/repositories/ordenes_repository.dart';
 import '../datasources/ordenes_data_source.dart';
 
@@ -34,6 +35,22 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       return Success(orden);
     } on UnauthorizedException {
       // 401 en una lectura/acción = sesión expirada.
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Tarifas>> getTarifas() async {
+    try {
+      final tarifas = await dataSource.getTarifas();
+      return Success(tarifas);
+    } on UnauthorizedException {
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message));
