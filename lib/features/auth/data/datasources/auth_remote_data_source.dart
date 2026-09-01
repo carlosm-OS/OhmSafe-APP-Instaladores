@@ -17,6 +17,11 @@ class AuthRemoteDataSource implements AuthDataSource {
       body: {'email': email, 'password': password},
     );
     if (response.isEmpty) throw const ServerException('Respuesta de login vacía');
-    return SesionModel.fromJson(response);
+    // El backend responde { success, data: { accessToken, refreshToken, instalador } }.
+    final data = (response['data'] ?? response) as Map<String, dynamic>;
+    final sesion = SesionModel.fromJson(data);
+    // Propaga el access token a las siguientes peticiones (Authorization: Bearer).
+    if (sesion.accessToken.isNotEmpty) dioClient.setAuthToken(sesion.accessToken);
+    return sesion;
   }
 }

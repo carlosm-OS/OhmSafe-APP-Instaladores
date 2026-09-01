@@ -10,12 +10,15 @@ Future<void> main() async {
 
   // Configuración de entorno. useMock=true → la app corre 100% sin backend
   // (datasources Mock con la forma del contrato). Para enchufar el backend
-  // real: useMock=false y apiBaseUrl al API del instalador.
+  // real (local): pon useMock=false. apiBaseUrl ya apunta al backend local.
+  //   - Web/desktop en la Mac → http://localhost:3001/v1
+  //   - Simulador iOS         → http://localhost:3001/v1 (mismo host)
+  //   - Emulador Android      → usa http://10.0.2.2:3001/v1
   const env = EnvConfig(
     environment: Environment.development,
-    apiBaseUrl: 'https://api-dev.dashboard.ohmsafe.com/v1',
+    apiBaseUrl: 'http://localhost:3001/v1',
     hubspotApiKey: '',
-    useMock: true,
+    useMock: true, // ← cambiar a false cuando el backend local esté arriba
   );
   await sl.init(env);
 

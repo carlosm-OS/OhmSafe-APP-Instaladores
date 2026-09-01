@@ -51,7 +51,7 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
 
   @override
   Future<void> vincularEnergizador(String id, {required String codigo}) async {
-    await dioClient.post('/instalador/ordenes/$id/vincular-energizador', body: {'codigo': codigo});
+    await dioClient.post('/instalador/ordenes/$id/vincular-energizador', body: {'qr': codigo});
   }
 
   @override

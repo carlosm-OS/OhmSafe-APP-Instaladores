@@ -29,17 +29,29 @@ class DioClient {
   final HttpClient _client = HttpClient();
   final List<HttpClientInterceptor> _interceptors = [];
 
+  /// Token de la sesión del instalador (se fija tras login). Cuando existe,
+  /// se usa como `Authorization: Bearer` en vez de la API key por defecto.
+  String? _authToken;
+
   DioClient({required this.envConfig});
 
   void addInterceptor(HttpClientInterceptor interceptor) {
     _interceptors.add(interceptor);
   }
 
+  /// Fija el access token de la sesión (llamado por el login).
+  void setAuthToken(String token) => _authToken = token;
+
+  /// Limpia el token (logout).
+  void clearAuthToken() => _authToken = null;
+
+  String get _bearer => _authToken ?? envConfig.hubspotApiKey;
+
   Future<Map<String, dynamic>> get(String path, {Map<String, String>? headers}) async {
     final uri = Uri.parse("${envConfig.apiBaseUrl}$path");
     
     Map<String, String> mergedHeaders = {
-      'Authorization': 'Bearer ${envConfig.hubspotApiKey}',
+      'Authorization': 'Bearer $_bearer',
       'Content-Type': 'application/json',
     };
     if (headers != null) {
@@ -74,7 +86,7 @@ class DioClient {
     final uri = Uri.parse("${envConfig.apiBaseUrl}$path");
 
     Map<String, String> mergedHeaders = {
-      'Authorization': 'Bearer ${envConfig.hubspotApiKey}',
+      'Authorization': 'Bearer $_bearer',
       'Content-Type': 'application/json',
     };
     if (headers != null) {
