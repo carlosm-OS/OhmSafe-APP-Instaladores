@@ -18,9 +18,10 @@ Etapas: **Por hacer · En ruta · En sitio · En proceso · Cierre · Completada
 |---|---|---|
 | El ticket nace | Por hacer | `x_tipo_servicio`, `partner_id`, `x_metros_aprox`, `x_urgente` |
 | Iniciar ruta de servicio | En ruta | `x_hora_salida_tecnico` |
-| Marcar llegada | En sitio | — (solo cambia etapa) |
+| Marcar llegada | En sitio | `x_hora_llegada` |
 | Inspección de perímetro | En proceso | `x_sin_obstaculos`, `x_obstaculos_perimetro` |
-| Reparación — costeo | En proceso | `x_causa_falla`, `x_energizador_tipo`, `x_costo_mano_obra`, `x_costo_material`, `x_costo_total` |
+| Instalación — registro (instalación) | En proceso | `x_postes_esquina`, `x_postes_paso`, `x_abanicos`, `x_materiales_instalados`, `x_inventario_confirmado`, `x_checklist_completado` |
+| Reparación — costeo (reparación) | En proceso | `x_causa_falla`, `x_energizador_tipo`, `x_costo_mano_obra`, `x_costo_material`, `x_costo_total` |
 | Vincular energizador (instalación) | En proceso | `x_estado_vinculacion`, `x_mac_address` |
 | Cierre del servicio | Completada | `x_control_entregado`, `x_entrega_funcional`, `x_anomalias`, `x_evidencias_urls`, `x_firma_url`, `x_fecha_activacion` |
 | Cancelar (en cualquier punto) | Cancelada | `x_motivo_cancelacion` |
@@ -33,15 +34,17 @@ Ver: Kanban, columna *Por hacer* → clic en la tarjeta.
 **1. Iniciar ruta de servicio → En ruta.** `x_hora_salida_tecnico` (Hora salida técnico, fecha/hora).
 Ver: la tarjeta pasa a *En ruta*; abre la tarea y revisa Hora salida técnico.
 
-**2. Marcar llegada → En sitio.** Sin campos extra; el valor es el cambio de etapa (el técnico llegó).
-Ver: la tarjeta pasa a *En sitio*; en Lista, Agrupar por Etapa para contar llegadas.
+**2. Marcar llegada → En sitio.** `x_hora_llegada` (Hora de llegada, fecha/hora).
+Ver: la tarjeta pasa a *En sitio*; abre la tarea → Hora de llegada; en Lista, Agrupar por Etapa para contar llegadas.
 
 **3. Inspección de perímetro → En proceso.** `x_sin_obstaculos` (Sin obstáculos), `x_obstaculos_perimetro` (Obstáculos perímetro, ej. `["Árbol","Reja"]`).
 Ver: abre la tarea → Sin obstáculos / Obstáculos perímetro.
 
-**4. Reparación — costeo → En proceso.** `x_causa_falla` (evento_externo/desgaste), `x_energizador_tipo` (ninguno/simple/bateria), `x_costo_mano_obra`, `x_costo_material`, `x_costo_total`.
+**4a. Instalación — registro → En proceso.** `x_postes_esquina`, `x_postes_paso`, `x_abanicos` (conteos), `x_materiales_instalados` (Materiales instalados, JSON con el desglose completo), `x_inventario_confirmado`, `x_checklist_completado`.
+Ver: abre la tarea → conteos y Materiales instalados.
+
+**4b. Reparación — costeo → En proceso.** `x_causa_falla` (evento_externo/desgaste), `x_energizador_tipo` (ninguno/simple/bateria), `x_costo_mano_obra`, `x_costo_material`, `x_costo_total`.
 Ver: abre la tarea → Costo total evento y Causa de falla.
-*Instalación:* el registro (metros/postes/abanicos) se ve en la ficha; escribirlo de vuelta desde la app es un endpoint pendiente.
 
 **5. Vincular energizador (solo instalación) → En proceso.** `x_estado_vinculacion` (pasa a “vinculado”), `x_mac_address` (MAC, ej. `AA:BB:CC:11:22:33`).
 Ver: abre la tarea → Estado vinculación = vinculado; MAC en Energizador — MAC.
