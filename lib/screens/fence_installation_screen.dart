@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
 class FenceInstallationScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -34,6 +36,34 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
         _materials[material] = current - 1;
       }
     });
+  }
+
+  bool _isSending = false;
+
+  /// Envía el registro de instalación al backend: los conteos con columna propia
+  /// en Odoo (postes/abanicos) más el desglose completo de materiales. Solo si
+  /// tiene éxito regresa 'installation_completed' para avanzar el flujo.
+  Future<void> _guardarInstalacion() async {
+    if (_isSending) return;
+    setState(() => _isSending = true);
+    final registro = <String, dynamic>{
+      'postesEsquina': _materials['Postes esquina'],
+      'postesPaso': _materials['Postes de paso'],
+      'abanicos': _materials['Abanicos'],
+      'materiales': _materials,
+    };
+    final id = (widget.ticket['id'] ?? widget.ticket['ticket_id'] ?? '').toString();
+    final result = await sl.get<OrdenesRepository>().guardarInstalacion(id, registro);
+    if (!mounted) return;
+    result.fold(
+      (_) => Navigator.pop(context, 'installation_completed'),
+      (failure) {
+        setState(() => _isSending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo guardar la instalación: ${failure.message}')),
+        );
+      },
+    );
   }
 
   @override
@@ -232,9 +262,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context, 'installation_completed');
-                          },
+                          onPressed: _isSending ? null : _guardarInstalacion,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFFF5A00),
                             foregroundColor: Colors.white,

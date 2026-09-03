@@ -53,6 +53,11 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
+  Future<void> guardarInstalacion(String id, Map<String, dynamic> registro) async {
+    await dioClient.post('/instalador/ordenes/$id/instalacion', body: registro);
+  }
+
+  @override
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) async {
     await dioClient.post('/instalador/ordenes/$id/reparacion', body: costeo);
   }

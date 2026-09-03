@@ -16,6 +16,7 @@ abstract class OrdenesDataSource {
   Future<void> iniciarRuta(String id);
   Future<void> marcarLlegada(String id);
   Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos});
+  Future<void> guardarInstalacion(String id, Map<String, dynamic> registro);
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo);
   Future<void> vincularEnergizador(String id, {required String codigo});
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre);

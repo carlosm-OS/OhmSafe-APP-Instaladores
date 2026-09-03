@@ -91,6 +91,10 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       _accion(() => dataSource.guardarInspeccion(id, sinObstaculos: sinObstaculos, obstaculos: obstaculos));
 
   @override
+  Future<Result<bool>> guardarInstalacion(String id, Map<String, dynamic> registro) =>
+      _accion(() => dataSource.guardarInstalacion(id, registro));
+
+  @override
   Future<Result<bool>> guardarReparacion(String id, Map<String, dynamic> costeo) =>
       _accion(() => dataSource.guardarReparacion(id, costeo));
 

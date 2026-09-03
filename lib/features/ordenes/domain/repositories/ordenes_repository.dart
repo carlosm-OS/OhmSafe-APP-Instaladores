@@ -25,6 +25,9 @@ abstract class OrdenesRepository {
   /// Guarda la inspección del perímetro.
   Future<Result<bool>> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos});
 
+  /// Guarda el registro de instalación (conteos de material, paso 3 de instalación).
+  Future<Result<bool>> guardarInstalacion(String id, Map<String, dynamic> registro);
+
   /// Guarda el costeo de la reparación (paso 3 de reparación).
   Future<Result<bool>> guardarReparacion(String id, Map<String, dynamic> costeo);
 

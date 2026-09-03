@@ -121,6 +121,9 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos}) => _ok();
 
   @override
+  Future<void> guardarInstalacion(String id, Map<String, dynamic> registro) => _ok();
+
+  @override
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) => _ok();
 
   @override
