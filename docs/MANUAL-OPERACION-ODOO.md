@@ -55,6 +55,24 @@ Ver: la tarjeta llega a *Completada*; en la app aparece en **Historial**; abre l
 **Cancelar (en cualquier paso) → Cancelada.** `x_motivo_cancelacion`.
 Ver: columna *Cancelada* → abre la tarea para leer el motivo.
 
+## Cómo dar de alta un instalador
+Un instalador es un **contacto (`res.partner`)** identificado con la etiqueta
+**“Instalador Externo-OS”**, y se asigna a cada orden con el campo `x_instalador_id`.
+
+1. **Crear el contacto** — `Odoo → Contactos → Nuevo`: nombre, correo, teléfono.
+   En **Etiquetas** añade **“Instalador Externo-OS”** (opcional: cargo “Instalador externo”).
+2. **Darle acceso a la app (usuario portal)** — en el contacto: botón **Acción → Conceder acceso al portal**
+   (o `Ajustes → Usuarios`). Queda como usuario **portal** (gratis, no consume licencia).
+   **Establece su contraseña** (Ajustes → Usuarios → el instalador → *Cambiar contraseña*).
+   Con su **correo + contraseña** inicia sesión en la app.
+3. **Asignarle órdenes** — en cada tarea (`Proyecto → [TEST] Servicios Instalador`),
+   campo **Instalador** (`x_instalador_id`) = ese contacto.
+
+> **Cada instalador solo ve SUS órdenes** en la app (las que tienen su `x_instalador_id`).
+> Los usuarios sin la etiqueta de instalador (admin/ops) ven **todas**.
+> Ejemplo ya creado: **Juan Mora** (contacto + usuario portal `cuadrilla1@ohmsafe.com`);
+> falta que le pongas contraseña para que entre como él mismo.
+
 ## Tarifas (precios de la calculadora)
 La calculadora de reparación **lee los precios de Odoo en vivo**; el nuevo valor
 se aplica al reabrir la pantalla de costeo. Están como productos **tipo Servicio**,
