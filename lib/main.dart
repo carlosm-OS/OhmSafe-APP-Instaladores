@@ -16,9 +16,9 @@ Future<void> main() async {
   //   - Emulador Android      → usa http://10.0.2.2:3001/v1
   const env = EnvConfig(
     environment: Environment.development,
-    apiBaseUrl: 'http://localhost:3001/v1',
+    apiBaseUrl: 'https://api-dev.dashboard.ohmsafe.com/v1',
     hubspotApiKey: '',
-    useMock: false, // backend local arriba en http://localhost:3001/v1
+    useMock: false, // backend en dev (api-dev). Local: http://localhost:3001/v1
   );
   await sl.init(env);
 
