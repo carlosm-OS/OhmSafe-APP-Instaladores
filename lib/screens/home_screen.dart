@@ -92,7 +92,7 @@ class HomeScreen extends StatelessWidget {
                       GestureDetector(
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const ProfileMainScreen()),
+                          MaterialPageRoute(builder: (_) => ProfileMainScreen(onToggleTheme: onToggleTheme)),
                         ),
                         child: AvatarHalo(
                           size: 112,

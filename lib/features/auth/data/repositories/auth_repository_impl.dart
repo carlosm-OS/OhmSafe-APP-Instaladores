@@ -35,6 +35,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
+    await dataSource.logout(); // limpia el token en la variante Api
     _sesion = null;
   }
 }

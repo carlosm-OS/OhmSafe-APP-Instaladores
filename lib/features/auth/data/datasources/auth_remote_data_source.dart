@@ -24,4 +24,10 @@ class AuthRemoteDataSource implements AuthDataSource {
     if (sesion.accessToken.isNotEmpty) dioClient.setAuthToken(sesion.accessToken);
     return sesion;
   }
+
+  @override
+  Future<void> logout() async {
+    // Limpia el Bearer para que las siguientes peticiones no usen el token viejo.
+    dioClient.clearAuthToken();
+  }
 }

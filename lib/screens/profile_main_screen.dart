@@ -3,13 +3,19 @@ import 'package:image_picker/image_picker.dart';
 import '../controllers/app_state_provider.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../features/auth/domain/repositories/auth_repository.dart';
 import 'datos_generales_screen.dart';
 import 'datos_bancarios_screen.dart';
 import 'contrasenas_screen.dart';
 import 'facturacion_screen.dart';
+import 'login_screen.dart';
 
 class ProfileMainScreen extends StatefulWidget {
-  const ProfileMainScreen({super.key});
+  /// Se propaga a [LoginScreen] al cerrar sesión (para conservar el toggle de
+  /// tema). Opcional: el bottom nav abre esta pantalla sin el callback.
+  final VoidCallback? onToggleTheme;
+  const ProfileMainScreen({super.key, this.onToggleTheme});
 
   @override
   State<ProfileMainScreen> createState() => _ProfileMainScreenState();
@@ -50,6 +56,38 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
         );
       }
     }
+  }
+
+  /// Pide confirmación, cierra la sesión (limpia sesión + token) y vuelve al
+  /// login borrando el stack de navegación.
+  Future<void> _cerrarSesion(BuildContext context) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Cerrar sesión"),
+        content: const Text("¿Seguro que quieres cerrar sesión?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF5A00)),
+            child: const Text("Cerrar sesión"),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+
+    await sl.get<AuthRepository>().logout();
+    if (!mounted) return;
+    AppStateProvider.of(context).updateAvatarPath(""); // limpia avatar local
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: widget.onToggleTheme ?? () {})),
+      (route) => false,
+    );
   }
 
   @override
@@ -295,11 +333,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
 
                         // Orange outline Logout button
                         OutlinedButton(
-                          onPressed: () {
-                            // Clear custom photo or go back
-                            state.updateAvatarPath("");
-                            Navigator.pop(context);
-                          },
+                          onPressed: () => _cerrarSesion(context),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFFFF5A00),
                             side: const BorderSide(color: Color(0xFFFF5A00), width: 1.5),

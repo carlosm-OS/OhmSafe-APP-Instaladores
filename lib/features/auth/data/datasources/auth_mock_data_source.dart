@@ -21,4 +21,7 @@ class AuthMockDataSource implements AuthDataSource {
       rol: 'Instalador',
     );
   }
+
+  @override
+  Future<void> logout() async {} // mock: nada que limpiar
 }
