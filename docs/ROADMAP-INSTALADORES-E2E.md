@@ -18,8 +18,10 @@ como su herramienta de campo. Odoo es la fuente de verdad de la operación.
   maneja en Odoo; la facturación a clientes/CFDI no se toca.
 - **Lead** del instalador en el **CRM de Odoo** (pipeline de reclutamiento).
 - **Onboarding desde la app**: crear contraseña + completar perfil + subir
-  constancia fiscal/RFC/CURP. Invitación por **email nativo** para arrancar;
-  WhatsApp después (proyecto comms).
+  constancia fiscal/RFC/CURP.
+- **Invitación MANUAL por Operaciones** tras validar capacidad técnica y
+  conocimiento del candidato (NO automática al ganar el lead). Canal: **email**
+  para arrancar; WhatsApp después (proyecto comms).
 - **Firma** de recibido: se **captura en la app** y se genera un **Acta de
   recibido (PDF)** adjunta al ticket. NO se usa el módulo Sign para esto (Sign es
   para firma remota por email/portal; la firma del cliente es presencial en campo).
@@ -56,9 +58,11 @@ Import **dirigido**, NO todo el CRM:
 
 ### Fase 1 — Onboarding del instalador  🔴 (empezar por aquí)
 Pasos 0-4. Sin instaladores bien dados de alta, nada de lo demás es real.
-- **Lead** (CRM Odoo, pipeline reclutamiento) con correo/nombre/apellidos/teléfono.
-- Alta **Instalador externo** = `res.partner` (vendor + etiqueta) + **usuario portal**.
-- **Invitación por email** con enlace para la app.
+- **Lead** (CRM Odoo, pipeline "Reclutamiento Instaladores OS-Ext") con correo/nombre/apellidos/teléfono.
+- Operaciones **valida capacidad técnica y conocimiento** del candidato a lo largo del pipeline.
+- **Cuando Operaciones decide** (NO automático al ganar el lead): da de alta al
+  **Instalador externo** = `res.partner` (vendor + etiqueta) + **usuario portal**, y
+  **envía la invitación a mano** (descargar la app + activar cuenta). Email ahora, WhatsApp después.
 - En la **app**: el instalador **crea su contraseña**, **completa perfil** y **sube
   constancia fiscal (PDF) + RFC + CURP**. → estado **"activo"** (disponible para asignación).
 - Nuevo: pantallas de perfil/onboarding en la app, endpoints de perfil + subida a
