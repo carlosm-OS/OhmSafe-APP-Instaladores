@@ -87,7 +87,15 @@ class DioClient {
     }
   }
 
-  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) async {
+  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) =>
+      _sendBody('POST', path, body: body, headers: headers);
+
+  Future<Map<String, dynamic>> put(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) =>
+      _sendBody('PUT', path, body: body, headers: headers);
+
+  /// Envío con cuerpo JSON (POST/PUT), con el mismo manejo de errores que get().
+  Future<Map<String, dynamic>> _sendBody(String method, String path,
+      {Map<String, dynamic>? body, Map<String, String>? headers}) async {
     final uri = Uri.parse("${envConfig.apiBaseUrl}$path");
 
     Map<String, String> mergedHeaders = {
@@ -98,7 +106,7 @@ class DioClient {
       mergedHeaders.addAll(headers);
     }
 
-    HttpClientRequest request = _HttpClientRequestImpl('POST', uri, mergedHeaders);
+    HttpClientRequest request = _HttpClientRequestImpl(method, uri, mergedHeaders);
     for (var interceptor in _interceptors) {
       request = await interceptor.onRequest(request);
     }

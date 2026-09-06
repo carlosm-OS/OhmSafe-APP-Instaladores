@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../features/perfil/domain/repositories/perfil_repository.dart';
 
 class DatosGeneralesScreen extends StatefulWidget {
   const DatosGeneralesScreen({super.key});
@@ -246,7 +248,7 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               final name = "${_nombreController.text.trim()} ${_apellidosController.text.trim()}".trim();
                               final phone = _telefonoController.text.trim();
                               final email = _correoController.text.trim();
@@ -262,20 +264,34 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                                 return;
                               }
 
+                              // Estado local (UI) + persistencia en el backend (Odoo).
                               state.updateInstallerInfo(
                                 name: name,
                                 phone: phone,
                                 email: email,
                                 curp: curp,
                               );
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Datos guardados correctamente",
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                              final result = await sl.get<PerfilRepository>().updatePerfil(
+                                    nombre: name,
+                                    telefono: phone,
+                                    curp: curp,
+                                  );
+                              if (!mounted) return;
+                              result.fold(
+                                (_) => ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Datos guardados correctamente",
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                    backgroundColor: Color(0xFFFF5A00),
                                   ),
-                                  backgroundColor: Color(0xFFFF5A00),
+                                ),
+                                (failure) => ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("No se pudieron guardar: ${failure.message}"),
+                                    backgroundColor: Colors.redAccent,
+                                  ),
                                 ),
                               );
                             },

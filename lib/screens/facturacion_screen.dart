@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../controllers/app_state.dart';
 import '../controllers/app_state_provider.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../features/perfil/domain/repositories/perfil_repository.dart';
 
 class FacturacionScreen extends StatefulWidget {
   const FacturacionScreen({super.key});
@@ -42,6 +45,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
+        withData: true, // necesitamos los bytes para subir la constancia en base64
       );
 
       if (result != null && result.files.isNotEmpty) {
@@ -71,7 +75,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
           _isUploading = true;
         });
 
-        await _simulateFileUpload(state);
+        await _subirConstancia(state, file);
       }
     } catch (e) {
       setState(() {
@@ -80,27 +84,45 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
     }
   }
 
-  Future<void> _simulateFileUpload(AppState state) async {
-    // Simular el proceso de red durante 2 segundos
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
+  /// Sube la constancia (PDF) al backend en base64; se guarda como adjunto en el
+  /// contacto de Odoo. Solo si tiene éxito se refleja en el estado local.
+  Future<void> _subirConstancia(AppState state, PlatformFile file) async {
+    final bytes = file.bytes;
+    if (bytes == null) {
       setState(() {
         _isUploading = false;
+        _errorMessage = "No se pudo leer el archivo. Intenta de nuevo.";
       });
-      // Guardar el archivo en la plataforma (estado global)
-      state.updateTaxCertificate(_selectedFilePath, _selectedFileName);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Constancia fiscal subida correctamente",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: Color(0xFFFF5A00),
-        ),
-      );
+      return;
     }
+    final result = await sl.get<PerfilRepository>().subirConstancia(
+          nombreArchivo: file.name,
+          contenidoBase64: base64Encode(bytes),
+          mimetype: 'application/pdf',
+        );
+    if (!mounted) return;
+    setState(() {
+      _isUploading = false;
+    });
+    result.fold(
+      (_) {
+        state.updateTaxCertificate(_selectedFilePath, _selectedFileName);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Constancia fiscal subida correctamente",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Color(0xFFFF5A00),
+          ),
+        );
+      },
+      (failure) {
+        setState(() {
+          _errorMessage = "No se pudo subir la constancia: ${failure.message}";
+        });
+      },
+    );
   }
 
   void _deleteFile(AppState state) {

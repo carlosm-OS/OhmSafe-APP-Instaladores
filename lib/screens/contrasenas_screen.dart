@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../core/error/failures.dart';
+import '../features/perfil/domain/repositories/perfil_repository.dart';
 
 class ContrasenasScreen extends StatefulWidget {
   const ContrasenasScreen({super.key});
@@ -186,17 +189,31 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
       _isLoading = true;
     });
 
-    // Simulate secure api call to change password
-    await Future.delayed(const Duration(milliseconds: 2000));
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      // Show beautiful success dialog instead of just a SnackBar
-      _showSuccessDialog();
-    }
+    // Cambio real contra el backend (Odoo). Opción A: primer ingreso con
+    // contraseña temporal o cambio posterior.
+    final result = await sl.get<PerfilRepository>().cambiarPassword(
+          passwordActual: current,
+          passwordNueva: newPass,
+        );
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+    });
+    result.fold(
+      (_) => _showSuccessDialog(),
+      (failure) {
+        setState(() {
+          // AuthFailure = la contraseña actual no coincide con la de Odoo.
+          _currentError =
+              failure is AuthFailure ? "La contraseña actual es incorrecta" : null;
+        });
+        if (failure is! AuthFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("No se pudo cambiar la contraseña: ${failure.message}")),
+          );
+        }
+      },
+    );
   }
 
   void _showSuccessDialog() {

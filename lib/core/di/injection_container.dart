@@ -13,6 +13,11 @@ import '../../features/auth/data/datasources/auth_mock_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/perfil/data/datasources/perfil_data_source.dart';
+import '../../features/perfil/data/datasources/perfil_mock_data_source.dart';
+import '../../features/perfil/data/datasources/perfil_remote_data_source.dart';
+import '../../features/perfil/data/repositories/perfil_repository_impl.dart';
+import '../../features/perfil/domain/repositories/perfil_repository.dart';
 
 class sl {
   static final Map<Type, dynamic> _instances = {};
@@ -69,6 +74,16 @@ class sl {
     );
     registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(dataSource: get<AuthDataSource>()),
+    );
+
+    // Perfil del instalador (onboarding: datos, constancia, contraseña).
+    registerLazySingleton<PerfilDataSource>(
+      () => envConfig.useMock
+          ? PerfilMockDataSource()
+          : PerfilRemoteDataSource(dioClient: get<DioClient>()),
+    );
+    registerLazySingleton<PerfilRepository>(
+      () => PerfilRepositoryImpl(dataSource: get<PerfilDataSource>()),
     );
   }
 }
