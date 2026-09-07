@@ -59,8 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
               builder: (_) => ContrasenasScreen(
                 onboarding: true,
                 currentPassword: _passwordController.text,
-                onCompleted: () => Navigator.pushReplacement(
-                  context,
+                onCompleted: (ctx) => Navigator.pushReplacement(
+                  ctx,
                   MaterialPageRoute(builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme, promptFoto: true)),
                 ),
               ),

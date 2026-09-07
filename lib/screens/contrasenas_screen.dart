@@ -11,7 +11,8 @@ class ContrasenasScreen extends StatefulWidget {
   /// regresar al perfil. No se puede saltar.
   final bool onboarding;
   final String? currentPassword;
-  final VoidCallback? onCompleted;
+  /// Recibe el context de ESTA pantalla (válido) para navegar al home.
+  final void Function(BuildContext context)? onCompleted;
 
   const ContrasenasScreen({
     super.key,
@@ -218,7 +219,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
     result.fold(
       (_) {
         if (widget.onboarding) {
-          widget.onCompleted?.call(); // primer ingreso: seguir al home
+          widget.onCompleted?.call(context); // context válido de esta pantalla
         } else {
           _showSuccessDialog();
         }
