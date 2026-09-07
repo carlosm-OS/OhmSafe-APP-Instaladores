@@ -3,6 +3,7 @@ import 'controllers/app_state.dart';
 import 'controllers/app_state_provider.dart';
 import 'core/config/env_config.dart';
 import 'core/di/injection_container.dart';
+import 'core/theme/app_theme.dart';
 import 'screens/login_screen.dart';
 
 Future<void> main() async {
@@ -68,78 +69,14 @@ class _OhmSafeAppState extends State<OhmSafeApp> {
 
   @override
   Widget build(BuildContext context) {
-    const orangeAccent = Color(0xFFFF5A00);
-    const darkBlueBg = Color(0xFF0B0F19);
-    const darkBlueCard = Color(0xFF1E293B);
-
+    // Sistema de tema "Faena" (lib/core/theme). Alto contraste para exterior,
+    // áreas táctiles grandes y bordes en vez de sombras. Ver AppTheme.
     return MaterialApp(
       title: 'OhmSafe Pro',
       debugShowCheckedModeBanner: false,
       themeMode: _themeMode,
-      
-      // Light Theme configuration
-      theme: ThemeData(
-        brightness: Brightness.light,
-        primaryColor: orangeAccent,
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-        cardColor: Colors.white,
-        dividerColor: const Color(0xFFECECF1),
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
-            fontFamily: 'System',
-          ),
-          bodyLarge: TextStyle(
-            color: Color(0xFF1E293B),
-            fontFamily: 'System',
-          ),
-          bodyMedium: TextStyle(
-            color: Color(0xFF64748B),
-            fontFamily: 'System',
-          ),
-        ),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: orangeAccent,
-          brightness: Brightness.light,
-          primary: orangeAccent,
-          surface: const Color(0xFFF8F8FA),
-        ),
-        useMaterial3: true,
-      ),
-
-      // Dark Theme configuration
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: orangeAccent,
-        scaffoldBackgroundColor: darkBlueBg,
-        cardColor: darkBlueCard,
-        dividerColor: const Color(0xFF334155),
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontFamily: 'System',
-          ),
-          bodyLarge: TextStyle(
-            color: Color(0xFFF8FAFC),
-            fontFamily: 'System',
-          ),
-          bodyMedium: TextStyle(
-            color: Color(0xFF94A3B8),
-            fontFamily: 'System',
-          ),
-        ),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: orangeAccent,
-          brightness: Brightness.dark,
-          primary: orangeAccent,
-          background: darkBlueBg,
-          surface: const Color(0xFF111827),
-        ),
-        useMaterial3: true,
-      ),
-      
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
       home: LoginScreen(onToggleTheme: _toggleTheme),
     );
   }
