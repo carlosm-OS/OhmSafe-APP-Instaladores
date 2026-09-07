@@ -55,6 +55,44 @@ Ver: la tarjeta llega a *Completada*; en la app aparece en **Historial**; abre l
 **Cancelar (en cualquier paso) → Cancelada.** `x_motivo_cancelacion`.
 Ver: columna *Cancelada* → abre la tarea para leer el motivo.
 
+## Origen del ticket (HubSpot → Odoo, automático)
+Operaciones **ya no crea a mano** el ticket de instalación. Al recibir el pago,
+HubSpot arma el ticket en el pipeline **“Instalación Ohmsafe”** y **se refleja
+solo en Odoo** como tarea del proyecto:
+
+- **Tiempo real** (webhook): al crearse/avanzar el ticket en HubSpot, aparece en
+  Odoo en segundos.
+- **Red de seguridad** (cada 15 min): un proceso revisa HubSpot y trae lo que
+  falte (idempotente, no duplica).
+- Cada tarea trae `x_hubspot_id` (id de origen) y `x_alta_hubspot` (antigüedad).
+- **Histórico**: las instalaciones cerradas de los últimos 12 meses ya se
+  importaron (etapa *Completada*).
+
+> No hay que hacer nada para que un ticket nuevo llegue a Odoo: llega solo. Lo
+> único manual es **asignarle instalador** (siguiente sección).
+
+## Asignación de instaladores (Operaciones)
+`Odoo → Project → Asignación de instaladores`
+
+- La vista muestra las instalaciones **agrupadas por instalador**; la columna
+  **“Ninguno”** son las que **faltan por asignar**.
+- **Asignar**: arrastra la tarjeta a la columna del instalador (Kanban), o abre
+  la tarea y edita el campo **Instalador** (`x_instalador_id`).
+- Al asignar, la instalación **desaparece de “sin asignar”**, aparece en la app
+  del instalador y **le llega un push** (ver abajo).
+- Favoritos útiles (menú *Favoritos* en la lista de tareas): **“🔧 Instalaciones
+  sin asignar”** y **“👷 Instalaciones por instalador”**.
+
+## Notificación al instalador (push)
+Cuando pones `x_instalador_id`, Odoo dispara automáticamente una notificación
+**push** al teléfono del instalador (“Nueva instalación asignada — <cliente>”).
+Al tocarla se abre su lista de Instalaciones.
+
+- Requiere que el instalador **haya iniciado sesión en la app al menos una vez**
+  (ahí se registra el token de su dispositivo).
+- Aunque no vea el push, la instalación **igual aparece** en su app al abrirla
+  (filtro “solo lo mío”).
+
 ## Cómo dar de alta un instalador
 Un instalador es un **contacto (`res.partner`)** identificado con la etiqueta
 **“Instalador Externo-OS”**, y se asigna a cada orden con el campo `x_instalador_id`.
@@ -63,15 +101,20 @@ Un instalador es un **contacto (`res.partner`)** identificado con la etiqueta
    En **Etiquetas** añade **“Instalador Externo-OS”** (opcional: cargo “Instalador externo”).
 2. **Darle acceso a la app (usuario portal)** — en el contacto: botón **Acción → Conceder acceso al portal**
    (o `Ajustes → Usuarios`). Queda como usuario **portal** (gratis, no consume licencia).
-   **Establece su contraseña** (Ajustes → Usuarios → el instalador → *Cambiar contraseña*).
-   Con su **correo + contraseña** inicia sesión en la app.
-3. **Asignarle órdenes** — en cada tarea (`Proyecto → [TEST] Servicios Instalador`),
-   campo **Instalador** (`x_instalador_id`) = ese contacto.
+   **Ponle una contraseña temporal** y marca su contacto con `x_password_cambiada = false`.
+   En el **primer ingreso** la app lo obliga a **crear su propia contraseña** (onboarding);
+   no tiene que volver a Odoo. Le compartes correo + contraseña temporal + el enlace de descarga.
+3. **Completa su perfil desde la app** — el instalador sube **RFC, CURP y constancia**.
+   Cuando estén los tres, su `x_estado_instalador` pasa a **`activo`** y el sistema le
+   **asigna automáticamente**:
+   - **Número de instalador** (`x_numero_instalador`) — aleatorio único de 5 dígitos.
+   - **Código de venta** (`x_codigo_venta`) — tipo `OHMS-<NOMBRE><NN>`, para el bono por referidos.
+4. **Asignarle órdenes** — no se asigna a mano campo por campo: usa el panel
+   **Asignación de instaladores** (ver arriba). Internamente escribe `x_instalador_id`.
 
 > **Cada instalador solo ve SUS órdenes** en la app (las que tienen su `x_instalador_id`).
 > Los usuarios sin la etiqueta de instalador (admin/ops) ven **todas**.
-> Ejemplo ya creado: **Juan Mora** (contacto + usuario portal `cuadrilla1@ohmsafe.com`);
-> falta que le pongas contraseña para que entre como él mismo.
+> Ejemplo ya creado: **Juan Mora** (`cuadrilla1@ohmsafe.com`, contraseña de prueba `OhmSafe#2026`).
 
 ## Tarifas (precios de la calculadora)
 La calculadora de reparación **lee los precios de Odoo en vivo**; el nuevo valor
