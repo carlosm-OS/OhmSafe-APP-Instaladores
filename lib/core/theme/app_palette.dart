@@ -64,6 +64,16 @@ abstract final class LightPalette {
   static const Color onInfo = Color(0xFFFFFFFF);
   static const Color infoContainer = Color(0xFFE0F2FE);
   static const Color onInfoContainer = Color(0xFF0C4A6E);
+
+  // Accent (púrpura) — categorías especiales (p.ej. "Reemplazo de equipo").
+  static const Color accent = Color(0xFF7C3AED);
+  static const Color onAccent = Color(0xFFFFFFFF);
+  static const Color accentContainer = Color(0xFFEDE9FE);
+  static const Color onAccentContainer = Color(0xFF4C1D95);
+
+  // Inverse — pill/segmento seleccionado (oscuro sobre claro).
+  static const Color inverseSurface = Color(0xFF14202E);
+  static const Color onInverseSurface = Color(0xFFF1F5F9);
 }
 
 /// Paleta modo oscuro — penumbra genuina (anochecer / interior).
@@ -108,4 +118,14 @@ abstract final class DarkPalette {
   static const Color onInfo = Color(0xFF042F49);
   static const Color infoContainer = Color(0xFF075985);
   static const Color onInfoContainer = Color(0xFFBAE6FD);
+
+  // Accent (púrpura) — categorías especiales (p.ej. "Reemplazo de equipo").
+  static const Color accent = Color(0xFFA78BFA);
+  static const Color onAccent = Color(0xFF2E1065);
+  static const Color accentContainer = Color(0xFF4C1D95);
+  static const Color onAccentContainer = Color(0xFFEDE9FE);
+
+  // Inverse — pill/segmento seleccionado (claro sobre oscuro).
+  static const Color inverseSurface = Color(0xFFE9EDF2);
+  static const Color onInverseSurface = Color(0xFF14202E);
 }

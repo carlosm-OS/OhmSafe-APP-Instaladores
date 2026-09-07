@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import 'home_screen.dart';
 import 'contrasenas_screen.dart';
@@ -153,24 +154,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
 
                   const SizedBox(height: 28),
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _loading ? null : _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primary,
-                        disabledBackgroundColor: theme.dividerColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 0,
-                      ),
-                      child: _loading
-                          ? const SizedBox(
-                              width: 22, height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                            )
-                          : const Text("Iniciar sesión", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                    ),
+                  OhmGradientButton(
+                    label: "Iniciar sesión",
+                    icon: Icons.login_rounded,
+                    loading: _loading,
+                    onPressed: _login,
                   ),
                 ],
               ),

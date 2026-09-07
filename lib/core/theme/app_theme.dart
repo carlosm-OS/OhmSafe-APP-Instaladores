@@ -70,6 +70,9 @@ abstract final class AppTheme {
     onSurfaceVariant: LightPalette.onSurfaceVariant,
     outline: LightPalette.outline,
     outlineVariant: LightPalette.outlineVariant,
+    inverseSurface: LightPalette.inverseSurface,
+    onInverseSurface: LightPalette.onInverseSurface,
+    inversePrimary: LightPalette.primaryContainer,
     surfaceTint: Colors.transparent, // sin tinte M3: superficies planas
   );
 
@@ -93,6 +96,9 @@ abstract final class AppTheme {
     onSurfaceVariant: DarkPalette.onSurfaceVariant,
     outline: DarkPalette.outline,
     outlineVariant: DarkPalette.outlineVariant,
+    inverseSurface: DarkPalette.inverseSurface,
+    onInverseSurface: DarkPalette.onInverseSurface,
+    inversePrimary: DarkPalette.primaryContainer,
     surfaceTint: Colors.transparent,
   );
 
@@ -207,9 +213,10 @@ abstract final class AppTheme {
         ),
       ),
 
-      // --- Tarjetas: SIN sombra, borde 1px (sobrevive al sol) ------------------
+      // --- Tarjetas: SIN sombra, borde 1px (sobrevive al sol). En oscuro se
+      //     usa un tier de superficie más alto para dar profundidad sutil.
       cardTheme: CardThemeData(
-        color: scheme.surface,
+        color: brightness == Brightness.dark ? ohm.surfaceContainer : scheme.surface,
         elevation: AppElevation.none,
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,

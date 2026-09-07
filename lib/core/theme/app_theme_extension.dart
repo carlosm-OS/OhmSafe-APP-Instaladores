@@ -30,6 +30,10 @@ class OhmColors extends ThemeExtension<OhmColors> {
     required this.onInfo,
     required this.infoContainer,
     required this.onInfoContainer,
+    required this.accent,
+    required this.onAccent,
+    required this.accentContainer,
+    required this.onAccentContainer,
     required this.surfaceContainer,
     required this.surfaceContainerHigh,
     required this.brandGradient,
@@ -49,6 +53,12 @@ class OhmColors extends ThemeExtension<OhmColors> {
   final Color onInfo;
   final Color infoContainer;
   final Color onInfoContainer;
+
+  /// Acento púrpura para categorías especiales (no es color de marca).
+  final Color accent;
+  final Color onAccent;
+  final Color accentContainer;
+  final Color onAccentContainer;
 
   /// Tiers de superficie por encima de [ColorScheme.surface] (tarjetas, fills).
   final Color surfaceContainer;
@@ -70,6 +80,10 @@ class OhmColors extends ThemeExtension<OhmColors> {
     onInfo: LightPalette.onInfo,
     infoContainer: LightPalette.infoContainer,
     onInfoContainer: LightPalette.onInfoContainer,
+    accent: LightPalette.accent,
+    onAccent: LightPalette.onAccent,
+    accentContainer: LightPalette.accentContainer,
+    onAccentContainer: LightPalette.onAccentContainer,
     surfaceContainer: LightPalette.surfaceContainer,
     surfaceContainerHigh: LightPalette.surfaceContainerHigh,
     brandGradient: LinearGradient(
@@ -92,6 +106,10 @@ class OhmColors extends ThemeExtension<OhmColors> {
     onInfo: DarkPalette.onInfo,
     infoContainer: DarkPalette.infoContainer,
     onInfoContainer: DarkPalette.onInfoContainer,
+    accent: DarkPalette.accent,
+    onAccent: DarkPalette.onAccent,
+    accentContainer: DarkPalette.accentContainer,
+    onAccentContainer: DarkPalette.onAccentContainer,
     surfaceContainer: DarkPalette.surfaceContainer,
     surfaceContainerHigh: DarkPalette.surfaceContainerHigh,
     brandGradient: LinearGradient(
@@ -115,6 +133,10 @@ class OhmColors extends ThemeExtension<OhmColors> {
     Color? onInfo,
     Color? infoContainer,
     Color? onInfoContainer,
+    Color? accent,
+    Color? onAccent,
+    Color? accentContainer,
+    Color? onAccentContainer,
     Color? surfaceContainer,
     Color? surfaceContainerHigh,
     Gradient? brandGradient,
@@ -132,6 +154,10 @@ class OhmColors extends ThemeExtension<OhmColors> {
       onInfo: onInfo ?? this.onInfo,
       infoContainer: infoContainer ?? this.infoContainer,
       onInfoContainer: onInfoContainer ?? this.onInfoContainer,
+      accent: accent ?? this.accent,
+      onAccent: onAccent ?? this.onAccent,
+      accentContainer: accentContainer ?? this.accentContainer,
+      onAccentContainer: onAccentContainer ?? this.onAccentContainer,
       surfaceContainer: surfaceContainer ?? this.surfaceContainer,
       surfaceContainerHigh: surfaceContainerHigh ?? this.surfaceContainerHigh,
       brandGradient: brandGradient ?? this.brandGradient,
@@ -156,6 +182,10 @@ class OhmColors extends ThemeExtension<OhmColors> {
       onInfo: Color.lerp(onInfo, other.onInfo, t)!,
       infoContainer: Color.lerp(infoContainer, other.infoContainer, t)!,
       onInfoContainer: Color.lerp(onInfoContainer, other.onInfoContainer, t)!,
+      accent: Color.lerp(accent, other.accent, t)!,
+      onAccent: Color.lerp(onAccent, other.onAccent, t)!,
+      accentContainer: Color.lerp(accentContainer, other.accentContainer, t)!,
+      onAccentContainer: Color.lerp(onAccentContainer, other.onAccentContainer, t)!,
       surfaceContainer: Color.lerp(surfaceContainer, other.surfaceContainer, t)!,
       surfaceContainerHigh:
           Color.lerp(surfaceContainerHigh, other.surfaceContainerHigh, t)!,

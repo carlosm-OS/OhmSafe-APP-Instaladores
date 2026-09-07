@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/theme/app_motion.dart';
 import '../core/theme/app_theme_extension.dart';
 
 class CierreInstalacionScreen extends StatefulWidget {
@@ -373,9 +374,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     // OhmSafe Color System
-    // brandDark: neutral oscuro de marca para el segmento activo; se mantiene
-    // como literal porque debe ser oscuro en ambos modos (sin token adaptativo).
-    const brandDark = Color(0xFF2E3440);
+    // brandDark: neutral fuerte para foreground de botones "Atrás" (el texto se
+    // sobrescribe aparte). El segmento activo usa cs.inverseSurface (pill
+    // oscuro en claro / claro en oscuro), patrón M3 theme-aware.
+    final brandDark = cs.onSurface;
     final brandOrange = cs.secondary;
 
     return Scaffold(
@@ -1205,6 +1207,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Segmentado: Todo funcional / Con anomalías.
   Widget _entregaSegmented(ThemeData theme, Color brandDark, Color brandOrange) {
+    final cs = theme.colorScheme;
     final opciones = ['Todo funcional', 'Con anomalías'];
     final selected = _entregaConAnomalias ? 1 : 0;
     return Row(
@@ -1216,21 +1219,23 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               _entregaConAnomalias = e.key == 1;
               _step2Error = null;
             }),
-            child: Container(
+            child: AnimatedContainer(
+              duration: AppMotion.duration(context, AppDurations.base),
+              curve: AppCurves.standard,
               margin: EdgeInsets.only(right: e.key == 0 ? 8 : 0),
               padding: const EdgeInsets.symmetric(vertical: 12),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: sel ? brandDark : theme.cardColor,
+                color: sel ? cs.inverseSurface : theme.cardColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: sel ? brandDark : theme.dividerColor),
+                border: Border.all(color: sel ? cs.inverseSurface : theme.dividerColor),
               ),
               child: Text(
                 e.value,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: sel ? Colors.white : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  color: sel ? cs.onInverseSurface : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 ),
               ),
             ),

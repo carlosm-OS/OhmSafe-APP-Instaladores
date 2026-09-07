@@ -83,9 +83,8 @@ class _MenuItemTileState extends State<MenuItemTile> with SingleTickerProviderSt
         iconData = Icons.settings_suggest_rounded;
         break;
       case "Reemplazo de equipo":
-        // Sin token de púrpura en la paleta "Faena": se mantiene el color.
-        iconBgColor = isDark ? const Color(0xFF281E35) : const Color(0xFFFAF5FF);
-        iconColor = const Color(0xFF9333EA);
+        iconBgColor = ohm.accentContainer;
+        iconColor = ohm.accent;
         iconData = Icons.cached_rounded;
         break;
       case "Reportar incidencias":
