@@ -31,7 +31,9 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
     try {
       final XFile? selected = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
+        imageQuality: 80,
+        maxWidth: 1024, // comprime en móvil (en macOS lo maneja el límite del backend)
+        maxHeight: 1024,
       );
       if (selected != null) {
         state.updateAvatarPath(selected.path); // muestra la foto de inmediato
