@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../core/error/failures.dart';
@@ -245,11 +246,12 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
+        final cs = Theme.of(context).colorScheme;
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          backgroundColor: cs.surface,
           child: Padding(
             padding: const EdgeInsets.all(28.0),
             child: Column(
@@ -274,7 +276,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    color: isDark ? Colors.white : cs.onSurface,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -283,7 +285,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                   "Tu contraseña ha sido cambiada de forma segura. Se ha registrado tu actualización en el servidor seguro de OhmSafe.",
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    color: cs.onSurfaceVariant,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,
@@ -297,7 +299,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                       Navigator.pop(context); // Go back to profile screen
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF5A00),
+                      backgroundColor: cs.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -325,11 +327,13 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
 
     // Styling constants matching the screenshot
-    final labelColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9);
-    final fillColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8);
+    final labelColor = cs.onSurfaceVariant;
+    final fillColor = ohm.surfaceContainer;
 
     final labelStyle = TextStyle(
       fontSize: 12,
@@ -373,11 +377,11 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -392,7 +396,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                               onPressed: () {},
                               icon: Icon(
                                 Icons.notifications,
-                                color: theme.iconTheme.color?.withOpacity(0.7),
+                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
                               ),
                             ),
                             Positioned(
@@ -471,7 +475,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+                              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
                             ),
                           ),
                         ),
@@ -550,7 +554,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                                       "Seguridad de la contraseña:",
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                        color: cs.onSurfaceVariant,
                                       ),
                                     ),
                                     Text(
@@ -603,7 +607,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.9),
+                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.9),
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -626,7 +630,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _submitChange,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF5A00),
+                              backgroundColor: cs.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -663,17 +667,17 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
           // Fullscreen loader overlay during save
           if (_isLoading)
             Container(
-              color: Colors.black.withOpacity(0.55),
+              color: Colors.black.withValues(alpha: 0.55),
               child: Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
                   margin: const EdgeInsets.symmetric(horizontal: 40),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    color: cs.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -682,8 +686,8 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(
-                        color: Color(0xFFFF5A00),
+                      CircularProgressIndicator(
+                        color: cs.primary,
                         strokeWidth: 3,
                       ),
                       const SizedBox(height: 20),
@@ -692,7 +696,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          color: isDark ? Colors.white : cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -700,7 +704,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                         "Cifrando datos de seguridad",
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -729,6 +733,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
     bool showVisibilityToggle = true,
     Widget? customSuffix,
   }) {
+    final cs = Theme.of(context).colorScheme;
     final hasError = errorText != null;
 
     return Column(
@@ -745,13 +750,13 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
             boxShadow: [
               if (focusNode.hasFocus && !hasError)
                 BoxShadow(
-                  color: const Color(0xFFFF5A00).withOpacity(0.12),
+                  color: cs.primary.withValues(alpha: 0.12),
                   blurRadius: 10,
                   spreadRadius: 1,
                 ),
               if (hasError)
                 BoxShadow(
-                  color: Colors.redAccent.withOpacity(0.08),
+                  color: Colors.redAccent.withValues(alpha: 0.08),
                   blurRadius: 10,
                   spreadRadius: 1,
                 ),
@@ -782,7 +787,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                       child: IconButton(
                         icon: Icon(
                           obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                          color: hasError ? Colors.redAccent.withOpacity(0.7) : Colors.grey.shade500,
+                          color: hasError ? Colors.redAccent.withValues(alpha: 0.7) : Colors.grey.shade500,
                           size: 20,
                         ),
                         onPressed: onToggleVisibility,
@@ -799,7 +804,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: hasError ? Colors.redAccent : const Color(0xFFFF5A00),
+                  color: hasError ? Colors.redAccent : cs.primary,
                   width: 1.5,
                 ),
               ),
@@ -843,7 +848,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
       children: [
         Icon(
           isValid ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-          color: isValid ? Colors.green : labelColor.withOpacity(0.4),
+          color: isValid ? Colors.green : labelColor.withValues(alpha: 0.4),
           size: 16,
         ),
         const SizedBox(width: 8),
@@ -851,7 +856,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
           text,
           style: TextStyle(
             fontSize: 13,
-            color: isValid ? Colors.green : labelColor.withOpacity(0.8),
+            color: isValid ? Colors.green : labelColor.withValues(alpha: 0.8),
             fontWeight: isValid ? FontWeight.bold : FontWeight.normal,
           ),
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
@@ -46,6 +47,8 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     final details = widget.ticket["details"] as Map<String, String>;
     final isUrgent = widget.ticket["isUrgent"] as bool? ?? false;
@@ -79,11 +82,11 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -95,7 +98,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                           onPressed: () {},
                           icon: Icon(
                             Icons.notifications_none_rounded,
-                            color: theme.iconTheme.color?.withOpacity(0.7),
+                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
                           ),
                         ),
                       ),
@@ -157,7 +160,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
-                            color: theme.dividerColor.withOpacity(0.5),
+                            color: theme.dividerColor.withValues(alpha: 0.5),
                             width: 1.5,
                           ),
                         ),
@@ -183,7 +186,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                               const SizedBox(height: 6),
                               RichText(
                                 text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
                                     const TextSpan(text: "Fecha de Creación: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                     TextSpan(text: details["createdDate"]),
@@ -193,7 +196,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                               const SizedBox(height: 6),
                               RichText(
                                 text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
                                     const TextSpan(text: "Dirección: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                     TextSpan(text: details["direccion"]),
@@ -205,7 +208,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                 children: [
                                   RichText(
                                     text: TextSpan(
-                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                       children: [
                                         const TextSpan(text: "Ciudad: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                         TextSpan(text: details["ciudad"]),
@@ -215,7 +218,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                   const SizedBox(width: 24),
                                   RichText(
                                     text: TextSpan(
-                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                       children: [
                                         const TextSpan(text: "CP: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                         TextSpan(text: details["cp"]),
@@ -227,7 +230,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                               const SizedBox(height: 6),
                               RichText(
                                 text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
                                     const TextSpan(text: "Teléfono: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                     TextSpan(text: details["telefono"]),
@@ -245,14 +248,14 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                       Icon(
                                         Icons.person_outline_rounded,
                                         size: 14,
-                                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
                                         widget.ticket["user"]!,
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
+                                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -295,7 +298,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                           child: ElevatedButton(
                             onPressed: _isSending ? null : _marcarLlegada,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF5A00),
+                              backgroundColor: cs.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -338,7 +341,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                             color: theme.cardColor,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: theme.dividerColor.withOpacity(0.5),
+                              color: theme.dividerColor.withValues(alpha: 0.5),
                               width: 1.5,
                             ),
                           ),
@@ -361,10 +364,10 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                 decoration: InputDecoration(
                                   hintText: "Escribe aquí el motivo...",
                                   hintStyle: TextStyle(
-                                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                                   ),
                                   filled: true,
-                                  fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                  fillColor: ohm.surfaceContainer,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide.none,

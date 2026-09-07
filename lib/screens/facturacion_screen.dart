@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../controllers/app_state.dart';
 import '../controllers/app_state_provider.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
@@ -69,7 +70,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
     setState(() => _savingRfc = false);
     result.fold(
       (_) => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("RFC guardado"), backgroundColor: Color(0xFFFF5A00)),
+        SnackBar(content: const Text("RFC guardado"), backgroundColor: Theme.of(context).colorScheme.primary),
       ),
       (failure) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("No se pudo guardar el RFC: ${failure.message}"), backgroundColor: Colors.redAccent),
@@ -149,12 +150,12 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
       (_) {
         state.updateTaxCertificate(_selectedFilePath, _selectedFileName);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
+          SnackBar(
+            content: const Text(
               "Constancia fiscal subida correctamente",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            backgroundColor: Color(0xFFFF5A00),
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       },
@@ -175,7 +176,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           title: const Text(
             "Eliminar archivo",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -222,13 +223,15 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
     // Color system
-    final labelColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9);
-    final fillColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8);
-    final dashedBorderColor = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
+    final labelColor = cs.onSurfaceVariant;
+    final fillColor = ohm.surfaceContainer;
+    final dashedBorderColor = isDark ? cs.onSurfaceVariant : cs.outline;
 
     final labelStyle = TextStyle(
       fontSize: 12,
@@ -266,11 +269,11 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -285,7 +288,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                               onPressed: () {},
                               icon: Icon(
                                 Icons.notifications,
-                                color: theme.iconTheme.color?.withOpacity(0.7),
+                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
                               ),
                             ),
                             Positioned(
@@ -363,7 +366,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+                              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
                             ),
                           ),
                         ),
@@ -394,7 +397,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                               child: ElevatedButton(
                                 onPressed: _savingRfc ? null : _guardarRfc,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFF5A00),
+                                  backgroundColor: cs.primary,
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 ),
@@ -433,11 +436,11 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const SizedBox(
+                                      SizedBox(
                                         height: 48,
                                         width: 48,
                                         child: CircularProgressIndicator(
-                                          color: Color(0xFFFF5A00),
+                                          color: cs.primary,
                                           strokeWidth: 4,
                                         ),
                                       ),
@@ -458,7 +461,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                                         ),
                                       ),
                                     ],
@@ -488,7 +491,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                                         ),
                                       ),
                                       const SizedBox(height: 24),
@@ -499,8 +502,8 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                                         child: OutlinedButton(
                                           onPressed: () => _pickFile(state),
                                           style: OutlinedButton.styleFrom(
-                                            foregroundColor: const Color(0xFFFF5A00),
-                                            side: const BorderSide(color: Color(0xFFFF5A00), width: 1.5),
+                                            foregroundColor: cs.primary,
+                                            side: BorderSide(color: cs.primary, width: 1.5),
                                             padding: const EdgeInsets.symmetric(horizontal: 40),
                                             shape: RoundedRectangleBorder(
                                               borderRadius: BorderRadius.circular(24),
@@ -698,7 +701,7 @@ class PdfDocumentIcon extends StatelessWidget {
         color: Colors.transparent,
       ),
       child: CustomPaint(
-        painter: _PdfIconPainter(color: const Color(0xFF475569)),
+        painter: _PdfIconPainter(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }
@@ -730,7 +733,7 @@ class _PdfIconPainter extends CustomPainter {
 
     // Draw the folded corner flap
     final foldPaint = Paint()
-      ..color = color.withOpacity(0.85)
+      ..color = color.withValues(alpha: 0.85)
       ..style = PaintingStyle.fill;
 
     final foldPath = Path();

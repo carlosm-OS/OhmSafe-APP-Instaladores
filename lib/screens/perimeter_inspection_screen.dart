@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
@@ -86,6 +87,8 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     final details = widget.ticket["details"] as Map<String, String>;
 
@@ -118,11 +121,11 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -134,7 +137,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                           onPressed: () {},
                           icon: Icon(
                             Icons.notifications_none_rounded,
-                            color: theme.iconTheme.color?.withOpacity(0.7),
+                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
                           ),
                         ),
                       ),
@@ -193,10 +196,10 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                          color: cs.surface,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: theme.dividerColor.withOpacity(0.3),
+                            color: theme.dividerColor.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Column(
@@ -215,14 +218,14 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                                 Icon(
                                   Icons.person_outline_rounded,
                                   size: 16,
-                                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   widget.ticket["user"] ?? "Cliente",
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8),
+                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -244,7 +247,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                                   details["metraje"] ?? "0m",
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8),
+                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -262,7 +265,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
-                            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4),
+                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -299,9 +302,9 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                                 ? _guardarInspeccion
                                 : null,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF5A00),
+                              backgroundColor: cs.primary,
                               foregroundColor: Colors.white,
-                              disabledBackgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                              disabledBackgroundColor: isDark ? cs.outline : cs.outlineVariant,
                               disabledForegroundColor: isDark ? Colors.white30 : Colors.white70,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -341,7 +344,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: theme.textTheme.bodyLarge?.color,
-                              side: BorderSide(color: theme.dividerColor.withOpacity(0.5), width: 1.5),
+                              side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -364,7 +367,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                             color: theme.cardColor,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: theme.dividerColor.withOpacity(0.5),
+                              color: theme.dividerColor.withValues(alpha: 0.5),
                               width: 1.5,
                             ),
                           ),
@@ -387,10 +390,10 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                                 decoration: InputDecoration(
                                   hintText: "Escribe aquí el motivo...",
                                   hintStyle: TextStyle(
-                                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                                   ),
                                   filled: true,
-                                  fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                  fillColor: ohm.surfaceContainer,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide.none,
@@ -469,6 +472,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
 
   Widget _buildObstacleTile(String name, bool isSelected) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     // Determine if this tile is disabled because "Perímetro sin obstáculos" is selected
@@ -482,13 +486,13 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: isSelected
-                ? (isDark ? const Color(0x33FF5A00) : const Color(0xFFFFF0E6))
-                : (isDark ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFFF8FAFC)),
+                ? (isDark ? cs.primary.withValues(alpha: 0.2) : cs.primaryContainer)
+                : (isDark ? cs.surface.withValues(alpha: 0.5) : cs.surface),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isSelected
-                  ? const Color(0xFFFF5A00)
-                  : theme.dividerColor.withOpacity(0.3),
+                  ? cs.primary
+                  : theme.dividerColor.withValues(alpha: 0.3),
               width: isSelected ? 1.5 : 1.0,
             ),
           ),
@@ -502,7 +506,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     color: isSelected
-                        ? (isDark ? const Color(0xFFFF8B4D) : const Color(0xFFD43F00))
+                        ? cs.primary
                         : theme.textTheme.bodyLarge?.color,
                   ),
                 ),
@@ -516,11 +520,11 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: isSelected
-                        ? const Color(0xFFFF5A00)
+                        ? cs.primary
                         : (isDark ? Colors.white30 : Colors.black12),
                     width: 2,
                   ),
-                  color: isSelected ? const Color(0xFFFF5A00) : Colors.transparent,
+                  color: isSelected ? cs.primary : Colors.transparent,
                 ),
                 child: isSelected
                     ? const Icon(

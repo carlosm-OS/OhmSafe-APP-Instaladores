@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import 'route_details_screen.dart';
 import 'perimeter_inspection_screen.dart';
@@ -83,6 +84,7 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -145,7 +147,7 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
                               // Orange Cargo Body with Logo text inside
                               Container(
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFF5A00), // OhmSafe Orange
+                                  color: cs.primary, // OhmSafe Orange
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 width: 85,
@@ -167,9 +169,9 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
                               Container(
                                 width: 30,
                                 height: 35,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF1E293B), // Dark slate cabin
-                                  borderRadius: BorderRadius.only(
+                                decoration: BoxDecoration(
+                                  color: cs.onSurface, // Dark slate cabin
+                                  borderRadius: const BorderRadius.only(
                                     topRight: Radius.circular(8),
                                     bottomRight: Radius.circular(4),
                                   ),
@@ -245,7 +247,7 @@ class RoadPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withOpacity(0.5)
+      ..color = color.withValues(alpha: 0.5)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
@@ -365,6 +367,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     final details = widget.ticket["details"] as Map<String, String>;
     final isUrgent = widget.ticket["isUrgent"] as bool? ?? false;
@@ -398,11 +402,11 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -414,7 +418,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           onPressed: () {},
                           icon: Icon(
                             Icons.notifications_none_rounded,
-                            color: theme.iconTheme.color?.withOpacity(0.7),
+                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
                           ),
                         ),
                       ),
@@ -476,7 +480,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
-                            color: theme.dividerColor.withOpacity(0.5),
+                            color: theme.dividerColor.withValues(alpha: 0.5),
                             width: 1.5,
                           ),
                         ),
@@ -502,7 +506,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                               const SizedBox(height: 6),
                               RichText(
                                 text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
                                     const TextSpan(text: "Fecha de Creación: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                     TextSpan(text: details["createdDate"]),
@@ -512,7 +516,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                               const SizedBox(height: 6),
                               RichText(
                                 text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
                                     const TextSpan(text: "Dirección: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                     TextSpan(text: details["direccion"]),
@@ -524,7 +528,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 children: [
                                   RichText(
                                     text: TextSpan(
-                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                       children: [
                                         const TextSpan(text: "Ciudad: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                         TextSpan(text: details["ciudad"]),
@@ -534,7 +538,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                   const SizedBox(width: 24),
                                   RichText(
                                     text: TextSpan(
-                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                       children: [
                                         const TextSpan(text: "CP: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                         TextSpan(text: details["cp"]),
@@ -546,7 +550,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                               const SizedBox(height: 6),
                               RichText(
                                 text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
                                     const TextSpan(text: "Teléfono: ", style: TextStyle(fontWeight: FontWeight.w700)),
                                     TextSpan(text: details["telefono"]),
@@ -566,14 +570,14 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                       Icon(
                                         Icons.person_outline_rounded,
                                         size: 14,
-                                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
                                         widget.ticket["user"]!,
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
+                                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -616,7 +620,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -764,9 +768,9 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _step5Completed
-                                  ? const Color(0xFFFF5A00)
-                                  : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                              disabledBackgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                  ? cs.primary
+                                  : (isDark ? cs.outline : cs.outlineVariant),
+                              disabledBackgroundColor: isDark ? cs.outline : cs.outlineVariant,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -809,15 +813,15 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFC2E7C0),
+                  color: isDark ? cs.surface : ohm.successContainer,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF15803D) : const Color(0xFF86EFAC),
+                    color: ohm.success,
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     )
@@ -827,8 +831,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF15803D),
+                      decoration: BoxDecoration(
+                        color: ohm.success,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -842,7 +846,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                       child: Text(
                         "Técnico en camino al domicilio",
                         style: TextStyle(
-                          color: isDark ? Colors.white : const Color(0xFF14532D),
+                          color: isDark ? Colors.white : ohm.onSuccessContainer,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
@@ -854,21 +858,22 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
             ),
           ),
           if (_isSubmitting)
-            _buildLoadingOverlay(isDark),
+            _buildLoadingOverlay(context),
         ],
       ),
     );
   }
 
-  Widget _buildLoadingOverlay(bool isDark) {
+  Widget _buildLoadingOverlay(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      color: Colors.black.withOpacity(0.6),
+      color: Colors.black.withValues(alpha: 0.6),
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           margin: const EdgeInsets.symmetric(horizontal: 40),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(20),
             boxShadow: const [
               BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 10)),
@@ -876,21 +881,21 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               CircularProgressIndicator(
-                color: Color(0xFFFF5A00),
+                color: cs.primary,
                 strokeWidth: 3.5,
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 "Enviando Cierre...",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 6),
-              Text(
+              const SizedBox(height: 6),
+              const Text(
                 "Verificando localización y firmas",
                 style: TextStyle(
                   fontSize: 12,
@@ -926,12 +931,12 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final cs = Theme.of(context).colorScheme;
           return Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            backgroundColor: cs.surface,
             child: Padding(
               padding: const EdgeInsets.all(28.0),
               child: Column(
@@ -990,7 +995,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF5A00),
+                        backgroundColor: cs.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -1026,6 +1031,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
 
     Color cardBg;
@@ -1037,38 +1044,38 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     Color chevronColor;
 
     if (isCompleted) {
-      cardBg = isDark ? const Color(0x33166534) : const Color(0xFFDCFCE7);
+      cardBg = isDark ? ohm.success.withValues(alpha: 0.2) : ohm.successContainer;
       borderSide = BorderSide(
-        color: isDark ? const Color(0xFF166534) : const Color(0xFF15803D),
+        color: ohm.success,
         width: 1.5,
       );
-      badgeBg = isDark ? const Color(0xFF166534) : const Color(0xFF15803D);
+      badgeBg = ohm.success;
       badgeTextColor = Colors.white;
-      titleColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534);
-      subtitleColor = isDark ? const Color(0xFF4ADE80).withOpacity(0.8) : const Color(0xFF166534).withOpacity(0.8);
-      chevronColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534);
+      titleColor = ohm.success;
+      subtitleColor = ohm.success.withValues(alpha: 0.8);
+      chevronColor = ohm.success;
     } else if (isActive) {
       cardBg = theme.cardColor;
-      borderSide = const BorderSide(
-        color: Color(0xFFFF5A00),
+      borderSide = BorderSide(
+        color: cs.primary,
         width: 1.5,
       );
-      badgeBg = const Color(0xFFFF5A00);
+      badgeBg = cs.primary;
       badgeTextColor = Colors.white;
       titleColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
       subtitleColor = theme.textTheme.bodyMedium?.color ?? Colors.black54;
-      chevronColor = const Color(0xFFFF5A00);
+      chevronColor = cs.primary;
     } else {
-      cardBg = isDark ? const Color(0xFF1E293B).withOpacity(0.4) : const Color(0xFFF1F5F9);
+      cardBg = isDark ? cs.surface.withValues(alpha: 0.4) : ohm.surfaceContainer;
       borderSide = BorderSide(
-        color: theme.dividerColor.withOpacity(0.5),
+        color: theme.dividerColor.withValues(alpha: 0.5),
         width: 1.0,
       );
-      badgeBg = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-      badgeTextColor = isDark ? Colors.white70 : const Color(0xFF64748B);
-      titleColor = theme.textTheme.bodyLarge?.color?.withOpacity(0.4) ?? Colors.black45;
-      subtitleColor = theme.textTheme.bodyMedium?.color?.withOpacity(0.4) ?? Colors.black38;
-      chevronColor = theme.iconTheme.color?.withOpacity(0.3) ?? Colors.grey;
+      badgeBg = isDark ? cs.outline : cs.outlineVariant;
+      badgeTextColor = isDark ? Colors.white70 : cs.onSurfaceVariant;
+      titleColor = theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.4) ?? Colors.black45;
+      subtitleColor = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4) ?? Colors.black38;
+      chevronColor = theme.iconTheme.color?.withValues(alpha: 0.3) ?? Colors.grey;
     }
 
     return Card(

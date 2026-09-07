@@ -45,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Toast flotante que "vuela" arriba de la foto invitando a subirla.
   Widget _buildFotoHint(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 450),
@@ -63,10 +64,10 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF5A00),
+              color: cs.primary,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
-                BoxShadow(color: const Color(0xFFFF5A00).withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 6)),
+                BoxShadow(color: cs.primary.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 6)),
               ],
             ),
             child: const Row(
@@ -88,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
@@ -114,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text("OHM", style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                            const Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF5A00))),
+                            Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
                           ],
                         ),
                       ),
@@ -125,11 +127,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             IconButton(
                               onPressed: widget.onToggleTheme,
-                              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: theme.iconTheme.color?.withOpacity(0.7)),
+                              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                             ),
                             IconButton(
                               onPressed: () {},
-                              icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withOpacity(0.7)),
+                              icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                             ),
                           ],
                         ),
@@ -177,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 12),
                       Text(state.installerName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
                       const SizedBox(height: 2),
-                      Text("${state.installerRole} ${state.installerId}", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6))),
+                      Text("${state.installerRole} ${state.installerId}", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6))),
                     ],
                   ),
                 ),

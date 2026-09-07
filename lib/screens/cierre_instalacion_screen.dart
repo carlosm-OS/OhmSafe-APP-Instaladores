@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/theme/app_theme_extension.dart';
 
 class CierreInstalacionScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -368,11 +369,14 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     // OhmSafe Color System
+    // brandDark: neutral oscuro de marca para el segmento activo; se mantiene
+    // como literal porque debe ser oscuro en ambos modos (sin token adaptativo).
     const brandDark = Color(0xFF2E3440);
-    const brandOrange = Color(0xFFFF8D28);
+    final brandOrange = cs.secondary;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -395,14 +399,14 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Text(
+                          children: [
+                            const Text(
                               "OHM",
                               style: TextStyle(fontWeight: FontWeight.w900),
                             ),
                             Text(
                               "SAFE",
-                              style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF5A00)),
+                              style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
                             ),
                           ],
                         ),
@@ -414,7 +418,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                           children: [
                             Icon(
                               Icons.notifications,
-                              color: theme.iconTheme.color?.withOpacity(0.7),
+                              color: theme.iconTheme.color?.withValues(alpha: 0.7),
                             ),
                             Positioned(
                               top: 2,
@@ -484,7 +488,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+                      color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
                     ),
                   ),
                 ),
@@ -547,7 +551,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
           // Sending loading overlay
           if (_isLoading)
-            _buildLoadingOverlay(isDark),
+            _buildLoadingOverlay(context),
         ],
       ),
     );
@@ -577,7 +581,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         height: 6,
         decoration: BoxDecoration(
           color: isActive 
-              ? const Color(0xFFFF8D28)
+              ? Theme.of(context).colorScheme.secondary
               : (isCompleted ? Colors.green : Colors.grey.shade300),
           borderRadius: BorderRadius.circular(3),
         ),
@@ -588,7 +592,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   // STEP 1 CONTENT: Evidence photos & anomaly justification
   Widget _buildStep1Evidence(Color brandDark, Color brandOrange) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     bool anyGeoMismatch = _geoMismatches.values.contains(true);
 
     return Column(
@@ -602,7 +605,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.8,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -612,7 +615,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               : "Captura las fotografías requeridas en el lugar de la instalación. El sistema verificará de forma segura las coordenadas de localización.",
           style: TextStyle(
             fontSize: 13,
-            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
             height: 1.4,
           ),
         ),
@@ -679,7 +682,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -692,7 +695,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               ? "Explica la causa del desfase de GPS (Ej: Instalación atípica, barda delgada, sin señal)..."
               : "Registra observaciones adicionales de la instalación...",
             filled: true,
-            fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
+            fillColor: context.ohm.surfaceContainer,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
@@ -724,7 +727,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           child: ElevatedButton(
             onPressed: _nextStep,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _validateStep1() ? const Color(0xFFFF5A00) : Colors.grey.shade400,
+              backgroundColor: _validateStep1() ? theme.colorScheme.primary : Colors.grey.shade400,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
@@ -748,12 +751,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isMismatched 
             ? Colors.redAccent 
-            : (hasPhoto ? Colors.green.shade200 : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+            : (hasPhoto ? Colors.green.shade200 : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant)),
         ),
       ),
       child: Row(
@@ -764,9 +767,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             child: Container(
               width: 50,
               height: 50,
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
               child: hasPhoto
-                  ? const Icon(Icons.check_circle, color: Color(0xFFFF8D28), size: 28)
+                  ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary, size: 28)
                   : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
             ),
           ),
@@ -808,14 +811,14 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
           // Right button: Action
           _capturingCategory == category
-              ? const SizedBox(
+              ? SizedBox(
                   width: 48,
                   height: 48,
                   child: Padding(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF8D28)),
+                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
                     ),
                   ),
                 )
@@ -847,12 +850,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isMismatched
               ? Colors.redAccent
-              : (hasPhoto ? Colors.green.shade200 : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+              : (hasPhoto ? Colors.green.shade200 : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant)),
         ),
       ),
       child: Row(
@@ -862,9 +865,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             child: Container(
               width: 50,
               height: 50,
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
               child: hasPhoto
-                  ? const Icon(Icons.check_circle, color: Color(0xFFFF8D28), size: 28)
+                  ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary, size: 28)
                   : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
             ),
           ),
@@ -900,7 +903,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 ] else
                   Text(
                     "Pendiente de captura",
-                    style: TextStyle(fontSize: 11, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
+                    style: TextStyle(fontSize: 11, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                   ),
               ],
             ),
@@ -913,14 +916,14 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             ),
           // Capturar / reemplazar
           isCapturing
-              ? const SizedBox(
+              ? SizedBox(
                   width: 48,
                   height: 48,
                   child: Padding(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF8D28)),
+                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
                     ),
                   ),
                 )
@@ -984,7 +987,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.8,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -992,7 +995,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           "Confirma la entrega del control remoto al cliente y el estado del equipo. No se requiere foto ni número de serie.",
           style: TextStyle(
             fontSize: 13,
-            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
             height: 1.4,
           ),
         ),
@@ -1018,7 +1021,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -1032,7 +1035,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -1077,7 +1080,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -1089,14 +1092,14 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             decoration: InputDecoration(
               hintText: "Describe la anomalía (obligatorio si no marcaste un tipo arriba)...",
               filled: true,
-              fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
+              fillColor: context.ohm.surfaceContainer,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFFF8D28), width: 1.5),
+                borderSide: BorderSide(color: theme.colorScheme.secondary, width: 1.5),
               ),
             ),
           ),
@@ -1139,7 +1142,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 child: ElevatedButton(
                   onPressed: _nextStep,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _validateStep2() ? const Color(0xFFFF5A00) : Colors.grey.shade400,
+                    backgroundColor: _validateStep2() ? theme.colorScheme.primary : Colors.grey.shade400,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
@@ -1169,10 +1172,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: value ? brandOrange : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            color: value ? brandOrange : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant),
             width: value ? 1.6 : 1.0,
           ),
         ),
@@ -1227,7 +1230,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: sel ? Colors.white : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  color: sel ? Colors.white : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 ),
               ),
             ),
@@ -1251,23 +1254,23 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.8,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+            color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.info_outline_rounded, color: Color(0xFFFF8D28), size: 22),
+              Icon(Icons.info_outline_rounded, color: theme.colorScheme.secondary, size: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1287,7 +1290,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       style: TextStyle(
                         fontSize: 12.5,
                         height: 1.4,
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
                       ),
                     ),
                   ],
@@ -1304,7 +1307,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -1315,14 +1318,14 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           decoration: InputDecoration(
             hintText: "Observaciones sobre el equipo existente (opcional)...",
             filled: true,
-            fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
+            fillColor: context.ohm.surfaceContainer,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFFF8D28), width: 1.5),
+              borderSide: BorderSide(color: theme.colorScheme.secondary, width: 1.5),
             ),
           ),
         ),
@@ -1355,7 +1358,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 child: ElevatedButton(
                   onPressed: _nextStep,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5A00),
+                    backgroundColor: theme.colorScheme.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
@@ -1384,7 +1387,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.8,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -1393,7 +1396,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           
           style: TextStyle(
             fontSize: 13,
-            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
             height: 1.4,
           ),
         ),
@@ -1405,12 +1408,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             Container(
               height: 200,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                color: context.ohm.surfaceContainer,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: _signatureConfirmed 
                     ? Colors.green 
-                    : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant),
                   width: _signatureConfirmed ? 2.0 : 1.0,
                 ),
               ),
@@ -1454,7 +1457,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             if (_signatureConfirmed)
               Positioned.fill(
                 child: Container(
-                  color: Colors.green.withOpacity(0.06),
+                  color: Colors.green.withValues(alpha: 0.06),
                   child: Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -1577,7 +1580,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 child: ElevatedButton(
                   onPressed: _canSubmitCierre() ? _submitCierreInstalacion : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _canSubmitCierre() ? const Color(0xFFFF5A00) : Colors.grey.shade400,
+                    backgroundColor: _canSubmitCierre() ? theme.colorScheme.primary : Colors.grey.shade400,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
@@ -1597,37 +1600,38 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   }
 
   // Sending data overlay
-  Widget _buildLoadingOverlay(bool isDark) {
+  Widget _buildLoadingOverlay(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      color: Colors.black.withOpacity(0.6),
+      color: Colors.black.withValues(alpha: 0.6),
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           margin: const EdgeInsets.symmetric(horizontal: 40),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.28), blurRadius: 20, offset: const Offset(0, 10)),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 20, offset: const Offset(0, 10)),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               CircularProgressIndicator(
-                color: Color(0xFFFF5A00),
+                color: cs.primary,
                 strokeWidth: 3.5,
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 "Enviando Cierre...",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 6),
-              Text(
+              const SizedBox(height: 6),
+              const Text(
                 "Verificando localización y firmas",
                 style: TextStyle(
                   fontSize: 12,

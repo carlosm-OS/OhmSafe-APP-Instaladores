@@ -20,7 +20,7 @@ class AppBottomNav extends StatelessWidget {
           color: Colors.black,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))
+            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 10))
           ],
         ),
         child: Row(
@@ -40,7 +40,8 @@ class AppBottomNav extends StatelessWidget {
   }
 
   Widget _buildNavItem(BuildContext context, IconData icon, String label, bool isSelected) {
-    final color = isSelected ? const Color(0xFFFF5A00) : Colors.white;
+    final cs = Theme.of(context).colorScheme;
+    final color = isSelected ? cs.primary : Colors.white;
     return GestureDetector(
       onTap: () {
         if (label == "Ayuda" && currentTab != "Ayuda") {

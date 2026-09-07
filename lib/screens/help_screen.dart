@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/theme/app_theme_extension.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
@@ -30,7 +31,8 @@ class HelpScreen extends StatelessWidget {
   // Bottom sheet modal to capture reports
   void _showReportIncidentDialog(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final reportController = TextEditingController();
 
     showModalBottomSheet(
@@ -78,10 +80,10 @@ class HelpScreen extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: "Escribe aquí los detalles del reporte...",
                   hintStyle: TextStyle(
-                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                   ),
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  fillColor: ohm.surfaceContainer,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -99,12 +101,12 @@ class HelpScreen extends StatelessWidget {
                       debugPrint("Reporte de incidencia enviado: $reportText");
                       Navigator.pop(context); // Close bottom sheet
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
+                        SnackBar(
+                          content: const Text(
                             "Reporte enviado correctamente",
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          backgroundColor: Color(0xFFFF5A00),
+                          backgroundColor: cs.primary,
                         ),
                       );
                     } else {
@@ -117,7 +119,7 @@ class HelpScreen extends StatelessWidget {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5A00),
+                    backgroundColor: cs.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -141,11 +143,13 @@ class HelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
 
     // Harmonious Colors
-    final labelColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9);
-    final cardBgColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8);
+    final labelColor = cs.onSurfaceVariant;
+    final cardBgColor = ohm.surfaceContainer;
     final textStyle = TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.w500,
@@ -181,11 +185,11 @@ class HelpScreen extends StatelessWidget {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -197,7 +201,7 @@ class HelpScreen extends StatelessWidget {
                           onPressed: () {},
                           icon: Icon(
                             Icons.notifications,
-                            color: theme.iconTheme.color?.withOpacity(0.7),
+                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
                           ),
                         ),
                       ),
@@ -261,7 +265,7 @@ class HelpScreen extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+                              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
                             ),
                           ),
                         ),

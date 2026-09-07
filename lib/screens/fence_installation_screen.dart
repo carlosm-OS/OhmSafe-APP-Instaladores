@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
 import '../core/di/injection_container.dart';
@@ -69,6 +70,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final details = widget.ticket["details"] as Map<String, String>;
 
@@ -101,11 +103,11 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -117,7 +119,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                           onPressed: () {},
                           icon: Icon(
                             Icons.notifications_none_rounded,
-                            color: theme.iconTheme.color?.withOpacity(0.7),
+                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
                           ),
                         ),
                       ),
@@ -176,10 +178,10 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                          color: cs.surface,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: theme.dividerColor.withOpacity(0.3),
+                            color: theme.dividerColor.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Column(
@@ -198,14 +200,14 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                                 Icon(
                                   Icons.person_outline_rounded,
                                   size: 16,
-                                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   widget.ticket["user"] ?? "Cliente",
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8),
+                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -227,7 +229,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                                   details["metraje"] ?? "0m",
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8),
+                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -244,7 +246,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4),
+                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -264,7 +266,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                         child: ElevatedButton(
                           onPressed: _isSending ? null : _guardarInstalacion,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF5A00),
+                            backgroundColor: cs.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -297,7 +299,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                           onPressed: () => showCancellationFlow(context, widget.ticket),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: theme.textTheme.bodyLarge?.color,
-                            side: BorderSide(color: theme.dividerColor.withOpacity(0.5), width: 1.5),
+                            side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -328,16 +330,18 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
 
   Widget _buildMaterialRow(String name, int value) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
-      color: isDark ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFFF8FAFC),
+      color: isDark ? cs.surface.withValues(alpha: 0.5) : cs.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: theme.dividerColor.withOpacity(0.3),
+          color: theme.dividerColor.withValues(alpha: 0.3),
         ),
       ),
       child: Padding(
@@ -376,7 +380,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                       width: 32,
                       height: double.infinity,
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                        color: ohm.surfaceContainer,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(7),
                           bottomLeft: Radius.circular(7),
@@ -414,9 +418,9 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                     child: Container(
                       width: 32,
                       height: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF5A00),
-                        borderRadius: BorderRadius.only(
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        borderRadius: const BorderRadius.only(
                           topRight: Radius.circular(7),
                           bottomRight: Radius.circular(7),
                         ),

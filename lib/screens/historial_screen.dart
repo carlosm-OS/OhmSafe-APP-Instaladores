@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/theme/app_theme_extension.dart';
 
 /// Historial de tickets completados (instalaciones y reparaciones).
 /// Permite buscar por texto y filtrar por rango: última semana, último
@@ -18,8 +19,6 @@ class _HistorialScreenState extends State<HistorialScreen> {
   final _searchController = TextEditingController();
   String _query = '';
   _Rango _rango = _Rango.todo;
-
-  static const orange = Color(0xFFFF5A00);
 
   @override
   void dispose() {
@@ -66,6 +65,8 @@ class _HistorialScreenState extends State<HistorialScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
@@ -97,7 +98,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text("OHM", style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                            const Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: orange)),
+                            Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
                           ],
                         ),
                       ),
@@ -105,7 +106,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                         alignment: Alignment.centerRight,
                         child: IconButton(
                           onPressed: () {},
-                          icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withOpacity(0.7)),
+                          icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                         ),
                       ),
                     ],
@@ -169,7 +170,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                             )
                           : null,
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      fillColor: ohm.surfaceContainer,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
@@ -201,7 +202,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -229,7 +230,8 @@ class _HistorialScreenState extends State<HistorialScreen> {
 
   Widget _filtroChip(String label, _Rango value) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final selected = _rango == value;
     return Expanded(
       child: GestureDetector(
@@ -238,10 +240,10 @@ class _HistorialScreenState extends State<HistorialScreen> {
           padding: const EdgeInsets.symmetric(vertical: 10),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? orange : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+            color: selected ? cs.primary : ohm.surfaceContainer,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? orange : theme.dividerColor,
+              color: selected ? cs.primary : theme.dividerColor,
             ),
           ),
           child: Text(
@@ -250,7 +252,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
-              color: selected ? Colors.white : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+              color: selected ? Colors.white : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
             ),
           ),
         ),
@@ -259,11 +261,13 @@ class _HistorialScreenState extends State<HistorialScreen> {
   }
 
   Widget _ticketCard(ThemeData theme, bool isDark, Map<String, dynamic> t) {
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final esRep = _esReparacion(t);
     final details = (t['details'] as Map?)?.cast<String, dynamic>() ?? {};
     final fecha = _fecha(t['completedAt'] as DateTime?);
 
-    final badgeColor = esRep ? const Color(0xFF4F46E5) : orange;
+    final badgeColor = esRep ? ohm.info : cs.primary;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -271,7 +275,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor.withOpacity(0.5), width: 1.2),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,7 +298,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: badgeColor.withOpacity(0.12),
+                  color: badgeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -305,14 +309,14 @@ class _HistorialScreenState extends State<HistorialScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          _infoRow(theme, Icons.check_circle_outline_rounded, const Color(0xFF15803D), "Completado el $fecha"),
+          _infoRow(theme, Icons.check_circle_outline_rounded, ohm.success, "Completado el $fecha"),
           if ((t['user']?.toString() ?? '').isNotEmpty) ...[
             const SizedBox(height: 6),
-            _infoRow(theme, Icons.person_outline_rounded, theme.textTheme.bodyMedium?.color?.withOpacity(0.6), t['user'].toString()),
+            _infoRow(theme, Icons.person_outline_rounded, theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), t['user'].toString()),
           ],
           if ((details['direccion']?.toString() ?? '').isNotEmpty) ...[
             const SizedBox(height: 6),
-            _infoRow(theme, Icons.location_on_outlined, theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+            _infoRow(theme, Icons.location_on_outlined, theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 "${details['direccion']}${details['ciudad'] != null ? ', ${details['ciudad']}' : ''}"),
           ],
         ],
@@ -329,7 +333,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
         Expanded(
           child: Text(
             text,
-            style: TextStyle(fontSize: 13, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8)),
+            style: TextStyle(fontSize: 13, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8)),
           ),
         ),
       ],
@@ -342,7 +346,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4)),
+          Icon(Icons.history_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text(
             hayHistorial ? "Sin resultados" : "Aún no hay historial",
@@ -356,7 +360,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                   ? "Ajusta la búsqueda o el filtro de fechas."
                   : "Los tickets que completes aparecerán aquí.",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), height: 1.4),
+              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
             ),
           ),
         ],

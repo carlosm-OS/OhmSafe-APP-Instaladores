@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 
 class AvatarHalo extends StatefulWidget {
   final double size;
@@ -42,7 +43,7 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final orangeAccent = const Color(0xFFFF5A00);
+    final orangeAccent = Theme.of(context).colorScheme.primary;
 
     return SizedBox(
       width: widget.size + 40,
@@ -65,7 +66,7 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: orangeAccent.withOpacity(opacity),
+                      color: orangeAccent.withValues(alpha: opacity),
                       blurRadius: blurRadius,
                       spreadRadius: spreadRadius,
                     )
@@ -87,7 +88,7 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 )
@@ -121,12 +122,8 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
     // Sin foto: icono de instalador (si se pidió) en vez de la foto por defecto.
     if (widget.placeholderIcon != null) {
       return Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFF5A00), Color(0xFFFF7A30)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: context.ohm.brandGradient,
         ),
         alignment: Alignment.center,
         child: Icon(widget.placeholderIcon, color: Colors.white, size: widget.size * 0.5),
@@ -148,15 +145,8 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
 
   Widget _buildFallback() {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFFFF5A00),
-            Color(0xFFFF7A30),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      decoration: BoxDecoration(
+        gradient: context.ohm.brandGradient,
       ),
       alignment: Alignment.center,
       child: Text(

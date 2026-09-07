@@ -9,6 +9,7 @@ import '../features/perfil/domain/repositories/perfil_repository.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import 'datos_generales_screen.dart';
 import 'datos_bancarios_screen.dart';
@@ -47,6 +48,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
 
   Future<void> _pickImage(BuildContext context) async {
     final state = AppStateProvider.of(context);
+    final cs = Theme.of(context).colorScheme;
     try {
       final XFile? selected = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -76,9 +78,9 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
         if (!mounted) return;
         result.fold(
           (_) => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Foto de perfil guardada", style: TextStyle(fontWeight: FontWeight.bold)),
-              backgroundColor: Color(0xFFFF5A00),
+            SnackBar(
+              content: const Text("Foto de perfil guardada", style: TextStyle(fontWeight: FontWeight.bold)),
+              backgroundColor: cs.primary,
             ),
           ),
           (failure) => ScaffoldMessenger.of(context).showSnackBar(
@@ -116,6 +118,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
   /// Pide confirmación, cierra la sesión (limpia sesión + token) y vuelve al
   /// login borrando el stack de navegación.
   Future<void> _cerrarSesion(BuildContext context) async {
+    final cs = Theme.of(context).colorScheme;
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -128,7 +131,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF5A00)),
+            style: TextButton.styleFrom(foregroundColor: cs.primary),
             child: const Text("Cerrar sesión"),
           ),
         ],
@@ -148,6 +151,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
@@ -180,11 +184,11 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -199,7 +203,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                               onPressed: () {},
                               icon: Icon(
                                 Icons.notifications,
-                                color: theme.iconTheme.color?.withOpacity(0.7),
+                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
                               ),
                             ),
                             Positioned(
@@ -287,10 +291,10 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                                   onTap: () => _pickImage(context),
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFFF5A00),
+                                    decoration: BoxDecoration(
+                                      color: cs.primary,
                                       shape: BoxShape.circle,
-                                      boxShadow: [
+                                      boxShadow: const [
                                         BoxShadow(
                                           color: Colors.black12,
                                           blurRadius: 4,
@@ -298,9 +302,9 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                                         ),
                                       ],
                                     ),
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.edit_rounded,
-                                      color: Colors.white,
+                                      color: cs.onPrimary,
                                       size: 18,
                                     ),
                                   ),
@@ -317,7 +321,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                             "${state.installerRole} ${state.installerId}",
                             style: TextStyle(
                               fontSize: 16,
-                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -325,17 +329,17 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         const SizedBox(height: 8),
 
                         // Star Rating Row
-                        const Center(
+                        Center(
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.star_rounded, color: Color(0xFFFF8D28), size: 24),
-                              Icon(Icons.star_rounded, color: Color(0xFFFF8D28), size: 24),
-                              Icon(Icons.star_rounded, color: Color(0xFFFF8D28), size: 24),
-                              Icon(Icons.star_rounded, color: Color(0xFFFF8D28), size: 24),
-                              Icon(Icons.star_half_rounded, color: Color(0xFFFF8D28), size: 24),
-                              SizedBox(width: 8),
-                              Text(
+                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
+                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
+                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
+                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
+                              Icon(Icons.star_half_rounded, color: cs.secondary, size: 24),
+                              const SizedBox(width: 8),
+                              const Text(
                                 "4.7",
                                 style: TextStyle(
                                   fontSize: 16,
@@ -348,11 +352,11 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         const SizedBox(height: 20),
 
                         // Unique Sales Code
-                        const Center(
+                        Center(
                           child: Text(
                             "Código de ventas: OSJM01",
                             style: TextStyle(
-                              color: Color(0xFFFF5A00),
+                              color: cs.primary,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -391,8 +395,8 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         OutlinedButton(
                           onPressed: () => _cerrarSesion(context),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFFF5A00),
-                            side: const BorderSide(color: Color(0xFFFF5A00), width: 1.5),
+                            foregroundColor: cs.primary,
+                            side: BorderSide(color: cs.primary, width: 1.5),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -428,6 +432,8 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
     required Widget targetScreen,
   }) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
 
     // El color de fondo va en el Material (no en un Container decorado), para
@@ -437,7 +443,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
+        color: ohm.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: ListTile(
@@ -449,14 +455,14 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
               color: isDark
-                  ? const Color(0xFF334155).withOpacity(0.5)
-                  : const Color(0xFFE2E8F0).withOpacity(0.4),
+                  ? cs.outline.withValues(alpha: 0.5)
+                  : cs.outlineVariant.withValues(alpha: 0.4),
             ),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
           leading: Icon(
             icon,
-            color: const Color(0xFFFF5A00),
+            color: cs.primary,
             size: 22,
           ),
           title: Text(
@@ -464,7 +470,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
             ),
           ),
           trailing: Icon(

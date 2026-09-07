@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'service_steps_screen.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/entities/orden.dart';
@@ -89,6 +90,8 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
@@ -114,7 +117,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text("OHM", style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                            const Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF5A00))),
+                            Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
                           ],
                         ),
                       ),
@@ -122,7 +125,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                         alignment: Alignment.centerRight,
                         child: IconButton(
                           onPressed: () {},
-                          icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withOpacity(0.7)),
+                          icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                         ),
                       ),
                     ],
@@ -165,9 +168,9 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF111827) : const Color(0xFFF1F5F9),
+                      color: isDark ? cs.surface : ohm.surfaceContainer,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: theme.dividerColor.withOpacity(0.3)),
+                      border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -181,14 +184,14 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isActive ? (isDark ? const Color(0xFF475569) : const Color(0xFF1E293B)) : Colors.transparent,
+                              color: isActive ? (isDark ? cs.onSurfaceVariant : cs.onSurface) : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Column(
                               children: [
-                                Text(day["name"]!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withOpacity(0.8) : theme.textTheme.bodyMedium?.color?.withOpacity(0.5))),
+                                Text(day["name"]!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withValues(alpha: 0.8) : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5))),
                                 const SizedBox(height: 3),
-                                Text(day["num"]!, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: isActive ? Colors.white : theme.textTheme.bodyLarge?.color?.withOpacity(0.8))),
+                                Text(day["num"]!, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: isActive ? Colors.white : theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8))),
                               ],
                             ),
                           ),
@@ -211,7 +214,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
 
   Widget _buildBody(ThemeData theme) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFFF5A00)));
+      return Center(child: CircularProgressIndicator(color: theme.colorScheme.primary));
     }
     if (_error != null) {
       return _buildErrorState(theme);
@@ -231,6 +234,8 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
 
   Widget _buildTicketCard(Orden orden, int index, bool isOpen) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     final status = _estadoDisplay(orden);
 
@@ -238,24 +243,24 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     Color statusTextColor;
     switch (status) {
       case "Por hacer":
-        statusBgColor = isDark ? const Color(0x331E40AF) : const Color(0xFFDBEAFE);
-        statusTextColor = isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF);
+        statusBgColor = ohm.infoContainer;
+        statusTextColor = ohm.info;
         break;
       case "Completo":
-        statusBgColor = isDark ? const Color(0x33166534) : const Color(0xFFDCFCE7);
-        statusTextColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534);
+        statusBgColor = ohm.successContainer;
+        statusTextColor = ohm.success;
         break;
       case "En curso":
-        statusBgColor = isDark ? const Color(0x3392400E) : const Color(0xFFFEF3C7);
-        statusTextColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E);
+        statusBgColor = ohm.warningContainer;
+        statusTextColor = isDark ? ohm.warning : ohm.onWarningContainer;
         break;
       case "Cancelado":
-        statusBgColor = isDark ? const Color(0x33EF4444) : const Color(0xFFFEE2E2);
-        statusTextColor = isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626);
+        statusBgColor = cs.errorContainer;
+        statusTextColor = cs.error;
         break;
       default:
-        statusBgColor = isDark ? const Color(0x33475569) : const Color(0xFFF1F5F9);
-        statusTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
+        statusBgColor = ohm.surfaceContainer;
+        statusTextColor = cs.onSurfaceVariant;
     }
     final cancelado = status == "Cancelado";
 
@@ -265,7 +270,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       color: theme.cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.5), width: 1.5),
+        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
       ),
       child: InkWell(
         onTap: () => setState(() => _openIndex = isOpen ? null : index),
@@ -315,9 +320,9 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.person_outline_rounded, size: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
+                  Icon(Icons.person_outline_rounded, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                   const SizedBox(width: 8),
-                  Text(orden.cliente, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8), fontWeight: FontWeight.w500)),
+                  Text(orden.cliente, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
                 ],
               ),
               if (isOpen) ...[
@@ -325,7 +330,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 ElevatedButton(
                   onPressed: cancelado ? null : () => _showConfirmationDialog(context, orden),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: cancelado ? (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)) : const Color(0xFFFF5A00),
+                    backgroundColor: cancelado ? (isDark ? cs.outline : cs.outlineVariant) : cs.primary,
                     foregroundColor: cancelado ? (isDark ? Colors.white30 : Colors.white70) : Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -344,7 +349,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   Widget _detailRow(ThemeData theme, String label, String? value) {
     return RichText(
       text: TextSpan(
-        style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+        style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
         children: [
           TextSpan(text: label, style: const TextStyle(fontWeight: FontWeight.w700)),
           TextSpan(text: value),
@@ -383,7 +388,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
               children: [
                 Text("¿Estás seguro de iniciar la ruta?", textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
                 const SizedBox(height: 12),
-                Text("El cliente será notificado que tu servicio está en camino", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7), height: 1.4)),
+                Text("El cliente será notificado que tu servicio está en camino", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), height: 1.4)),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -393,7 +398,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                       _iniciarServicio(orden);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF5A00),
+                      backgroundColor: theme.colorScheme.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -405,8 +410,8 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  style: TextButton.styleFrom(foregroundColor: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), padding: const EdgeInsets.symmetric(vertical: 8)),
-                  child: Text("Cancelar", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.7))),
+                  style: TextButton.styleFrom(foregroundColor: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), padding: const EdgeInsets.symmetric(vertical: 8)),
+                  child: Text("Cancelar", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7))),
                 ),
               ],
             ),
@@ -421,20 +426,20 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.cloud_off_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4)),
+          Icon(Icons.cloud_off_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text("No se pudieron cargar las instalaciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
           const SizedBox(height: 6),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40.0),
-            child: Text(_error ?? '', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), height: 1.4)),
+            child: Text(_error ?? '', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4)),
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: _cargar,
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text("Reintentar"),
-            style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFFF5A00)),
+            style: OutlinedButton.styleFrom(foregroundColor: theme.colorScheme.primary),
           ),
         ],
       ),
@@ -446,7 +451,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4)),
+          Icon(Icons.inbox_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text("Sin instalaciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
           const SizedBox(height: 6),
@@ -455,7 +460,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
             child: Text(
               "No tienes tickets de instalaciones asignados para este día.",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), height: 1.4),
+              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
             ),
           ),
         ],

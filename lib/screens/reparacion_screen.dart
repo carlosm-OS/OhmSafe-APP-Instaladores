@@ -55,10 +55,6 @@ class _HiloDanado {
 }
 
 class _ReparacionScreenState extends State<ReparacionScreen> {
-  static const orangeAccent = Color(0xFFFF5A00);
-  static const darkCard = Color(0xFF1E293B);
-  static const warnRed = Color(0xFFD43F00);
-
   final List<_HiloDanado> _hilos = [_HiloDanado()];
 
   /// Tarifas vivas de Odoo (vía backend). Arranca con los valores de respaldo
@@ -221,6 +217,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final inconsistencias = _inconsistenciasInventario;
     final plausibilidad = _alertaPlausibilidad;
 
@@ -285,10 +282,10 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
                   (i) => setState(() => _causaDesgaste = i == 1)),
               const SizedBox(height: 20),
               if (plausibilidad != null)
-                _alertBox(theme, Icons.warning_amber_rounded, warnRed,
+                _alertBox(theme, Icons.warning_amber_rounded, cs.primary,
                     'Revisar antes de pagar', plausibilidad),
               if (inconsistencias.isNotEmpty)
-                _alertBox(theme, Icons.fact_check_outlined, orangeAccent,
+                _alertBox(theme, Icons.fact_check_outlined, cs.primary,
                     'Inconsistencia con el registro de instalación',
                     inconsistencias.join('. ')),
               const SizedBox(height: 6),
@@ -310,25 +307,26 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
           fontSize: 12,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,
-          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4),
+          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
         ),
       );
 
   Widget _propiedadCard(ThemeData theme) {
+    final cs = theme.colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: darkCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'REGISTRO DE INSTALACIÓN',
             style: TextStyle(
-                color: orangeAccent,
+                color: cs.primary,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.8),
@@ -338,8 +336,8 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
             '${widget.perimetroMetros} m · ${widget.lineasInstaladas} líneas · '
             '${widget.postesEsquinaInstalados} esquina + ${widget.postesPasoInstalados} paso · '
             '${widget.abanicosInstalados} abanicos · cerca de ${widget.edadCercaAnios} año(s)',
-            style: const TextStyle(
-                color: Color(0xFFF8FAFC),
+            style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600),
           ),
@@ -349,6 +347,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
   }
 
   Widget _hiloCard(ThemeData theme, int index, _HiloDanado hilo) {
+    final cs = theme.colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -365,13 +364,13 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: darkCard,
+                  color: cs.surface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
                 child: Text('H${index + 1}',
-                    style: const TextStyle(
-                        color: orangeAccent,
+                    style: TextStyle(
+                        color: cs.primary,
                         fontWeight: FontWeight.w800,
                         fontSize: 13)),
               ),
@@ -392,7 +391,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
                 suffix: 'm',
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 18, color: warnRed),
+                icon: Icon(Icons.close, size: 18, color: cs.primary),
                 onPressed: _hilos.length > 1
                     ? () => setState(() => _hilos.removeAt(index))
                     : null,
@@ -407,7 +406,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                     color:
-                        theme.textTheme.bodyMedium?.color?.withOpacity(0.5))),
+                        theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5))),
           ),
           const SizedBox(height: 6),
           _difChips(theme, hilo),
@@ -417,6 +416,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
   }
 
   Widget _difChips(ThemeData theme, _HiloDanado hilo) {
+    final cs = theme.colorScheme;
     final vals = DificultadHilo.values;
     // Chips que reparten el ancho disponible (Expanded) para no desbordar
     // en pantallas angostas.
@@ -432,10 +432,10 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: sel ? darkCard : theme.cardColor,
+                color: sel ? cs.surface : theme.cardColor,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: sel ? darkCard : theme.dividerColor, width: 1.4),
+                    color: sel ? cs.surface : theme.dividerColor, width: 1.4),
               ),
               child: Text(
                 d.pctExtra > 0
@@ -448,8 +448,8 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
                   color: sel
-                      ? orangeAccent
-                      : theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ? cs.primary
+                      : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 ),
               ),
             ),
@@ -460,6 +460,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
   }
 
   Widget _addHiloButton(ThemeData theme) {
+    final cs = theme.colorScheme;
     final full = _hilos.length >= widget.lineasInstaladas;
     return GestureDetector(
       onTap: full ? null : () => setState(() => _hilos.add(_HiloDanado())),
@@ -471,7 +472,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
           border: Border.all(
             color: full
                 ? theme.dividerColor
-                : orangeAccent.withOpacity(0.6),
+                : cs.primary.withValues(alpha: 0.6),
             width: 1.6,
             style: BorderStyle.solid,
           ),
@@ -485,8 +486,8 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
             fontWeight: FontWeight.w700,
             fontSize: 13.5,
             color: full
-                ? theme.textTheme.bodyMedium?.color?.withOpacity(0.35)
-                : orangeAccent,
+                ? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.35)
+                : cs.primary,
           ),
         ),
       ),
@@ -542,6 +543,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
   }
 
   Widget _stepBtn(ThemeData theme, IconData icon, VoidCallback onTap) {
+    final cs = theme.colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -552,13 +554,14 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
           borderRadius: BorderRadius.circular(9),
           border: Border.all(color: theme.dividerColor),
         ),
-        child: Icon(icon, size: 17, color: orangeAccent),
+        child: Icon(icon, size: 17, color: cs.primary),
       ),
     );
   }
 
   Widget _segmented(ThemeData theme, List<String> options, int selected,
       ValueChanged<int> onSelect) {
+    final cs = theme.colorScheme;
     return Row(
       children: options.asMap().entries.map((e) {
         final sel = e.key == selected;
@@ -569,10 +572,10 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
               margin: EdgeInsets.only(right: e.key < options.length - 1 ? 8 : 0),
               padding: const EdgeInsets.symmetric(vertical: 11),
               decoration: BoxDecoration(
-                color: sel ? darkCard : theme.cardColor,
+                color: sel ? cs.surface : theme.cardColor,
                 borderRadius: BorderRadius.circular(12),
                 border:
-                    Border.all(color: sel ? darkCard : theme.dividerColor),
+                    Border.all(color: sel ? cs.surface : theme.dividerColor),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -582,8 +585,8 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                   color: sel
-                      ? orangeAccent
-                      : theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ? cs.primary
+                      : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 ),
               ),
             ),
@@ -599,9 +602,9 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -621,7 +624,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
                 Text(body,
                     style: TextStyle(
                         color: theme.textTheme.bodyLarge?.color
-                            ?.withOpacity(0.75),
+                            ?.withValues(alpha: 0.75),
                         fontSize: 12.5)),
               ],
             ),
@@ -632,19 +635,20 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
   }
 
   Widget _resumenCard(ThemeData theme) {
+    final cs = theme.colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: darkCard,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('RESUMEN DEL COSTEO',
+          Text('RESUMEN DEL COSTEO',
               style: TextStyle(
-                  color: orangeAccent,
+                  color: cs.primary,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.8)),
@@ -659,19 +663,19 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
           if (_moPiezas > 0) _resumenRow('Piezas (postes, abanicos, aisladores, tensores)', _moPiezas),
           if (_moEnergizador > 0)
             _resumenRow('Cambio de energizador', _moEnergizador),
-          const Divider(color: Color(0xFF334155), height: 20),
+          Divider(color: cs.outline, height: 20),
           _resumenRow('MANO DE OBRA (pago al instalador)', _moTotal,
-              bold: true, color: orangeAccent),
+              bold: true, color: cs.primary),
           _resumenRow('MATERIAL (costo OhmSafe)', _matTotal,
-              bold: true, color: const Color(0xFF94A3B8)),
+              bold: true, color: cs.onSurfaceVariant),
           const SizedBox(height: 10),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
+              color: cs.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: orangeAccent, width: 1.5),
+              border: Border.all(color: cs.primary, width: 1.5),
             ),
             child: Column(
               children: [
@@ -680,12 +684,12 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1,
-                        color: Colors.white.withOpacity(0.7))),
+                        color: cs.onSurface.withValues(alpha: 0.7))),
                 Text(_peso(_moTotal + _matTotal),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
-                        color: orangeAccent)),
+                        color: cs.primary)),
               ],
             ),
           ),
@@ -696,6 +700,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
 
   Widget _resumenRow(String label, double value,
       {bool bold = false, Color? color}) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -703,13 +708,13 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
           Expanded(
             child: Text(label,
                 style: TextStyle(
-                    color: color ?? const Color(0xFFCBD5E1),
+                    color: color ?? cs.onSurfaceVariant,
                     fontSize: bold ? 13 : 12.5,
                     fontWeight: bold ? FontWeight.w800 : FontWeight.w500)),
           ),
           Text(_peso(value),
               style: TextStyle(
-                  color: color ?? Colors.white,
+                  color: color ?? cs.onSurface,
                   fontSize: bold ? 15 : 13.5,
                   fontWeight: FontWeight.w800)),
         ],
@@ -751,6 +756,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
   }
 
   Widget _completarButton(ThemeData theme) {
+    final cs = theme.colorScheme;
     final tieneAlgo = _metrosHiloTotales > 0 ||
         _moPiezas > 0 ||
         _energizador > 0;
@@ -758,7 +764,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
       width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: orangeAccent,
+          backgroundColor: cs.primary,
           disabledBackgroundColor: theme.dividerColor,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(

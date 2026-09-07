@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'service_steps_screen.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/entities/orden.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
@@ -68,6 +69,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
@@ -93,7 +95,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text("OHM", style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                            const Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF5A00))),
+                            Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
                           ],
                         ),
                       ),
@@ -101,7 +103,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                         alignment: Alignment.centerRight,
                         child: IconButton(
                           onPressed: () {},
-                          icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withOpacity(0.7)),
+                          icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                         ),
                       ),
                     ],
@@ -160,8 +162,8 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
 
   Widget _buildBody(ThemeData theme) {
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFFF5A00)),
+      return Center(
+        child: CircularProgressIndicator(color: theme.colorScheme.primary),
       );
     }
     if (_error != null) {
@@ -181,6 +183,8 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
 
   Widget _buildTicketCard(Orden orden, int index, bool isOpen) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     final status = _estadoLabel(orden.estado);
 
@@ -188,20 +192,20 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
     Color statusTextColor;
     switch (status) {
       case "Por hacer":
-        statusBgColor = isDark ? const Color(0x331E40AF) : const Color(0xFFDBEAFE);
-        statusTextColor = isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF);
+        statusBgColor = ohm.infoContainer;
+        statusTextColor = ohm.info;
         break;
       case "Completo":
-        statusBgColor = isDark ? const Color(0x33166534) : const Color(0xFFDCFCE7);
-        statusTextColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534);
+        statusBgColor = ohm.successContainer;
+        statusTextColor = ohm.success;
         break;
       case "En curso":
-        statusBgColor = isDark ? const Color(0x3392400E) : const Color(0xFFFEF3C7);
-        statusTextColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E);
+        statusBgColor = ohm.warningContainer;
+        statusTextColor = isDark ? ohm.warning : ohm.onWarningContainer;
         break;
       default:
-        statusBgColor = isDark ? const Color(0x33475569) : const Color(0xFFF1F5F9);
-        statusTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
+        statusBgColor = ohm.surfaceContainer;
+        statusTextColor = isDark ? cs.outline : cs.onSurfaceVariant;
     }
 
     return Card(
@@ -210,7 +214,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
       color: theme.cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.5), width: 1.5),
+        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
       ),
       child: InkWell(
         onTap: () => setState(() => _openIndex = isOpen ? null : index),
@@ -266,11 +270,11 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.person_outline_rounded, size: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
+                      Icon(Icons.person_outline_rounded, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                       const SizedBox(width: 8),
                       Text(
                         orden.cliente,
-                        style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8), fontWeight: FontWeight.w500),
+                        style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -289,7 +293,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                 ElevatedButton(
                   onPressed: () => _showConfirmationDialog(context, orden),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5A00),
+                    backgroundColor: cs.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -308,7 +312,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
   Widget _detailRow(ThemeData theme, String label, String? value) {
     return RichText(
       text: TextSpan(
-        style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85)),
+        style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
         children: [
           TextSpan(text: label, style: const TextStyle(fontWeight: FontWeight.w700)),
           TextSpan(text: value),
@@ -335,6 +339,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
 
   void _showConfirmationDialog(BuildContext context, Orden orden) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -355,7 +360,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                 Text(
                   "El cliente será notificado que tu servicio está en camino",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7), height: 1.4),
+                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), height: 1.4),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -366,7 +371,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                       _iniciarServicio(orden);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF5A00),
+                      backgroundColor: cs.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -379,12 +384,12 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   style: TextButton.styleFrom(
-                    foregroundColor: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                    foregroundColor: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                     padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                   child: Text(
                     "Cancelar",
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: theme.textTheme.bodyLarge?.color?.withOpacity(0.7)),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7)),
                   ),
                 ),
               ],
@@ -400,7 +405,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.cloud_off_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4)),
+          Icon(Icons.cloud_off_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text("No se pudieron cargar las reparaciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
           const SizedBox(height: 6),
@@ -409,7 +414,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
             child: Text(
               _error ?? '',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), height: 1.4),
+              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
             ),
           ),
           const SizedBox(height: 16),
@@ -417,7 +422,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
             onPressed: _cargar,
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text("Reintentar"),
-            style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFFF5A00)),
+            style: OutlinedButton.styleFrom(foregroundColor: theme.colorScheme.primary),
           ),
         ],
       ),
@@ -429,7 +434,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.build_circle_outlined, size: 48, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4)),
+          Icon(Icons.build_circle_outlined, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text("Sin reparaciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
           const SizedBox(height: 6),
@@ -438,7 +443,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
             child: Text(
               "No tienes tickets de reparación asignados para hoy.",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6), height: 1.4),
+              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
             ),
           ),
         ],

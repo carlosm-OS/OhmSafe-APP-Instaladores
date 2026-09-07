@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 
 class DatosBancariosScreen extends StatefulWidget {
@@ -83,12 +84,14 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
     // Styling constants matching the screenshot
-    final labelColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9);
-    final fillColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8);
+    final labelColor = cs.onSurfaceVariant;
+    final fillColor = ohm.surfaceContainer;
 
     final labelStyle = TextStyle(
       fontSize: 12,
@@ -135,11 +138,11 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -154,7 +157,7 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
                               onPressed: () {},
                               icon: Icon(
                                 Icons.notifications,
-                                color: theme.iconTheme.color?.withOpacity(0.7),
+                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
                               ),
                             ),
                             Positioned(
@@ -232,7 +235,7 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+                              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
                             ),
                           ),
                         ),
@@ -267,7 +270,7 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
                             DropdownButtonFormField<String>(
                               value: _selectedBank,
                               style: inputStyle,
-                              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              dropdownColor: cs.surface,
                               icon: Icon(Icons.keyboard_arrow_down_rounded, color: labelColor),
                               decoration: InputDecoration(
                                 filled: true,
@@ -332,17 +335,17 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
                               );
 
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
+                                SnackBar(
+                                  content: const Text(
                                     "Datos bancarios guardados correctamente",
                                     style: TextStyle(fontWeight: FontWeight.bold),
                                   ),
-                                  backgroundColor: Color(0xFFFF5A00),
+                                  backgroundColor: cs.primary,
                                 ),
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF5A00),
+                              backgroundColor: cs.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(

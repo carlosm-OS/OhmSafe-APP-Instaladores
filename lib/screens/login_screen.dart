@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/di/injection_container.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import 'home_screen.dart';
 import 'contrasenas_screen.dart';
@@ -15,8 +16,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const orange = Color(0xFFFF5A00);
-
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscure = true;
@@ -83,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text("OHM", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                        const Text("SAFE", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: orange)),
+                        Text("SAFE", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: cs.primary)),
                       ],
                     ),
                   ),
@@ -114,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     "App de Instaladores",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                   ),
                   const SizedBox(height: 36),
 
@@ -158,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: ElevatedButton(
                       onPressed: _loading ? null : _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: orange,
+                        backgroundColor: cs.primary,
                         disabledBackgroundColor: theme.dividerColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -184,18 +184,18 @@ class _LoginScreenState extends State<LoginScreen> {
   TextStyle _labelStyle(ThemeData theme, bool isDark) => TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.bold,
-        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9),
+        color: theme.colorScheme.onSurfaceVariant,
       );
 
   InputDecoration _fieldDecoration(ThemeData theme, bool isDark, String hint, IconData icon) => InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, size: 20),
         filled: true,
-        fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+        fillColor: theme.extension<OhmColors>()!.surfaceContainer,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: orange, width: 1.5),
+          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 14),
       );
