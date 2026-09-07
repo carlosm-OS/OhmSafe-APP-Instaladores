@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import '../controllers/app_state_provider.dart';
+import '../core/error/failures.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -12,6 +15,22 @@ import 'datos_bancarios_screen.dart';
 import 'contrasenas_screen.dart';
 import 'facturacion_screen.dart';
 import 'login_screen.dart';
+
+/// Formatea la imagen para que Odoo siempre la acepte: decodifica, redimensiona
+/// a máx 1024px y re-codifica como JPEG. Corre en un isolate (compute) para no
+/// congelar la UI. Devuelve null si la imagen no se pudo leer.
+Uint8List? _formatearAvatar(Uint8List input) {
+  final decoded = img.decodeImage(input);
+  if (decoded == null) return null;
+  final resized = (decoded.width > 1024 || decoded.height > 1024)
+      ? img.copyResize(
+          decoded,
+          width: decoded.width >= decoded.height ? 1024 : null,
+          height: decoded.height > decoded.width ? 1024 : null,
+        )
+      : decoded;
+  return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
+}
 
 class ProfileMainScreen extends StatefulWidget {
   /// Se propaga a [LoginScreen] al cerrar sesión (para conservar el toggle de
@@ -36,12 +55,24 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
         maxHeight: 1024,
       );
       if (selected != null) {
-        state.updateAvatarPath(selected.path); // muestra la foto de inmediato
-        // Sube la imagen a Odoo (foto del contacto del instalador).
-        final bytes = await selected.readAsBytes();
+        state.updateAvatarPath(selected.path); // preview local inmediato
+        // Formatea la imagen (redimensiona + JPEG) para que Odoo la acepte en
+        // cualquier plataforma (macOS no comprime con image_picker).
+        final raw = await selected.readAsBytes();
+        final formateada = await compute(_formatearAvatar, raw);
+        if (!mounted) return;
+        if (formateada == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("No pudimos leer esa imagen. Usa una foto JPG o PNG."),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          return;
+        }
         final result = await sl
             .get<PerfilRepository>()
-            .subirAvatar(contenidoBase64: base64Encode(bytes));
+            .subirAvatar(contenidoBase64: base64Encode(formateada));
         if (!mounted) return;
         result.fold(
           (_) => ScaffoldMessenger.of(context).showSnackBar(
@@ -51,10 +82,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
             ),
           ),
           (failure) => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Foto lista localmente; no se guardó en el servidor: ${failure.message}"),
-              backgroundColor: Colors.redAccent,
-            ),
+            SnackBar(content: Text(_mensajeErrorFoto(failure)), backgroundColor: Colors.redAccent),
           ),
         );
       }
@@ -69,6 +97,20 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
         );
       }
     }
+  }
+
+  /// Traduce el fallo de subida a un mensaje claro para el instalador.
+  String _mensajeErrorFoto(Failure f) {
+    if (f is NetworkFailure) return "Sin conexión. Revisa tu internet e intenta de nuevo.";
+    if (f is AuthFailure) return "Tu sesión expiró. Vuelve a iniciar sesión.";
+    final m = f.message.toLowerCase();
+    if (m.contains("large") || m.contains("payload") || m.contains("entity")) {
+      return "La imagen es muy grande. Intenta con otra.";
+    }
+    if (m.contains("procesar") || m.contains("truncat") || m.contains("jpg") || m.contains("png") || m.contains("imagen")) {
+      return "No se pudo procesar la imagen. Usa una foto JPG o PNG.";
+    }
+    return "No se pudo guardar la foto: ${f.message}";
   }
 
   /// Pide confirmación, cierra la sesión (limpia sesión + token) y vuelve al

@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   url_launcher: ^6.2.5
   image_picker: ^1.1.2
+  image: ^4.2.0
   # He fijado la versión a una más estable para evitar errores de compilación web
   file_picker: ^8.1.4
   geolocator: ^14.0.2
