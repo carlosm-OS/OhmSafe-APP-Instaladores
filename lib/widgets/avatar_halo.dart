@@ -6,11 +6,16 @@ class AvatarHalo extends StatefulWidget {
   final String initials;
   final String? imagePath;
 
+  /// Si no hay [imagePath] y se pasa un icono, se muestra ese icono (ej. un
+  /// instalador) en vez de la foto por defecto. Útil para usuarios sin foto.
+  final IconData? placeholderIcon;
+
   const AvatarHalo({
     super.key,
     this.size = 110,
     required this.initials,
     this.imagePath,
+    this.placeholderIcon,
   });
 
   @override
@@ -112,6 +117,20 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
           errorBuilder: (context, error, stackTrace) => _buildFallback(),
         );
       }
+    }
+    // Sin foto: icono de instalador (si se pidió) en vez de la foto por defecto.
+    if (widget.placeholderIcon != null) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFFF5A00), Color(0xFFFF7A30)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Icon(widget.placeholderIcon, color: Colors.white, size: widget.size * 0.5),
+      );
     }
     // Fallback to default asset
     return Image.asset(

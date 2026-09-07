@@ -223,6 +223,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                                 size: 112,
                                 initials: "JM",
                                 imagePath: state.customAvatarPath,
+                                placeholderIcon: Icons.engineering_rounded,
                               ),
                               Positioned(
                                 bottom: 12,
