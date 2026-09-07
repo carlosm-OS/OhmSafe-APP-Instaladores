@@ -11,6 +11,8 @@ class Perfil {
   final String constanciaUrl;
   final String estado; // pendiente_perfil | activo | suspendido
   final bool perfilCompleto;
+  final String numeroInstalador; // ID visible (aleatorio, único) — vacío si no asignado
+  final String codigoVenta; // código de descuento/bono (OHMS-…)
 
   const Perfil({
     required this.id,
@@ -22,6 +24,8 @@ class Perfil {
     required this.constanciaUrl,
     required this.estado,
     required this.perfilCompleto,
+    this.numeroInstalador = '',
+    this.codigoVenta = '',
   });
 
   bool get tieneConstancia => constanciaUrl.isNotEmpty;

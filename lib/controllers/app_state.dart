@@ -4,6 +4,7 @@ import '../models/ticket.dart';
 import '../services/hubspot_service.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../features/perfil/domain/repositories/perfil_repository.dart';
 
 class AppState extends ChangeNotifier {
   final HubspotService _hubspotService = HubspotService();
@@ -11,8 +12,18 @@ class AppState extends ChangeNotifier {
   String _installerName = "Juan Mora";
   String get installerName => _installerName;
 
-  final String installerId = "65243";
+  final String installerId = "65243"; // legado (fallback si aún no llega el real)
   final String installerRole = "Instalador";
+
+  // Número de instalador real (Odoo x_numero_instalador). Se carga con
+  // refreshBadges(); mientras tanto se usa el fallback de arriba.
+  String _numeroInstalador = '';
+  String get numeroInstalador => _numeroInstalador;
+  String get numeroVisible => _numeroInstalador.isNotEmpty ? _numeroInstalador : installerId;
+
+  // Código de venta / descuento (Odoo x_codigo_venta) para el bono por referidos.
+  String _codigoVenta = '';
+  String get codigoVenta => _codigoVenta;
   final String installerAvatar = "avatar.png";
 
   String _installerPhone = "55 5266 7879";
@@ -113,6 +124,12 @@ class AppState extends ChangeNotifier {
     inst.fold((list) => _instalacionesCount = list.length, (_) {});
     final rep = await repo.getOrdenes(tipo: 'reparacion');
     rep.fold((list) => _reparacionesCount = list.length, (_) {});
+    // Número de instalador y código de venta reales desde el perfil (Odoo).
+    final perfil = await sl.get<PerfilRepository>().getPerfil();
+    perfil.fold((p) {
+      _numeroInstalador = p.numeroInstalador;
+      _codigoVenta = p.codigoVenta;
+    }, (_) {});
     notifyListeners();
   }
   int get mantenimientosCount => _mantenimientosCount;

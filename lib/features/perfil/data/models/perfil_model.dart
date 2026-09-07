@@ -12,6 +12,8 @@ class PerfilModel extends Perfil {
     required super.constanciaUrl,
     required super.estado,
     required super.perfilCompleto,
+    super.numeroInstalador,
+    super.codigoVenta,
   });
 
   factory PerfilModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,8 @@ class PerfilModel extends Perfil {
       constanciaUrl: s(json['constanciaUrl']),
       estado: s(json['estado']).isEmpty ? 'pendiente_perfil' : s(json['estado']),
       perfilCompleto: json['perfilCompleto'] == true,
+      numeroInstalador: s(json['numeroInstalador']),
+      codigoVenta: s(json['codigoVenta']),
     );
   }
 }

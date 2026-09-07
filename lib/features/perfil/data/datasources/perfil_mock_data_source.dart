@@ -13,6 +13,8 @@ class PerfilMockDataSource implements PerfilDataSource {
     constanciaUrl: '',
     estado: 'pendiente_perfil',
     perfilCompleto: false,
+    numeroInstalador: '14336',
+    codigoVenta: 'OHMS-JUAN19',
   );
 
   @override
@@ -34,6 +36,8 @@ class PerfilMockDataSource implements PerfilDataSource {
       constanciaUrl: _perfil.constanciaUrl,
       estado: _perfil.estado,
       perfilCompleto: _perfil.perfilCompleto,
+      numeroInstalador: _perfil.numeroInstalador,
+      codigoVenta: _perfil.codigoVenta,
     );
     return _perfil;
   }
@@ -45,6 +49,7 @@ class PerfilMockDataSource implements PerfilDataSource {
       id: _perfil.id, nombre: _perfil.nombre, email: _perfil.email, telefono: _perfil.telefono,
       rfc: _perfil.rfc, curp: _perfil.curp, constanciaUrl: 'mock://constancia.pdf',
       estado: _perfil.estado, perfilCompleto: _perfil.perfilCompleto,
+      numeroInstalador: _perfil.numeroInstalador, codigoVenta: _perfil.codigoVenta,
     );
     return _perfil;
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../controllers/app_state_provider.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
@@ -19,6 +20,10 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
   late TextEditingController _telefonoController;
   late TextEditingController _correoController;
   late TextEditingController _curpController;
+
+  // Identificadores del instalador (solo lectura, vienen de Odoo).
+  String _numeroInstalador = '';
+  String _codigoVenta = '';
   bool _initialized = false;
 
   @override
@@ -55,6 +60,8 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
         if (perfil.telefono.isNotEmpty) _telefonoController.text = perfil.telefono;
         if (perfil.email.isNotEmpty) _correoController.text = perfil.email;
         _curpController.text = perfil.curp; // refleja el valor de Odoo (aunque esté vacío)
+        _numeroInstalador = perfil.numeroInstalador;
+        _codigoVenta = perfil.codigoVenta;
       });
     }, (_) {/* si falla, se quedan los valores locales */});
   }
@@ -224,7 +231,11 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
+
+                        // Identidad del instalador (solo lectura, viene de Odoo)
+                        _buildIdentidadCard(context),
+                        const SizedBox(height: 24),
 
                         // Form fields
                         _buildField(
@@ -328,6 +339,94 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
 
           // Shared bottom navigation bar overlay
           const AppBottomNav(currentTab: "Perfil"),
+        ],
+      ),
+    );
+  }
+
+  /// Tarjeta de identidad del instalador: número (ID visible) y código de venta
+  /// para el bono por referidos. Solo lectura; el código se puede copiar.
+  Widget _buildIdentidadCard(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final ohm = context.ohm;
+    final tieneNumero = _numeroInstalador.isNotEmpty;
+    final tieneCodigo = _codigoVenta.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ohm.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Número de instalador
+          Row(
+            children: [
+              Icon(Icons.badge_outlined, size: 20, color: cs.onSurfaceVariant),
+              const SizedBox(width: 10),
+              Text("N.º de instalador",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+              const Spacer(),
+              Text(tieneNumero ? "#$_numeroInstalador" : "Se asigna al validar",
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: tieneNumero ? cs.onSurface : cs.onSurfaceVariant)),
+            ],
+          ),
+          Divider(height: 24, color: cs.outlineVariant),
+          // Código de venta (bono por referidos)
+          Row(
+            children: [
+              Icon(Icons.sell_outlined, size: 20, color: ohm.accent),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Código de venta",
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 2),
+                    Text("Compártelo: si venden con él, ganas bono",
+                        style: TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (tieneCodigo)
+                InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: _codigoVenta));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: const Text("Código copiado"), backgroundColor: ohm.accent),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: ohm.accentContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_codigoVenta,
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: ohm.onAccentContainer)),
+                        const SizedBox(width: 6),
+                        Icon(Icons.copy_rounded, size: 15, color: ohm.onAccentContainer),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Text("Se asigna al validar",
+                    style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+            ],
+          ),
         ],
       ),
     );
