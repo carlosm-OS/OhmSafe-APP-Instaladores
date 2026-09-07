@@ -50,6 +50,12 @@ class PerfilMockDataSource implements PerfilDataSource {
   }
 
   @override
+  Future<PerfilModel> subirAvatar({required String contenidoBase64}) async {
+    await Future.delayed(const Duration(milliseconds: 250));
+    return _perfil; // mock: no persiste imagen
+  }
+
+  @override
   Future<void> cambiarPassword({required String passwordActual, required String passwordNueva}) async {
     await Future.delayed(const Duration(milliseconds: 300));
   }

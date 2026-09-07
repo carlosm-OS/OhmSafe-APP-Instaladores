@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../controllers/app_state_provider.dart';
+import '../features/perfil/domain/repositories/perfil_repository.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
@@ -32,18 +34,27 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
         imageQuality: 85,
       );
       if (selected != null) {
-        state.updateAvatarPath(selected.path);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        state.updateAvatarPath(selected.path); // muestra la foto de inmediato
+        // Sube la imagen a Odoo (foto del contacto del instalador).
+        final bytes = await selected.readAsBytes();
+        final result = await sl
+            .get<PerfilRepository>()
+            .subirAvatar(contenidoBase64: base64Encode(bytes));
+        if (!mounted) return;
+        result.fold(
+          (_) => ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                "Foto de perfil actualizada correctamente",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              content: Text("Foto de perfil guardada", style: TextStyle(fontWeight: FontWeight.bold)),
               backgroundColor: Color(0xFFFF5A00),
             ),
-          );
-        }
+          ),
+          (failure) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Foto lista localmente; no se guardó en el servidor: ${failure.message}"),
+              backgroundColor: Colors.redAccent,
+            ),
+          ),
+        );
       }
     } catch (e) {
       debugPrint("Error picking image: $e");

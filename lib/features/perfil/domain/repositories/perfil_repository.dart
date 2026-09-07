@@ -13,6 +13,9 @@ abstract class PerfilRepository {
   /// Sube la constancia de situación fiscal (archivo en base64).
   Future<Result<Perfil>> subirConstancia({required String nombreArchivo, required String contenidoBase64, String mimetype});
 
+  /// Sube la foto de perfil (base64) → imagen del contacto en Odoo.
+  Future<Result<Perfil>> subirAvatar({required String contenidoBase64});
+
   /// Cambia la contraseña (primer ingreso con temporal, o posterior).
   Future<Result<bool>> cambiarPassword({required String passwordActual, required String passwordNueva});
 }

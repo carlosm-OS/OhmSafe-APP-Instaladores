@@ -36,6 +36,10 @@ class PerfilRepositoryImpl implements PerfilRepository {
       _run(() => dataSource.subirConstancia(nombreArchivo: nombreArchivo, contenidoBase64: contenidoBase64, mimetype: mimetype));
 
   @override
+  Future<Result<Perfil>> subirAvatar({required String contenidoBase64}) =>
+      _run(() => dataSource.subirAvatar(contenidoBase64: contenidoBase64));
+
+  @override
   Future<Result<bool>> cambiarPassword({required String passwordActual, required String passwordNueva}) =>
       _run(() async {
         await dataSource.cambiarPassword(passwordActual: passwordActual, passwordNueva: passwordNueva);
