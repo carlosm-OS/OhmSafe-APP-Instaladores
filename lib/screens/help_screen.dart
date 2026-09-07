@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../core/theme/app_theme_extension.dart';
 
 class HelpScreen extends StatelessWidget {
@@ -92,46 +93,31 @@ class HelpScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final reportText = reportController.text.trim();
-                    if (reportText.isNotEmpty) {
-                      debugPrint("Reporte de incidencia enviado: $reportText");
-                      Navigator.pop(context); // Close bottom sheet
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text(
-                            "Reporte enviado correctamente",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          backgroundColor: cs.primary,
+              OhmGradientButton(
+                label: "Enviar reporte",
+                onPressed: () {
+                  final reportText = reportController.text.trim();
+                  if (reportText.isNotEmpty) {
+                    debugPrint("Reporte de incidencia enviado: $reportText");
+                    Navigator.pop(context); // Close bottom sheet
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                          "Reporte enviado correctamente",
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Por favor, describe la incidencia."),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    "Enviar reporte",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
+                        backgroundColor: cs.primary,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Por favor, describe la incidencia."),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                  }
+                },
               ),
             ],
           ),

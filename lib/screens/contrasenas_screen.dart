@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../core/error/failures.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
@@ -291,30 +292,12 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      Navigator.pop(context); // Go back to profile screen
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      "Volver al Perfil",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                OhmGradientButton(
+                  label: "Volver al Perfil",
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Go back to profile screen
+                  },
                 ),
               ],
             ),
@@ -625,33 +608,9 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                         const SizedBox(height: 16),
 
                         // Submit Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _submitChange,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: cs.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              elevation: 0,
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Confirmar cambio de contraseña",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Icon(Icons.arrow_forward, size: 18),
-                              ],
-                            ),
-                          ),
+                        OhmGradientButton(
+                          label: "Confirmar cambio de contraseña",
+                          onPressed: _isLoading ? null : _submitChange,
                         ),
                       ],
                     ),

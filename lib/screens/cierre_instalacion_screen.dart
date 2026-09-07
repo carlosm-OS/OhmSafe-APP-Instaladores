@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/theme/app_motion.dart';
@@ -724,18 +725,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
         // Siguiente Button
         const SizedBox(height: 32),
-        SizedBox(
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _nextStep,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _validateStep1() ? theme.colorScheme.primary : Colors.grey.shade400,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 0,
-            ),
-            child: const Text("Siguiente Paso", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
+        OhmGradientButton(
+          label: "Siguiente Paso",
+          icon: Icons.arrow_forward_rounded,
+          onPressed: _nextStep,
         ),
       ],
     );
@@ -1139,18 +1132,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: SizedBox(
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _nextStep,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _validateStep2() ? theme.colorScheme.primary : Colors.grey.shade400,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  child: const Text("Siguiente", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
+              child: OhmGradientButton(
+                label: "Siguiente",
+                icon: Icons.arrow_forward_rounded,
+                onPressed: _nextStep,
               ),
             ),
           ],
@@ -1358,18 +1343,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: SizedBox(
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _nextStep,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  child: const Text("Siguiente", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
+              child: OhmGradientButton(
+                label: "Siguiente",
+                icon: Icons.arrow_forward_rounded,
+                onPressed: _nextStep,
               ),
             ),
           ],
@@ -1580,22 +1557,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: SizedBox(
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _canSubmitCierre() ? _submitCierreInstalacion : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _canSubmitCierre() ? theme.colorScheme.primary : Colors.grey.shade400,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    _isReparacion ? "TERMINAR REPARACIÓN" : "TERMINAR INSTALACIÓN",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                  ),
-                ),
+              child: OhmGradientButton(
+                label: _isReparacion ? "TERMINAR REPARACIÓN" : "TERMINAR INSTALACIÓN",
+                icon: Icons.check_circle_rounded,
+                onPressed: _canSubmitCierre() ? _submitCierreInstalacion : null,
               ),
             ),
           ],

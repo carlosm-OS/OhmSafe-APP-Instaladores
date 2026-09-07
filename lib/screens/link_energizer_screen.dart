@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
@@ -272,7 +273,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
 
     switch (_currentState) {
       case LinkState.input:
@@ -370,31 +370,9 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             const SizedBox(height: 24),
 
             // Actions: Scan QR or Cancel
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _startScanning,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: cs.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
-                      "Escanear QR",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 18),
-                  ],
-                ),
-              ),
+            OhmGradientButton(
+              label: "Escanear QR",
+              onPressed: _startScanning,
             ),
             const SizedBox(height: 12),
 
@@ -688,39 +666,9 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 ),
               )
             else ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: (_allCompleted && !_isSending) ? _vincularEnergizador : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: isDark ? cs.outline : cs.outlineVariant,
-                    disabledForegroundColor: isDark ? Colors.white30 : Colors.white70,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Continuar con cierre de instalación",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.arrow_forward,
-                        size: 18,
-                        color: _allCompleted
-                            ? Colors.white
-                            : (isDark ? Colors.white30 : Colors.white70),
-                      ),
-                    ],
-                  ),
-                ),
+              OhmGradientButton(
+                label: "Continuar con cierre de instalación",
+                onPressed: (_allCompleted && !_isSending) ? _vincularEnergizador : null,
               ),
               const SizedBox(height: 12),
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'instalaciones_screen.dart';
@@ -293,24 +294,9 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
 
                       // Route Details Actions Box
                       if (!_isCancelling) ...[
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isSending ? null : _marcarLlegada,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: cs.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              "Marcar llegada",
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                          ),
+                        OhmGradientButton(
+                          label: "Marcar llegada",
+                          onPressed: _isSending ? null : _marcarLlegada,
                         ),
                         const SizedBox(height: 12),
                         SizedBox(

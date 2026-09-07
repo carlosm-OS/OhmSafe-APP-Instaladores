@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'service_steps_screen.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/entities/orden.dart';
@@ -290,16 +291,9 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
               ),
               if (isOpen) ...[
                 const SizedBox(height: 18),
-                ElevatedButton(
+                OhmGradientButton(
+                  label: "Iniciar ruta de servicio",
                   onPressed: () => _showConfirmationDialog(context, orden),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
-                  ),
-                  child: const Text("Iniciar ruta de servicio", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                 )
               ]
             ],
@@ -339,7 +333,6 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
 
   void _showConfirmationDialog(BuildContext context, Orden orden) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -363,22 +356,12 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                   style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), height: 1.4),
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Cerrar modal
-                      _iniciarServicio(orden);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
-                    ),
-                    child: const Text("Iniciar ruta de servicio", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                  ),
+                OhmGradientButton(
+                  label: "Iniciar ruta de servicio",
+                  onPressed: () {
+                    Navigator.pop(context); // Cerrar modal
+                    _iniciarServicio(orden);
+                  },
                 ),
                 const SizedBox(height: 12),
                 TextButton(

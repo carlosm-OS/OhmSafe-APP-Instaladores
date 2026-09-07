@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../widgets/cancellation_flow.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
@@ -261,34 +262,10 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                       const SizedBox(height: 32),
 
                       // Submit: Completar instalación
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isSending ? null : _guardarInstalacion,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: cs.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Text(
-                                "Completar instalación",
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(
-                                Icons.arrow_forward,
-                                size: 18,
-                              ),
-                            ],
-                          ),
-                        ),
+                      OhmGradientButton(
+                        label: "Completar instalación",
+                        icon: Icons.arrow_forward,
+                        onPressed: _isSending ? null : _guardarInstalacion,
                       ),
                       const SizedBox(height: 12),
 

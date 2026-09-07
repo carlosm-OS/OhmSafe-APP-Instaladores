@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/ohm_gradient_button.dart';
 
 class DatosBancariosScreen extends StatefulWidget {
   const DatosBancariosScreen({super.key});
@@ -308,59 +309,41 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
                         const SizedBox(height: 16),
 
                         // Save Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              final holder = _holderController.text.trim();
-                              final clabe = _clabeController.text.trim();
-                              final name = _selectedBank ?? "";
-                              final account = _accountController.text.trim();
+                        OhmGradientButton(
+                          label: "Guardar",
+                          onPressed: () {
+                            final holder = _holderController.text.trim();
+                            final clabe = _clabeController.text.trim();
+                            final name = _selectedBank ?? "";
+                            final account = _accountController.text.trim();
 
-                              if (holder.isEmpty || clabe.isEmpty || name.isEmpty || account.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Por favor, llena todos los campos"),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              state.updateBankInfo(
-                                holder: holder,
-                                clabe: clabe,
-                                name: name,
-                                account: account,
-                              );
-
+                            if (holder.isEmpty || clabe.isEmpty || name.isEmpty || account.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                    "Datos bancarios guardados correctamente",
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  backgroundColor: cs.primary,
+                                const SnackBar(
+                                  content: Text("Por favor, llena todos los campos"),
+                                  backgroundColor: Colors.redAccent,
                                 ),
                               );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: cs.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                              return;
+                            }
+
+                            state.updateBankInfo(
+                              holder: holder,
+                              clabe: clabe,
+                              name: name,
+                              account: account,
+                            );
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  "Datos bancarios guardados correctamente",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                backgroundColor: cs.primary,
                               ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              "Guardar",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       ],
                     ),

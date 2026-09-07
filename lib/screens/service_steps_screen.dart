@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/ohm_gradient_button.dart';
 import 'route_details_screen.dart';
 import 'perimeter_inspection_screen.dart';
 import 'fence_installation_screen.dart';
@@ -760,34 +761,11 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                       // Bottom Terminar button (active if step 5 is completed)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _step5Completed
-                                ? () => _submitFinalInstallation(context)
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _step5Completed
-                                  ? cs.primary
-                                  : (isDark ? cs.outline : cs.outlineVariant),
-                              disabledBackgroundColor: isDark ? cs.outline : cs.outlineVariant,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              _isReparacion ? "Terminar reparación" : "Terminar instalación",
-                              style: TextStyle(
-                                color: _step5Completed
-                                    ? Colors.white
-                                    : (isDark ? Colors.white30 : Colors.white70),
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
+                        child: OhmGradientButton(
+                          label: _isReparacion ? "Terminar reparación" : "Terminar instalación",
+                          onPressed: _step5Completed
+                              ? () => _submitFinalInstallation(context)
+                              : null,
                         ),
                       ),
                     ],
@@ -977,40 +955,22 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context); // Close dialog
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => isRep
-                                ? const ReparacionesScreen()
-                                : InstalacionesScreen(
-                                    completedTicketTitle: widget.ticket["title"],
-                                  ),
-                          ),
-                          (route) => false,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                  OhmGradientButton(
+                    label: isRep ? "Volver a Reparaciones" : "Volver a Instalaciones",
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => isRep
+                              ? const ReparacionesScreen()
+                              : InstalacionesScreen(
+                                  completedTicketTitle: widget.ticket["title"],
+                                ),
                         ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        isRep ? "Volver a Reparaciones" : "Volver a Instalaciones",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                        (route) => false,
+                      );
+                    },
                   ),
                 ],
               ),

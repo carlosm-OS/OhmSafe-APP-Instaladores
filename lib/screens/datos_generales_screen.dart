@@ -4,6 +4,7 @@ import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
+import '../widgets/ohm_gradient_button.dart';
 
 class DatosGeneralesScreen extends StatefulWidget {
   const DatosGeneralesScreen({super.key});
@@ -267,73 +268,55 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                         const SizedBox(height: 16),
 
                         // Save Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final name = "${_nombreController.text.trim()} ${_apellidosController.text.trim()}".trim();
-                              final phone = _telefonoController.text.trim();
-                              final email = _correoController.text.trim();
-                              final curp = _curpController.text.trim();
+                        OhmGradientButton(
+                          label: "Guardar",
+                          onPressed: () async {
+                            final name = "${_nombreController.text.trim()} ${_apellidosController.text.trim()}".trim();
+                            final phone = _telefonoController.text.trim();
+                            final email = _correoController.text.trim();
+                            final curp = _curpController.text.trim();
 
-                              if (name.isEmpty || phone.isEmpty || email.isEmpty || curp.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Por favor, llena todos los campos"),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
+                            if (name.isEmpty || phone.isEmpty || email.isEmpty || curp.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Por favor, llena todos los campos"),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Estado local (UI) + persistencia en el backend (Odoo).
+                            state.updateInstallerInfo(
+                              name: name,
+                              phone: phone,
+                              email: email,
+                              curp: curp,
+                            );
+                            final result = await sl.get<PerfilRepository>().updatePerfil(
+                                  nombre: name,
+                                  telefono: phone,
+                                  curp: curp,
                                 );
-                                return;
-                              }
-
-                              // Estado local (UI) + persistencia en el backend (Odoo).
-                              state.updateInstallerInfo(
-                                name: name,
-                                phone: phone,
-                                email: email,
-                                curp: curp,
-                              );
-                              final result = await sl.get<PerfilRepository>().updatePerfil(
-                                    nombre: name,
-                                    telefono: phone,
-                                    curp: curp,
-                                  );
-                              if (!mounted) return;
-                              result.fold(
-                                (_) => ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      "Datos guardados correctamente",
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    backgroundColor: cs.primary,
+                            if (!mounted) return;
+                            result.fold(
+                              (_) => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    "Datos guardados correctamente",
+                                    style: TextStyle(fontWeight: FontWeight.bold),
                                   ),
+                                  backgroundColor: cs.primary,
                                 ),
-                                (failure) => ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("No se pudieron guardar: ${failure.message}"),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
+                              ),
+                              (failure) => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("No se pudieron guardar: ${failure.message}"),
+                                  backgroundColor: Colors.redAccent,
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: cs.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
                               ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              "Guardar",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       ],
                     ),

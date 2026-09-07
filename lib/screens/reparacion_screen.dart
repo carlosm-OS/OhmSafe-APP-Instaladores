@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/repair_pricing.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/entities/tarifas.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
@@ -291,7 +292,7 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
               const SizedBox(height: 6),
               _resumenCard(theme),
               const SizedBox(height: 18),
-              _completarButton(theme),
+              _completarButton(),
             ],
           ),
         ),
@@ -755,28 +756,13 @@ class _ReparacionScreenState extends State<ReparacionScreen> {
     );
   }
 
-  Widget _completarButton(ThemeData theme) {
-    final cs = theme.colorScheme;
+  Widget _completarButton() {
     final tieneAlgo = _metrosHiloTotales > 0 ||
         _moPiezas > 0 ||
         _energizador > 0;
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: cs.primary,
-          disabledBackgroundColor: theme.dividerColor,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
-        ),
-        onPressed: (tieneAlgo && !_isSending) ? _completarReparacion : null,
-        child: const Text('Completar reparación',
-            style: TextStyle(
-                fontSize: 15.5,
-                fontWeight: FontWeight.w800,
-                color: Colors.white)),
-      ),
+    return OhmGradientButton(
+      label: 'Completar reparación',
+      onPressed: (tieneAlgo && !_isSending) ? _completarReparacion : null,
     );
   }
 }
