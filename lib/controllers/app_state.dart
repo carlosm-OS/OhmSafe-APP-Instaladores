@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/ticket.dart';
 import '../services/hubspot_service.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
 class AppState extends ChangeNotifier {
   final HubspotService _hubspotService = HubspotService();
@@ -80,7 +82,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  int _instalacionesCount = 3;
+  // Los badges reflejan las asignaciones reales del backend (Odoo passthrough
+  // vía OrdenesRepository), no un valor fijo. Arrancan en 0 y se actualizan con
+  // refreshBadges() al abrir el home.
+  int _instalacionesCount = 0;
   int _reparacionesCount = 0;
   int _mantenimientosCount = 0;
   int _reemplazoCount = 0;
@@ -97,6 +102,19 @@ class AppState extends ChangeNotifier {
 
   int get instalacionesCount => _instalacionesCount;
   int get reparacionesCount => _reparacionesCount;
+
+  /// Actualiza los badges de instalaciones/reparaciones con el conteo real de
+  /// órdenes asignadas al instalador (mismo repositorio que usan las listas, así
+  /// el badge y la lista nunca se desincronizan). Silencioso ante fallos de red:
+  /// deja el último valor conocido.
+  Future<void> refreshBadges() async {
+    final repo = sl.get<OrdenesRepository>();
+    final inst = await repo.getOrdenes(tipo: 'instalacion');
+    inst.fold((list) => _instalacionesCount = list.length, (_) {});
+    final rep = await repo.getOrdenes(tipo: 'reparacion');
+    rep.fold((list) => _reparacionesCount = list.length, (_) {});
+    notifyListeners();
+  }
   int get mantenimientosCount => _mantenimientosCount;
   int get reemplazoCount => _reemplazoCount;
   int get incidenciasCount => _incidenciasCount;

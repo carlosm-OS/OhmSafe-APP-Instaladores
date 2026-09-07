@@ -35,6 +35,10 @@ class _HomeScreenState extends State<HomeScreen> {
         if (mounted) setState(() => _fotoHint = false);
       });
     }
+    // Sincroniza los badges con las asignaciones reales del backend.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppStateProvider.of(context).refreshBadges();
+    });
   }
 
   @override
