@@ -35,7 +35,26 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
       _correoController = TextEditingController(text: state.installerEmail);
       _curpController = TextEditingController(text: state.installerCurp);
       _initialized = true;
+      _cargarDeOdoo(); // espejo Odoo→app: refresca con lo que hay en Odoo
     }
+  }
+
+  /// Lee el perfil de Odoo y refresca los campos (espejo Odoo→app).
+  Future<void> _cargarDeOdoo() async {
+    final result = await sl.get<PerfilRepository>().getPerfil();
+    if (!mounted) return;
+    result.fold((perfil) {
+      final parts = perfil.nombre.trim().split(' ');
+      setState(() {
+        if (perfil.nombre.isNotEmpty) {
+          _nombreController.text = parts.first;
+          if (parts.length > 1) _apellidosController.text = parts.sublist(1).join(' ');
+        }
+        if (perfil.telefono.isNotEmpty) _telefonoController.text = perfil.telefono;
+        if (perfil.email.isNotEmpty) _correoController.text = perfil.email;
+        _curpController.text = perfil.curp; // refleja el valor de Odoo (aunque esté vacío)
+      });
+    }, (_) {/* si falla, se quedan los valores locales */});
   }
 
   @override

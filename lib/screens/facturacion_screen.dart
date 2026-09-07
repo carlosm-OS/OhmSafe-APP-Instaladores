@@ -23,6 +23,9 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
   String? _errorMessage;
   bool _stateLoaded = false;
 
+  final TextEditingController _rfcController = TextEditingController();
+  bool _savingRfc = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -33,7 +36,45 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
         _selectedFileName = state.taxCertificateName;
       }
       _stateLoaded = true;
+      _cargarPerfil(); // espejo Odoo→app: RFC y constancia actuales de Odoo
     }
+  }
+
+  @override
+  void dispose() {
+    _rfcController.dispose();
+    super.dispose();
+  }
+
+  /// Lee el perfil de Odoo para reflejar RFC y estado de la constancia.
+  Future<void> _cargarPerfil() async {
+    final result = await sl.get<PerfilRepository>().getPerfil();
+    if (!mounted) return;
+    result.fold((perfil) {
+      setState(() {
+        _rfcController.text = perfil.rfc;
+        if (perfil.tieneConstancia && _selectedFileName == null) {
+          _selectedFileName = "Constancia registrada";
+        }
+      });
+    }, (_) {});
+  }
+
+  /// Guarda el RFC en Odoo (campo fiscal nativo `vat`).
+  Future<void> _guardarRfc() async {
+    if (_savingRfc) return;
+    setState(() => _savingRfc = true);
+    final result = await sl.get<PerfilRepository>().updatePerfil(rfc: _rfcController.text.trim());
+    if (!mounted) return;
+    setState(() => _savingRfc = false);
+    result.fold(
+      (_) => ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("RFC guardado"), backgroundColor: Color(0xFFFF5A00)),
+      ),
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("No se pudo guardar el RFC: ${failure.message}"), backgroundColor: Colors.redAccent),
+      ),
+    );
   }
 
   Future<void> _pickFile(AppState state) async {
@@ -325,6 +366,44 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                               color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // RFC — campo fiscal (se guarda en Odoo como `vat`)
+                        Text("RFC", style: labelStyle),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(color: fillColor, borderRadius: BorderRadius.circular(14)),
+                                child: TextField(
+                                  controller: _rfcController,
+                                  textCapitalization: TextCapitalization.characters,
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    hintText: "Tu RFC",
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              height: 52,
+                              child: ElevatedButton(
+                                onPressed: _savingRfc ? null : _guardarRfc,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFF5A00),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                                child: _savingRfc
+                                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                    : const Text("Guardar", style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 32),
 
