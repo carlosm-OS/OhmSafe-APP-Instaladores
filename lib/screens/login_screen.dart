@@ -61,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 currentPassword: _passwordController.text,
                 onCompleted: () => Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme)),
+                  MaterialPageRoute(builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme, promptFoto: true)),
                 ),
               ),
             ),

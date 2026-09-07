@@ -8,10 +8,44 @@ import '../widgets/avatar_halo.dart';
 import '../widgets/menu_item_tile.dart';
 
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
 
-  const HomeScreen({super.key, required this.onToggleTheme});
+  /// true justo tras el onboarding: muestra un aviso para subir la foto de perfil.
+  final bool promptFoto;
+
+  const HomeScreen({super.key, required this.onToggleTheme, this.promptFoto = false});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.promptFoto) {
+      // Aviso una sola vez, tras el onboarding, para completar la foto de perfil.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("¡Bienvenido! Sube tu foto de perfil desde Mi cuenta."),
+            backgroundColor: const Color(0xFFFF5A00),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: "Ir",
+              textColor: Colors.white,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ProfileMainScreen(onToggleTheme: widget.onToggleTheme)),
+              ),
+            ),
+          ),
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +86,7 @@ class HomeScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              onPressed: onToggleTheme,
+                              onPressed: widget.onToggleTheme,
                               icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: theme.iconTheme.color?.withOpacity(0.7)),
                             ),
                             IconButton(
@@ -92,7 +126,7 @@ class HomeScreen extends StatelessWidget {
                       GestureDetector(
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => ProfileMainScreen(onToggleTheme: onToggleTheme)),
+                          MaterialPageRoute(builder: (_) => ProfileMainScreen(onToggleTheme: widget.onToggleTheme)),
                         ),
                         child: AvatarHalo(
                           size: 112,

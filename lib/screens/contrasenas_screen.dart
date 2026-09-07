@@ -513,6 +513,28 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                           fillColor: fillColor,
                         ),
 
+                        // Confirmar — justo debajo de "nueva" para que ambas se vean juntas
+                        _buildPasswordField(
+                          label: "CONFIRMAR NUEVA CONTRASEÑA",
+                          controller: _confirmPasswordController,
+                          focusNode: _confirmFocusNode,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => _submitChange(),
+                          obscureText: _obscureConfirm,
+                          errorText: _confirmError,
+                          showVisibilityToggle: false,
+                          onToggleVisibility: () {},
+                          labelStyle: labelStyle,
+                          inputStyle: inputStyle,
+                          fillColor: fillColor,
+                          customSuffix: _confirmPasswordController.text.isNotEmpty && _newPasswordController.text.isNotEmpty && _confirmPasswordController.text == _newPasswordController.text
+                              ? const Padding(
+                                  padding: EdgeInsets.only(right: 12.0),
+                                  child: Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
+                                )
+                              : null,
+                        ),
+
                         // Password strength visual indicator
                         if (_newPasswordController.text.isNotEmpty) ...[
                           Padding(
@@ -595,28 +617,6 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                           ),
                         ),
 
-                        // Confirm password field (does not show eye toggle per mock screenshot)
-                        _buildPasswordField(
-                          label: "CONFIRMAR NUEVA CONTRASEÑA",
-                          controller: _confirmPasswordController,
-                          focusNode: _confirmFocusNode,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _submitChange(),
-                          obscureText: _obscureConfirm,
-                          errorText: _confirmError,
-                          showVisibilityToggle: false, // matches screenshot
-                          onToggleVisibility: () {},
-                          labelStyle: labelStyle,
-                          inputStyle: inputStyle,
-                          fillColor: fillColor,
-                          // If passwords match, show a small check inside the input
-                          customSuffix: _confirmPasswordController.text.isNotEmpty && _newPasswordController.text.isNotEmpty && _confirmPasswordController.text == _newPasswordController.text
-                              ? const Padding(
-                                  padding: EdgeInsets.only(right: 12.0),
-                                  child: Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
-                                )
-                              : null,
-                        ),
                         const SizedBox(height: 16),
 
                         // Submit Button
