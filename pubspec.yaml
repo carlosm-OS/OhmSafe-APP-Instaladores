@@ -68,6 +68,17 @@ flutter:
     - assets/assets/logo_light.png
     - assets/assets/logo_white.png
 
+  # Par tipográfico "Faena" (fuentes variables OFL, bundle offline-safe).
+  # Lexend = títulos (legibilidad/baja visión, ideal exterior); Inter = cuerpo.
+  # Son variables: Flutter mapea fontWeight (400–800) al eje wght.
+  fonts:
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/Lexend.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

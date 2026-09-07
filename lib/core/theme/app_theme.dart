@@ -25,8 +25,11 @@ import 'app_theme_extension.dart';
 /// Familias tipográficas. `null` => fuente del sistema (default seguro/offline).
 /// Para el par premium: displayFamily = 'Lexend', bodyFamily = 'Inter'.
 abstract final class AppTypography {
-  static const String? displayFamily = null;
-  static const String? bodyFamily = null;
+  // Nullable a propósito: poner null vuelve a la fuente del sistema (offline).
+  // ignore: unnecessary_nullable_for_final_variable_declarations
+  static const String? displayFamily = 'Lexend';
+  // ignore: unnecessary_nullable_for_final_variable_declarations
+  static const String? bodyFamily = 'Inter';
 }
 
 abstract final class AppTheme {

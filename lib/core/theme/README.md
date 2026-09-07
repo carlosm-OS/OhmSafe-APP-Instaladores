@@ -27,22 +27,15 @@ Container(padding: const EdgeInsets.all(AppSpacing.lg), ...);
 - **Foco 2px naranja** en inputs (visible con guantes/sol).
 - **Motion funcional**: 200ms `easeOutCubic`; confirmaciones con `easeOutBack` corto.
 
-## Tipografía
-Por defecto usa la **fuente del sistema** (SF Pro / Roboto): legible y **sin red** (crítico offline en campo).
+## Tipografía — ACTIVA: Lexend (títulos) + Inter (cuerpo)
+Ambas son **fuentes variables OFL** empaquetadas en `assets/fonts/` (Lexend.ttf, Inter.ttf) — **sin red**, offline-safe. Al ser variables, Flutter mapea `fontWeight` (400–800) al eje `wght`; no hay que declarar pesos por archivo. Licencias en `assets/fonts/OFL-*.txt`.
 
-Para activar el par premium recomendado **Lexend (títulos) + Inter (cuerpo)**:
-1. Copiar los `.ttf` a `assets/fonts/` (Lexend-Bold/ExtraBold, Inter-Regular/Medium/SemiBold/Bold).
-2. Declararlos en `pubspec.yaml`:
-   ```yaml
-   fonts:
-     - family: Lexend
-       fonts: [{asset: assets/fonts/Lexend-Bold.ttf, weight: 700}, {asset: assets/fonts/Lexend-ExtraBold.ttf, weight: 800}]
-     - family: Inter
-       fonts: [{asset: assets/fonts/Inter-Regular.ttf}, {asset: assets/fonts/Inter-Medium.ttf, weight: 500}, {asset: assets/fonts/Inter-SemiBold.ttf, weight: 600}, {asset: assets/fonts/Inter-Bold.ttf, weight: 700}]
-   ```
-3. En `app_theme.dart` → `AppTypography`: `displayFamily = 'Lexend'`, `bodyFamily = 'Inter'`.
+- Declaradas en `pubspec.yaml` → `flutter: fonts:`.
+- Activadas en `app_theme.dart` → `AppTypography.displayFamily = 'Lexend'`, `bodyFamily = 'Inter'`.
 
-Lexend está diseñada para mejorar la fluidez de lectura y baja visión — ideal para exterior.
+**Volver a la fuente del sistema:** poner ambas constantes en `null` (son `String?` a propósito).
+
+Lexend está diseñada para mejorar la fluidez de lectura y baja visión — ideal para exterior. Para actualizar las fuentes, re-descargar los `.ttf` variables del repo oficial `google/fonts` (`ofl/inter`, `ofl/lexend`) y reemplazar en `assets/fonts/`.
 
 ## Migración pendiente
 `main.dart` ya usa el sistema. Quedan ~25 pantallas con `Color(0xFF…)` hardcodeado; migrarlas a tokens de forma incremental (buscar `Color(0xFF` en `lib/`).
