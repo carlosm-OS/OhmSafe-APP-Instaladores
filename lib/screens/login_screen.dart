@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
+import '../core/push/push_service.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import 'home_screen.dart';
@@ -50,6 +51,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     result.fold(
       (sesion) {
+        // Registra el token FCM del dispositivo (best-effort) ahora que hay
+        // sesión: el backend lo liga al instalador para el push de asignación.
+        PushService.instance.registrarToken();
         // Onboarding: si entró con contraseña temporal, primero crea la suya
         // (pantalla forzada, sin poder saltarla) y de ahí al home.
         if (sesion.debeCambiarPassword) {

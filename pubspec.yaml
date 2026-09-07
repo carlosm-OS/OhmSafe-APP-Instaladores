@@ -40,6 +40,8 @@ dependencies:
   # He fijado la versión a una más estable para evitar errores de compilación web
   file_picker: ^8.1.4
   geolocator: ^14.0.2
+  firebase_core: ^4.14.0
+  firebase_messaging: ^16.6.0
 
 dev_dependencies:
   flutter_test:

@@ -1,9 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'controllers/app_state.dart';
 import 'controllers/app_state_provider.dart';
 import 'core/config/env_config.dart';
 import 'core/di/injection_container.dart';
+import 'core/push/push_service.dart';
 import 'core/theme/app_theme.dart';
+import 'screens/instalaciones_screen.dart';
 import 'screens/login_screen.dart';
 
 Future<void> main() async {
@@ -23,8 +26,21 @@ Future<void> main() async {
   );
   await sl.init(env);
 
+  // Push (FCM) solo en Android/iOS; en macOS/desktop no hay Firebase configurado.
+  if (PushService.soportado) {
+    try {
+      await Firebase.initializeApp();
+      await PushService.instance.setupListeners();
+    } catch (_) {
+      // Nunca romper el arranque por push.
+    }
+  }
+
   runApp(const OhmSafeAppContainer());
 }
+
+/// Navegación global (para abrir pantallas al tocar una notificación push).
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 class OhmSafeAppContainer extends StatefulWidget {
   const OhmSafeAppContainer({super.key});
@@ -61,6 +77,17 @@ class OhmSafeApp extends StatefulWidget {
 class _OhmSafeAppState extends State<OhmSafeApp> {
   ThemeMode _themeMode = ThemeMode.light;
 
+  @override
+  void initState() {
+    super.initState();
+    // Al tocar la notificación de "instalación asignada", abre la lista.
+    PushService.instance.onOpenInstalacion = (_) {
+      appNavigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const InstalacionesScreen()),
+      );
+    };
+  }
+
   void _toggleTheme() {
     setState(() {
       _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
@@ -74,6 +101,7 @@ class _OhmSafeAppState extends State<OhmSafeApp> {
     return MaterialApp(
       title: 'OhmSafe Pro',
       debugShowCheckedModeBanner: false,
+      navigatorKey: appNavigatorKey,
       themeMode: _themeMode,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
