@@ -1,4 +1,4 @@
-package com.example.ohmsafe_app
+package com.ohmsafe.instalador
 
 import io.flutter.embedding.android.FlutterActivity
 
