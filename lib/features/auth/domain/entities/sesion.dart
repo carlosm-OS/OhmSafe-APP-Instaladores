@@ -8,6 +8,10 @@ class Sesion {
   final String numeroInstalador;
   final String rol;
 
+  /// Onboarding: entró con contraseña temporal y aún no crea la suya.
+  /// La app lo lleva directo a "crea tu contraseña" antes del home.
+  final bool debeCambiarPassword;
+
   const Sesion({
     required this.accessToken,
     required this.refreshToken,
@@ -15,5 +19,6 @@ class Sesion {
     required this.nombre,
     required this.numeroInstalador,
     required this.rol,
+    this.debeCambiarPassword = false,
   });
 }

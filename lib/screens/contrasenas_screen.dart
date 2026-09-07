@@ -5,7 +5,20 @@ import '../core/error/failures.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
 
 class ContrasenasScreen extends StatefulWidget {
-  const ContrasenasScreen({super.key});
+  /// Modo onboarding (primer ingreso con contraseña temporal): oculta el campo
+  /// "contraseña actual" (se usa [currentPassword]), la barra inferior y el
+  /// botón atrás, y al terminar llama [onCompleted] (ir al home) en vez de
+  /// regresar al perfil. No se puede saltar.
+  final bool onboarding;
+  final String? currentPassword;
+  final VoidCallback? onCompleted;
+
+  const ContrasenasScreen({
+    super.key,
+    this.onboarding = false,
+    this.currentPassword,
+    this.onCompleted,
+  });
 
   @override
   State<ContrasenasScreen> createState() => _ContrasenasScreenState();
@@ -141,13 +154,16 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
     _newFocusNode.unfocus();
     _confirmFocusNode.unfocus();
 
-    final current = _currentPasswordController.text.trim();
+    // En onboarding la "actual" es la temporal con la que acaba de entrar.
+    final current = widget.onboarding
+        ? (widget.currentPassword ?? '')
+        : _currentPasswordController.text.trim();
     final newPass = _newPasswordController.text;
     final confirm = _confirmPasswordController.text;
 
     bool hasErrors = false;
 
-    if (current.isEmpty) {
+    if (!widget.onboarding && current.isEmpty) {
       setState(() {
         _currentError = "Por favor, escribe tu contraseña actual";
       });
@@ -200,7 +216,13 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
       _isLoading = false;
     });
     result.fold(
-      (_) => _showSuccessDialog(),
+      (_) {
+        if (widget.onboarding) {
+          widget.onCompleted?.call(); // primer ingreso: seguir al home
+        } else {
+          _showSuccessDialog();
+        }
+      },
       (failure) {
         setState(() {
           // AuthFailure = la contraseña actual no coincide con la de Odoo.
@@ -403,7 +425,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                           width: double.infinity,
                           alignment: Alignment.center,
                           child: Text(
-                            "Perfil",
+                            widget.onboarding ? "Crea tu contraseña" : "Perfil",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 22,
@@ -412,21 +434,22 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                             ),
                           ),
                         ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
+                        if (!widget.onboarding)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: IconButton.styleFrom(
+                                padding: const EdgeInsets.all(6),
+                                shape: const CircleBorder(),
+                              ),
+                              icon: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                size: 20,
+                                color: theme.iconTheme.color,
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -453,8 +476,9 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                         ),
                         const SizedBox(height: 32),
 
-                        // Current password field
-                        _buildPasswordField(
+                        // Current password field — oculto en onboarding (se usa la temporal)
+                        if (!widget.onboarding)
+                          _buildPasswordField(
                           label: "ESCRIBE LA CONTRASEÑA ACTUAL",
                           controller: _currentPasswordController,
                           focusNode: _currentFocusNode,
@@ -633,7 +657,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
           ),
 
           // Shared bottom navigation bar overlay
-          const AppBottomNav(currentTab: "Perfil"),
+          if (!widget.onboarding) const AppBottomNav(currentTab: "Perfil"),
 
           // Fullscreen loader overlay during save
           if (_isLoading)

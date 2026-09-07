@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/di/injection_container.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import 'home_screen.dart';
+import 'contrasenas_screen.dart';
 
 /// Pantalla de inicio de sesión del instalador (credenciales de Odoo vía API).
 /// En modo mock acepta cualquier correo/contraseña no vacíos.
@@ -48,7 +49,25 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     if (!mounted) return;
     result.fold(
-      (_) {
+      (sesion) {
+        // Onboarding: si entró con contraseña temporal, primero crea la suya
+        // (pantalla forzada, sin poder saltarla) y de ahí al home.
+        if (sesion.debeCambiarPassword) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ContrasenasScreen(
+                onboarding: true,
+                currentPassword: _passwordController.text,
+                onCompleted: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme)),
+                ),
+              ),
+            ),
+          );
+          return;
+        }
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme)),

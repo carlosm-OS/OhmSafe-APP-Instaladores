@@ -8,6 +8,7 @@ class SesionModel extends Sesion {
     required super.nombre,
     required super.numeroInstalador,
     required super.rol,
+    super.debeCambiarPassword,
   });
 
   factory SesionModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +21,7 @@ class SesionModel extends Sesion {
       nombre: s(inst['nombre']),
       numeroInstalador: s(inst['numeroInstalador']),
       rol: s(inst['rol']),
+      debeCambiarPassword: json['debeCambiarPassword'] == true,
     );
   }
 }
