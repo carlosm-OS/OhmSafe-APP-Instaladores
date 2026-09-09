@@ -627,9 +627,11 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             _buildTestIndicatorRow("Prueba de alto voltaje exitosa", _bateriaStatus),
             _buildTestIndicatorRow("Conexión de batería auxiliar", _redLteStatus),
             _buildTestIndicatorRow(
-              "Prueba de retorno del equipo",
+              "Verificación de conexión a línea",
               _retornoStatus,
-              errorSubtitle: _retornoStatus == 'Rojo' ? "El regreso no se ha detectado" : null,
+              errorSubtitle: _retornoStatus == 'Rojo'
+                  ? "El equipo no recibe energía de la línea eléctrica"
+                  : null,
             ),
             const SizedBox(height: 16),
 

@@ -133,6 +133,19 @@ Odoo sin tocar Stripe/checkout:
 
 ---
 
+## Backlog de campo (próximos ajustes de UI/hardware)
+- ⬜ **Diagnóstico del energizador (real, no demo)**. Hoy las 4 pruebas de la
+  pantalla de vinculación (tierra física, alto voltaje, batería auxiliar,
+  verificación de conexión a línea) son **simuladas** (un timer cambia los
+  estados). La **vinculación sí es real** (escribe MAC + `x_estado_vinculacion`
+  en Odoo vía `vincularEnergizador`). Falta que el hardware reporte de verdad,
+  en especial la **"Verificación de conexión a línea"**: validar si el equipo
+  **recibe energía de la calle** (mains). Renombrada desde "Prueba de retorno"
+  (2026-09-09).
+- ⬜ **Cierre de instalación — fotos de evidencia**: revisar **cantidad y estilo**
+  de cada foto (categorías, orden, obligatoriedad, guías de encuadre). A definir
+  con Operaciones.
+
 ## Pendientes priorizados
 1. 🟡 **Probar el push en un teléfono** (Android primero) — cierra el ciclo.
 2. 🟡 **HubSpot**: pegar la acción de webhook en el workflow (tiempo real).
