@@ -134,14 +134,17 @@ Odoo sin tocar Stripe/checkout:
 ---
 
 ## Backlog de campo (próximos ajustes de UI/hardware)
-- ⬜ **Diagnóstico del energizador (real, no demo)**. Hoy las 4 pruebas de la
-  pantalla de vinculación (tierra física, alto voltaje, batería auxiliar,
-  verificación de conexión a línea) son **simuladas** (un timer cambia los
-  estados). La **vinculación sí es real** (escribe MAC + `x_estado_vinculacion`
-  en Odoo vía `vincularEnergizador`). Falta que el hardware reporte de verdad,
-  en especial la **"Verificación de conexión a línea"**: validar si el equipo
-  **recibe energía de la calle** (mains). Renombrada desde "Prueba de retorno"
-  (2026-09-09).
+- ✅ **Diagnóstico del energizador REAL** (2026-09-09). Ya no es demo: el
+  instalador ingresa el **número de serie** y `POST /v1/instalador/energizador/
+  diagnostico` lee la **telemetría real** del `Device`: conexión a línea
+  (`ac_power_on` = energía de la calle), batería (`battery_state`/voltaje) y
+  cerca/alto voltaje (`armed_status`). La **tierra física** = confirmación manual
+  del instalador (sin telemetría). La vinculación guarda `x_numero_serie` +
+  `x_mac_address` en Odoo. Probado contra el equipo `OHM-CARLOS-DEV` (todo verde).
+- 🟡 **Dashboard — registro del equipo al cliente**. El estatus del equipo YA
+  aparece en el dashboard (reporta telemetría). Falta el **"registro"**: asociar
+  el `Device` al cliente/propiedad de la instalación (`DeviceAccess`) al cerrar.
+  A definir el flujo (hoy la asociación cliente↔equipo vive en el onboarding).
 - ⬜ **Cierre de instalación — fotos de evidencia**: revisar **cantidad y estilo**
   de cada foto (categorías, orden, obligatoriedad, guías de encuadre). A definir
   con Operaciones.
