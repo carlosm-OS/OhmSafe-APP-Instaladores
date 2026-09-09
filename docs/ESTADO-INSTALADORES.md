@@ -72,14 +72,14 @@ Odoo sin tocar Stripe/checkout:
 - ✅ **Auth sin secreto (Workload Identity Federation)**: proyecto Firebase
   propio `ohmsafe-instaladores`; el backend en AWS se autentica a GCP sin
   descargar claves (la org bloquea SA keys). Segundo Firebase app en el backend.
-- 🟡 **App (en progreso)**: deps `firebase_core`/`firebase_messaging` + plugin
-  google-services en `settings.gradle.kts` hechos. **Falta**: aplicar el plugin en
-  `app/build.gradle.kts`, el `PushService` Dart (permiso → token → `POST
-  /v1/instalador/push/registrar` tras login → abrir Instalaciones al tocar) y el
-  `pod` iOS.
-- 🟡 **Falta**: probar entrega en **dispositivo Android/emulador** (token real).
-- ⬜ **iOS**: subir la **APNs Auth Key** a Firebase (paso Apple). Android no lo
-  necesita.
+- ✅ **App cableada**: `firebase_core` + `firebase_messaging`, plugin
+  google-services (Android), init en `main`, `PushService` (permiso → token →
+  `POST /v1/instalador/push/registrar` tras login → abrir Instalaciones al
+  tocar). Compila (0 issues) y la app corre; en macOS es no-op (sin Firebase).
+- 🟡 **Falta probar en un teléfono Android** (token real) — es lo único que
+  cierra el ciclo.
+- ⬜ **iOS**: subir la **APNs Auth Key** a Firebase + fijar `platform :ios, '13.0'`
+  al generar el Podfile. Android no lo necesita.
 
 ## Fase 3 — Ejecución con control de pasos + firma  ✅ (base)
 - ✅ Flujo por pasos en la app (ruta → llegada → inspección → registro/costeo →
