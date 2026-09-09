@@ -127,7 +127,17 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) => _ok();
 
   @override
-  Future<void> vincularEnergizador(String id, {required String codigo}) => _ok();
+  Future<void> vincularEnergizador(String id, {required String codigo, String? serie}) => _ok();
+
+  @override
+  Future<Map<String, dynamic>> diagnosticoEnergizador(String serie) async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    return {
+      'encontrado': true, 'serie': serie, 'mac': 'AA:BB:CC:00:CA:R1',
+      'enLinea': true, 'conexionLinea': true, 'bateria': 'ok', 'bateriaVoltaje': 13.9,
+      'cercaActiva': true, 'firmware': '2.7.1.0', 'ultimoReporte': DateTime.now().toIso8601String(),
+    };
+  }
 
   @override
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre) => _ok();

@@ -32,7 +32,10 @@ abstract class OrdenesRepository {
   Future<Result<bool>> guardarReparacion(String id, Map<String, dynamic> costeo);
 
   /// Vincula el energizador (por QR o número de serie).
-  Future<Result<bool>> vincularEnergizador(String id, {required String codigo});
+  Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie});
+
+  /// Diagnóstico real del energizador por número de serie (telemetría del device).
+  Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie);
 
   /// Guarda el cierre del servicio (evidencias, entrega de equipo, firma).
   Future<Result<bool>> guardarCierre(String id, Map<String, dynamic> cierre);

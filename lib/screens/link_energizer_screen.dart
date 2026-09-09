@@ -21,7 +21,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   LinkState _currentState = LinkState.input;
   final TextEditingController _macController = TextEditingController();
   bool _isLoading = false;
-  bool _hasFailedOnce = false;
 
   // Validation indicators state
   String _tierraStatus = 'Gris'; // Gris, Verde, Rojo
@@ -43,65 +42,74 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     super.dispose();
   }
 
+  // MAC real del equipo, detectada por el diagnóstico (se guarda en Odoo).
+  String _macDetectada = '';
+
   void _startScanning() {
     setState(() {
       _currentState = LinkState.scanning;
     });
-    // Auto-scan after 2.5 seconds to simulate camera focusing and reading QR
-    _simulationTimer = Timer(const Duration(milliseconds: 2500), () {
+    // Simula el enfoque de cámara; al "leer el QR" valida el número de serie que
+    // el instalador escribió/escaneó. El QR del equipo codifica la serie.
+    _simulationTimer = Timer(const Duration(milliseconds: 1500), () {
       if (mounted && _currentState == LinkState.scanning) {
-        _startValidation("MAC-99:A1:B2:C3:FF");
+        _startValidation(_macController.text.trim());
       }
     });
   }
 
-  void _startValidation(String macAddress) {
+  /// Diagnóstico REAL por número de serie: lee la telemetría del equipo y pinta
+  /// cada prueba. La tierra física no tiene telemetría → la confirma el instalador.
+  Future<void> _startValidation(String serie) async {
     _simulationTimer?.cancel();
+    final s = serie.trim();
+    if (s.isEmpty) {
+      setState(() => _currentState = LinkState.input);
+      _triggerBanner(false, "Ingresa o escanea el número de serie del equipo");
+      return;
+    }
     setState(() {
-      _macController.text = macAddress;
       _currentState = LinkState.validating;
       _isLoading = true;
       _showBanner = false;
-
-      // Reset indicators to pending
-      _tierraStatus = 'Gris';
-      _bateriaStatus = 'Gris';
-      _redLteStatus = 'Gris';
-      _retornoStatus = 'Gris';
+      _bateriaStatus = 'Gris'; // alto voltaje / cerca
+      _redLteStatus = 'Gris'; // batería auxiliar
+      _retornoStatus = 'Gris'; // conexión a línea
     });
 
-    // Simulate IoT polling / WebSockets status changes from Backend
-    int step = 0;
-    _simulationTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
+    final result = await sl.get<OrdenesRepository>().diagnosticoEnergizador(s);
+    if (!mounted) return;
+    result.fold((d) {
       setState(() {
-        step++;
-        if (step == 1) {
-          _tierraStatus = 'Verde';
-        } else if (step == 2) {
-          _bateriaStatus = 'Verde';
-        } else if (step == 3) {
-          _redLteStatus = 'Verde';
-        } else if (step == 4) {
-          timer.cancel();
-          _isLoading = false;
-          if (!_hasFailedOnce) {
-            // First time fails
-            _retornoStatus = 'Rojo';
-            _hasFailedOnce = true;
-            _triggerBanner(false, "Error en retorno");
-          } else {
-            // Second time (retry) succeeds
-            _retornoStatus = 'Verde';
-            _triggerBanner(true, "Red de Wi-Fi guardada con éxito");
-          }
+        _isLoading = false;
+        if (d['encontrado'] != true) {
+          _retornoStatus = 'Rojo';
+          _triggerBanner(false, "No se encontró un equipo con la serie \"$s\"");
+          return;
         }
+        _macDetectada = (d['mac'] ?? '').toString();
+        // Telemetría real -> estado de cada prueba.
+        _retornoStatus = d['conexionLinea'] == true ? 'Verde' : 'Rojo'; // energía de la calle
+        _redLteStatus = d['bateria'] == 'ok'
+            ? 'Verde'
+            : (d['bateria'] == 'baja' ? 'Rojo' : 'Gris');
+        _bateriaStatus = d['cercaActiva'] == true ? 'Verde' : 'Rojo'; // cerca energizada
+        final ok = _retornoStatus == 'Verde' &&
+            _redLteStatus == 'Verde' &&
+            _bateriaStatus == 'Verde';
+        _triggerBanner(ok, ok ? "Diagnóstico del equipo exitoso" : "Hay pruebas en rojo, revisa el equipo");
+      });
+    }, (f) {
+      setState(() {
+        _isLoading = false;
+        _triggerBanner(false, "No se pudo leer el equipo: ${f.message}");
       });
     });
+  }
+
+  /// Tierra física: confirmación manual del instalador (sin telemetría).
+  void _toggleTierra() {
+    setState(() => _tierraStatus = _tierraStatus == 'Verde' ? 'Gris' : 'Verde');
   }
 
   void _triggerBanner(bool isSuccess, String text) {
@@ -120,9 +128,12 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     if (_isSending) return;
     setState(() => _isSending = true);
     final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
-    final result = await sl
-        .get<OrdenesRepository>()
-        .vincularEnergizador(id, codigo: _macController.text.trim());
+    final serie = _macController.text.trim();
+    final result = await sl.get<OrdenesRepository>().vincularEnergizador(
+          id,
+          codigo: _macDetectada.isNotEmpty ? _macDetectada : serie,
+          serie: serie,
+        );
     if (!mounted) return;
     result.fold(
       (_) => Navigator.pop(context, 'device_linked'),
@@ -348,16 +359,16 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
             const SizedBox(height: 40),
 
-            // Input MAC Address
+            // Input número de serie del equipo
             TextField(
               controller: _macController,
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
-                labelText: "MAC Address / No. Serie",
+                labelText: "Número de serie del equipo",
                 labelStyle: TextStyle(
                   color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 ),
-                hintText: "Ej: MAC-99:A1:B2:C3:FF",
+                hintText: "Ej: OHM-XXXX-XXXX (o escanéalo del QR)",
                 filled: true,
                 fillColor: ohm.surfaceContainer,
                 border: OutlineInputBorder(
@@ -623,7 +634,18 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             const SizedBox(height: 12),
 
             // 4 Indicators
-            _buildTestIndicatorRow("Instalación de tierra física", _tierraStatus),
+            // Tierra física: sin telemetría → el instalador la confirma tocando.
+            GestureDetector(
+              onTap: _toggleTierra,
+              behavior: HitTestBehavior.opaque,
+              child: _buildTestIndicatorRow(
+                "Instalación de tierra física",
+                _tierraStatus,
+                errorSubtitle: _tierraStatus != 'Verde'
+                    ? "Confírmala tocando aquí (verificación física)"
+                    : null,
+              ),
+            ),
             _buildTestIndicatorRow("Prueba de alto voltaje exitosa", _bateriaStatus),
             _buildTestIndicatorRow("Conexión de batería auxiliar", _redLteStatus),
             _buildTestIndicatorRow(
