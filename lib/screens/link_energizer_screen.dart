@@ -634,7 +634,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             const SizedBox(height: 12),
 
             // 4 Indicators
-            // Tierra física: sin telemetría → el instalador la confirma tocando.
+            // Tierra física: sin telemetría en esta versión → check manual
+            // obligatorio del instalador; control de calidad lo valida después.
             GestureDetector(
               onTap: _toggleTierra,
               behavior: HitTestBehavior.opaque,
@@ -642,7 +643,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 "Instalación de tierra física",
                 _tierraStatus,
                 errorSubtitle: _tierraStatus != 'Verde'
-                    ? "Confírmala tocando aquí (verificación física)"
+                    ? "Toca para confirmar que la realizaste (control de calidad la validará)"
                     : null,
               ),
             ),
