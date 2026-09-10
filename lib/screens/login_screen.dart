@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../core/push/push_service.dart';
@@ -20,6 +21,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordFocus = FocusNode();
   bool _obscure = true;
   bool _loading = false;
   String? _error;
@@ -36,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -51,6 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     result.fold(
       (sesion) {
+        // Credenciales válidas: cierra el contexto de autofill para que el
+        // gestor del sistema (Contraseñas de iOS / Chrome-Google en Android)
+        // ofrezca GUARDAR la contraseña. La próxima vez la autocompleta.
+        TextInput.finishAutofillContext();
         // Registra el token FCM del dispositivo (best-effort) ahora que hay
         // sesión: el backend lo liga al instalador para el push de asignación.
         PushService.instance.registrarToken();
@@ -65,7 +72,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 currentPassword: _passwordController.text,
                 onCompleted: (ctx) => Navigator.pushReplacement(
                   ctx,
-                  MaterialPageRoute(builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme, promptFoto: true)),
+                  MaterialPageRoute(
+                    builder: (_) => HomeScreen(
+                      onToggleTheme: widget.onToggleTheme,
+                      promptFoto: true,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -74,7 +86,9 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme)),
+          MaterialPageRoute(
+            builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme),
+          ),
         );
       },
       (failure) => setState(() {
@@ -98,73 +112,130 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Logo
-                  Image.asset(
-                    isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                    height: 44,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("OHM", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                        Text("SAFE", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: cs.primary)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "App de Instaladores",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
-                  ),
-                  const SizedBox(height: 36),
-
-                  Text("Correo", style: _labelStyle(theme, isDark)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                    decoration: _fieldDecoration(theme, isDark, "tucorreo@ohmsafe.com", Icons.mail_outline_rounded),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Text("Contraseña", style: _labelStyle(theme, isDark)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscure,
-                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                    onSubmitted: (_) => _loading ? null : _login(),
-                    decoration: _fieldDecoration(theme, isDark, "••••••••", Icons.lock_outline_rounded).copyWith(
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
-                        onPressed: () => setState(() => _obscure = !_obscure),
+              child: AutofillGroup(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Logo
+                    Image.asset(
+                      isDark
+                          ? 'assets/assets/logo_white.png'
+                          : 'assets/assets/logo_light.png',
+                      height: 44,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "OHM",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: theme.textTheme.bodyLarge?.color,
+                            ),
+                          ),
+                          Text(
+                            "SAFE",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: cs.primary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-
-                  if (_error != null) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     Text(
-                      _error!,
+                      "App de Instaladores",
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textTheme.bodyMedium?.color?.withValues(
+                          alpha: 0.7,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+
+                    Text("Correo", style: _labelStyle(theme, isDark)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      // Sugerencias de correo del historial del teléfono (QuickType
+                      // en iOS / autofill en Android).
+                      autofillHints: const [
+                        AutofillHints.username,
+                        AutofillHints.email,
+                      ],
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => _passwordFocus.requestFocus(),
+                      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                      decoration: _fieldDecoration(
+                        theme,
+                        isDark,
+                        "tucorreo@ohmsafe.com",
+                        Icons.mail_outline_rounded,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text("Contraseña", style: _labelStyle(theme, isDark)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _passwordController,
+                      focusNode: _passwordFocus,
+                      obscureText: _obscure,
+                      // El gestor de contraseñas del sistema ofrece guardar/rellenar.
+                      autofillHints: const [AutofillHints.password],
+                      textInputAction: TextInputAction.done,
+                      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                      onSubmitted: (_) => _loading ? null : _login(),
+                      decoration:
+                          _fieldDecoration(
+                            theme,
+                            isDark,
+                            "••••••••",
+                            Icons.lock_outline_rounded,
+                          ).copyWith(
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded,
+                                size: 20,
+                              ),
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                            ),
+                          ),
+                    ),
+
+                    if (_error != null) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 28),
+                    OhmGradientButton(
+                      label: "Iniciar sesión",
+                      icon: Icons.login_rounded,
+                      loading: _loading,
+                      onPressed: _login,
                     ),
                   ],
-
-                  const SizedBox(height: 28),
-                  OhmGradientButton(
-                    label: "Iniciar sesión",
-                    icon: Icons.login_rounded,
-                    loading: _loading,
-                    onPressed: _login,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -174,21 +245,29 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   TextStyle _labelStyle(ThemeData theme, bool isDark) => TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        color: theme.colorScheme.onSurfaceVariant,
-      );
+    fontSize: 12,
+    fontWeight: FontWeight.bold,
+    color: theme.colorScheme.onSurfaceVariant,
+  );
 
-  InputDecoration _fieldDecoration(ThemeData theme, bool isDark, String hint, IconData icon) => InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 20),
-        filled: true,
-        fillColor: theme.extension<OhmColors>()!.surfaceContainer,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-      );
+  InputDecoration _fieldDecoration(
+    ThemeData theme,
+    bool isDark,
+    String hint,
+    IconData icon,
+  ) => InputDecoration(
+    hintText: hint,
+    prefixIcon: Icon(icon, size: 20),
+    filled: true,
+    fillColor: theme.extension<OhmColors>()!.surfaceContainer,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+  );
 }
