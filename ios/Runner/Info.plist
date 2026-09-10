@@ -72,6 +72,8 @@
 	<string>Esta aplicación usa la cámara para tomar fotos de evidencia de la instalación y escanear el número de serie del equipo.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Esta aplicación usa tu ubicación para registrar dónde se realizó la instalación al cerrar el servicio.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Esta aplicación usa tu ubicación para registrar dónde se realizó la instalación al cerrar el servicio.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
