@@ -26,6 +26,11 @@ class AppState extends ChangeNotifier {
   String get codigoVenta => _codigoVenta;
   final String installerAvatar = "avatar.png";
 
+  // Foto de perfil real (Odoo image_256, base64). Se carga con refreshBadges();
+  // vacío mientras no llegue o si el instalador no tiene foto.
+  String _fotoBase64 = '';
+  String get fotoBase64 => _fotoBase64;
+
   String _installerPhone = "55 5266 7879";
   String get installerPhone => _installerPhone;
 
@@ -124,11 +129,15 @@ class AppState extends ChangeNotifier {
     inst.fold((list) => _instalacionesCount = list.length, (_) {});
     final rep = await repo.getOrdenes(tipo: 'reparacion');
     rep.fold((list) => _reparacionesCount = list.length, (_) {});
-    // Número de instalador y código de venta reales desde el perfil (Odoo).
+    // Número de instalador, código de venta, nombre y foto reales desde el
+    // perfil (Odoo). El nombre se refresca aquí para que un cambio en Datos
+    // Generales se refleje tras recargar el home.
     final perfil = await sl.get<PerfilRepository>().getPerfil();
     perfil.fold((p) {
       _numeroInstalador = p.numeroInstalador;
       _codigoVenta = p.codigoVenta;
+      if (p.nombre.isNotEmpty) _installerName = p.nombre;
+      _fotoBase64 = p.fotoBase64;
     }, (_) {});
     notifyListeners();
   }

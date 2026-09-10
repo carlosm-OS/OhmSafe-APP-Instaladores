@@ -175,8 +175,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: AvatarHalo(
                           size: 112,
-                          initials: "JM",
+                          initials: initialsFromName(state.installerName),
                           imagePath: state.customAvatarPath,
+                          imageBase64: state.fotoBase64,
                           placeholderIcon: Icons.engineering_rounded,
                         ),
                       ),

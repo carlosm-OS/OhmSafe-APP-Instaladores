@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../controllers/app_state_provider.dart';
 import '../core/error/failures.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
+import '../features/perfil/domain/entities/perfil.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
@@ -46,6 +47,28 @@ class ProfileMainScreen extends StatefulWidget {
 class _ProfileMainScreenState extends State<ProfileMainScreen> {
   final ImagePicker _picker = ImagePicker();
 
+  /// Perfil cargado desde Odoo (getPerfil). Aporta la foto persistida
+  /// (fotoBase64) y el nombre para las iniciales, así la foto no depende de una
+  /// selección local de esta sesión.
+  Perfil? _perfil;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPerfil();
+  }
+
+  /// Lee el perfil desde el repositorio y refresca la UI con la foto/nombre
+  /// reales. Silencioso ante fallos: deja el último valor conocido.
+  Future<void> _loadPerfil() async {
+    final result = await sl.get<PerfilRepository>().getPerfil();
+    if (!mounted) return;
+    result.fold(
+      (p) => setState(() => _perfil = p),
+      (_) {},
+    );
+  }
+
   Future<void> _pickImage(BuildContext context) async {
     final state = AppStateProvider.of(context);
     final cs = Theme.of(context).colorScheme;
@@ -77,15 +100,22 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
             .subirAvatar(contenidoBase64: base64Encode(formateada));
         if (!mounted) return;
         result.fold(
-          (_) => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text("Foto de perfil guardada", style: TextStyle(fontWeight: FontWeight.bold)),
-              backgroundColor: cs.primary,
-            ),
-          ),
-          (failure) => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_mensajeErrorFoto(failure)), backgroundColor: Colors.redAccent),
-          ),
+          (_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text("Foto de perfil guardada", style: TextStyle(fontWeight: FontWeight.bold)),
+                backgroundColor: cs.primary,
+              ),
+            );
+            // Re-lee el perfil para reflejar la foto ya persistida en Odoo
+            // (no solo el preview local).
+            _loadPerfil();
+          },
+          (failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(_mensajeErrorFoto(failure)), backgroundColor: Colors.redAccent),
+            );
+          },
         );
       }
     } catch (e) {
@@ -280,8 +310,9 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                             children: [
                               AvatarHalo(
                                 size: 112,
-                                initials: "JM",
+                                initials: initialsFromName(_perfil?.nombre),
                                 imagePath: state.customAvatarPath,
+                                imageBase64: _perfil?.fotoBase64,
                                 placeholderIcon: Icons.engineering_rounded,
                               ),
                               Positioned(

@@ -13,6 +13,7 @@ class Perfil {
   final bool perfilCompleto;
   final String numeroInstalador; // ID visible (aleatorio, único) — vacío si no asignado
   final String codigoVenta; // código de descuento/bono (OHMS-…)
+  final String fotoBase64; // foto de perfil (Odoo image_256) en base64 — vacío si no hay
 
   const Perfil({
     required this.id,
@@ -26,6 +27,7 @@ class Perfil {
     required this.perfilCompleto,
     this.numeroInstalador = '',
     this.codigoVenta = '',
+    this.fotoBase64 = '',
   });
 
   bool get tieneConstancia => constanciaUrl.isNotEmpty;

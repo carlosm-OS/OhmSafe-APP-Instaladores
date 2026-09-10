@@ -14,6 +14,7 @@ class PerfilModel extends Perfil {
     required super.perfilCompleto,
     super.numeroInstalador,
     super.codigoVenta,
+    super.fotoBase64,
   });
 
   factory PerfilModel.fromJson(Map<String, dynamic> json) {
@@ -30,6 +31,7 @@ class PerfilModel extends Perfil {
       perfilCompleto: json['perfilCompleto'] == true,
       numeroInstalador: s(json['numeroInstalador']),
       codigoVenta: s(json['codigoVenta']),
+      fotoBase64: s(json['fotoBase64']),
     );
   }
 }
