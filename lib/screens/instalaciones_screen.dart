@@ -314,6 +314,14 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 ),
                 const SizedBox(height: 6),
                 _detailRow(theme, "Teléfono: ", orden.telefono),
+                if (orden.plan.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  _detailRow(theme, "Plan: ", orden.plan),
+                ],
+                if (orden.agendado && (orden.fechaAgendada?.isNotEmpty ?? false)) ...[
+                  const SizedBox(height: 6),
+                  _detailRow(theme, "Agendada: ", _formatFechaAgendada(orden.fechaAgendada!)),
+                ],
               ],
               const SizedBox(height: 12),
               Divider(height: 1, color: theme.dividerColor),
@@ -327,17 +335,20 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
               ),
               if (isOpen) ...[
                 const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: cancelado ? null : () => _showConfirmationDialog(context, orden),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cancelado ? (isDark ? cs.outline : cs.outlineVariant) : cs.primary,
-                    foregroundColor: cancelado ? (isDark ? Colors.white30 : Colors.white70) : Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
+                if (!orden.agendado)
+                  _pendienteAgendarPill(theme, cs, ohm)
+                else
+                  ElevatedButton(
+                    onPressed: cancelado ? null : () => _showConfirmationDialog(context, orden),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: cancelado ? (isDark ? cs.outline : cs.outlineVariant) : cs.primary,
+                      foregroundColor: cancelado ? (isDark ? Colors.white30 : Colors.white70) : Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    child: const Text("Iniciar ruta de servicio", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   ),
-                  child: const Text("Iniciar ruta de servicio", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                )
               ]
             ],
           ),
@@ -353,6 +364,42 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         children: [
           TextSpan(text: label, style: const TextStyle(fontWeight: FontWeight.w700)),
           TextSpan(text: value),
+        ],
+      ),
+    );
+  }
+
+  /// Formatea la fecha ISO del backend ("2026-09-15 10:00:00") a algo legible
+  /// como "15/09/2026 10:00". Si no parsea, devuelve el string original.
+  String _formatFechaAgendada(String raw) {
+    final dt = DateTime.tryParse(raw.replaceFirst(' ', 'T'));
+    if (dt == null) return raw;
+    String two(int n) => n.toString().padLeft(2, '0');
+    return "${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}";
+  }
+
+  /// Píldora informativa (no interactiva) cuando la orden aún no está agendada.
+  /// El instalador no puede iniciar la ruta hasta que servicio confirme día/hora.
+  Widget _pendienteAgendarPill(ThemeData theme, ColorScheme cs, OhmColors ohm) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: ohm.surfaceContainer,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.schedule_rounded, size: 18, color: cs.onSurfaceVariant),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              "Pendiente de agendar — el equipo de servicio confirmará día y hora",
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, height: 1.35, color: cs.onSurfaceVariant),
+            ),
+          ),
         ],
       ),
     );

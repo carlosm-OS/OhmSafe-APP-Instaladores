@@ -14,6 +14,12 @@ class Orden {
   final String metraje;
   final String fechaCreacion;
   final String diasAbierto;
+  // Agendamiento / pago (contrato `/v1/instalador/ordenes`).
+  final String plan; // plan contratado, p.ej. "Hogar Seguro - Mensual"
+  final double monto; // monto pagado
+  final String stripePaymentId; // referencia de pago Stripe
+  final String? fechaAgendada; // ISO "2026-09-15 10:00:00" o null si no agendada
+  final bool agendado; // true cuando el equipo de servicio ya agendó día/hora
 
   const Orden({
     required this.id,
@@ -29,6 +35,11 @@ class Orden {
     required this.metraje,
     required this.fechaCreacion,
     required this.diasAbierto,
+    this.plan = '',
+    this.monto = 0,
+    this.stripePaymentId = '',
+    this.fechaAgendada,
+    this.agendado = false,
   });
 
   bool get esReparacion {

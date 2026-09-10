@@ -16,6 +16,11 @@ class OrdenModel extends Orden {
     required super.metraje,
     required super.fechaCreacion,
     required super.diasAbierto,
+    super.plan,
+    super.monto,
+    super.stripePaymentId,
+    super.fechaAgendada,
+    super.agendado,
   });
 
   factory OrdenModel.fromJson(Map<String, dynamic> json) {
@@ -34,6 +39,11 @@ class OrdenModel extends Orden {
       metraje: s(json['metraje']),
       fechaCreacion: s(json['fechaCreacion']),
       diasAbierto: s(json['diasAbierto']),
+      plan: s(json['plan']),
+      monto: (json['monto'] as num?)?.toDouble() ?? 0,
+      stripePaymentId: s(json['stripePaymentId']),
+      fechaAgendada: json['fechaAgendada'] as String?,
+      agendado: json['agendado'] == true,
     );
   }
 }
