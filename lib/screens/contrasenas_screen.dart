@@ -1,8 +1,27 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/ohm_gradient_button.dart';
+import '../core/di/injection_container.dart';
+import '../core/error/failures.dart';
+import '../features/perfil/domain/repositories/perfil_repository.dart';
 
 class ContrasenasScreen extends StatefulWidget {
-  const ContrasenasScreen({super.key});
+  /// Modo onboarding (primer ingreso con contraseña temporal): oculta el campo
+  /// "contraseña actual" (se usa [currentPassword]), la barra inferior y el
+  /// botón atrás, y al terminar llama [onCompleted] (ir al home) en vez de
+  /// regresar al perfil. No se puede saltar.
+  final bool onboarding;
+  final String? currentPassword;
+  /// Recibe el context de ESTA pantalla (válido) para navegar al home.
+  final void Function(BuildContext context)? onCompleted;
+
+  const ContrasenasScreen({
+    super.key,
+    this.onboarding = false,
+    this.currentPassword,
+    this.onCompleted,
+  });
 
   @override
   State<ContrasenasScreen> createState() => _ContrasenasScreenState();
@@ -138,13 +157,16 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
     _newFocusNode.unfocus();
     _confirmFocusNode.unfocus();
 
-    final current = _currentPasswordController.text.trim();
+    // En onboarding la "actual" es la temporal con la que acaba de entrar.
+    final current = widget.onboarding
+        ? (widget.currentPassword ?? '')
+        : _currentPasswordController.text.trim();
     final newPass = _newPasswordController.text;
     final confirm = _confirmPasswordController.text;
 
     bool hasErrors = false;
 
-    if (current.isEmpty) {
+    if (!widget.onboarding && current.isEmpty) {
       setState(() {
         _currentError = "Por favor, escribe tu contraseña actual";
       });
@@ -186,17 +208,37 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
       _isLoading = true;
     });
 
-    // Simulate secure api call to change password
-    await Future.delayed(const Duration(milliseconds: 2000));
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      // Show beautiful success dialog instead of just a SnackBar
-      _showSuccessDialog();
-    }
+    // Cambio real contra el backend (Odoo). Opción A: primer ingreso con
+    // contraseña temporal o cambio posterior.
+    final result = await sl.get<PerfilRepository>().cambiarPassword(
+          passwordActual: current,
+          passwordNueva: newPass,
+        );
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+    });
+    result.fold(
+      (_) {
+        if (widget.onboarding) {
+          widget.onCompleted?.call(context); // context válido de esta pantalla
+        } else {
+          _showSuccessDialog();
+        }
+      },
+      (failure) {
+        setState(() {
+          // AuthFailure = la contraseña actual no coincide con la de Odoo.
+          _currentError =
+              failure is AuthFailure ? "La contraseña actual es incorrecta" : null;
+        });
+        if (failure is! AuthFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("No se pudo cambiar la contraseña: ${failure.message}")),
+          );
+        }
+      },
+    );
   }
 
   void _showSuccessDialog() {
@@ -205,11 +247,12 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
+        final cs = Theme.of(context).colorScheme;
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          backgroundColor: cs.surface,
           child: Padding(
             padding: const EdgeInsets.all(28.0),
             child: Column(
@@ -234,7 +277,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    color: isDark ? Colors.white : cs.onSurface,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -243,36 +286,18 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                   "Tu contraseña ha sido cambiada de forma segura. Se ha registrado tu actualización en el servidor seguro de OhmSafe.",
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    color: cs.onSurfaceVariant,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      Navigator.pop(context); // Go back to profile screen
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF5A00),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      "Volver al Perfil",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                OhmGradientButton(
+                  label: "Volver al Perfil",
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Go back to profile screen
+                  },
                 ),
               ],
             ),
@@ -285,11 +310,13 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
 
     // Styling constants matching the screenshot
-    final labelColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9);
-    final fillColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8);
+    final labelColor = cs.onSurfaceVariant;
+    final fillColor = ohm.surfaceContainer;
 
     final labelStyle = TextStyle(
       fontSize: 12,
@@ -333,11 +360,11 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -352,7 +379,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                               onPressed: () {},
                               icon: Icon(
                                 Icons.notifications,
-                                color: theme.iconTheme.color?.withOpacity(0.7),
+                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
                               ),
                             ),
                             Positioned(
@@ -386,7 +413,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                           width: double.infinity,
                           alignment: Alignment.center,
                           child: Text(
-                            "Perfil",
+                            widget.onboarding ? "Crea tu contraseña" : "Perfil",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 22,
@@ -395,21 +422,22 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                             ),
                           ),
                         ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
+                        if (!widget.onboarding)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: IconButton.styleFrom(
+                                padding: const EdgeInsets.all(6),
+                                shape: const CircleBorder(),
+                              ),
+                              icon: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                size: 20,
+                                color: theme.iconTheme.color,
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -430,14 +458,15 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+                              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
                             ),
                           ),
                         ),
                         const SizedBox(height: 32),
 
-                        // Current password field
-                        _buildPasswordField(
+                        // Current password field — oculto en onboarding (se usa la temporal)
+                        if (!widget.onboarding)
+                          _buildPasswordField(
                           label: "ESCRIBE LA CONTRASEÑA ACTUAL",
                           controller: _currentPasswordController,
                           focusNode: _currentFocusNode,
@@ -472,6 +501,28 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                           fillColor: fillColor,
                         ),
 
+                        // Confirmar — justo debajo de "nueva" para que ambas se vean juntas
+                        _buildPasswordField(
+                          label: "CONFIRMAR NUEVA CONTRASEÑA",
+                          controller: _confirmPasswordController,
+                          focusNode: _confirmFocusNode,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => _submitChange(),
+                          obscureText: _obscureConfirm,
+                          errorText: _confirmError,
+                          showVisibilityToggle: false,
+                          onToggleVisibility: () {},
+                          labelStyle: labelStyle,
+                          inputStyle: inputStyle,
+                          fillColor: fillColor,
+                          customSuffix: _confirmPasswordController.text.isNotEmpty && _newPasswordController.text.isNotEmpty && _confirmPasswordController.text == _newPasswordController.text
+                              ? const Padding(
+                                  padding: EdgeInsets.only(right: 12.0),
+                                  child: Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
+                                )
+                              : null,
+                        ),
+
                         // Password strength visual indicator
                         if (_newPasswordController.text.isNotEmpty) ...[
                           Padding(
@@ -486,7 +537,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                                       "Seguridad de la contraseña:",
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                        color: cs.onSurfaceVariant,
                                       ),
                                     ),
                                     Text(
@@ -539,7 +590,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.9),
+                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.9),
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -554,58 +605,12 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                           ),
                         ),
 
-                        // Confirm password field (does not show eye toggle per mock screenshot)
-                        _buildPasswordField(
-                          label: "CONFIRMAR NUEVA CONTRASEÑA",
-                          controller: _confirmPasswordController,
-                          focusNode: _confirmFocusNode,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _submitChange(),
-                          obscureText: _obscureConfirm,
-                          errorText: _confirmError,
-                          showVisibilityToggle: false, // matches screenshot
-                          onToggleVisibility: () {},
-                          labelStyle: labelStyle,
-                          inputStyle: inputStyle,
-                          fillColor: fillColor,
-                          // If passwords match, show a small check inside the input
-                          customSuffix: _confirmPasswordController.text.isNotEmpty && _newPasswordController.text.isNotEmpty && _confirmPasswordController.text == _newPasswordController.text
-                              ? const Padding(
-                                  padding: EdgeInsets.only(right: 12.0),
-                                  child: Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
-                                )
-                              : null,
-                        ),
                         const SizedBox(height: 16),
 
                         // Submit Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _submitChange,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF5A00),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              elevation: 0,
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Confirmar cambio de contraseña",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Icon(Icons.arrow_forward, size: 18),
-                              ],
-                            ),
-                          ),
+                        OhmGradientButton(
+                          label: "Confirmar cambio de contraseña",
+                          onPressed: _isLoading ? null : _submitChange,
                         ),
                       ],
                     ),
@@ -616,22 +621,22 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
           ),
 
           // Shared bottom navigation bar overlay
-          const AppBottomNav(currentTab: "Perfil"),
+          if (!widget.onboarding) const AppBottomNav(currentTab: "Perfil"),
 
           // Fullscreen loader overlay during save
           if (_isLoading)
             Container(
-              color: Colors.black.withOpacity(0.55),
+              color: Colors.black.withValues(alpha: 0.55),
               child: Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
                   margin: const EdgeInsets.symmetric(horizontal: 40),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    color: cs.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -640,8 +645,8 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(
-                        color: Color(0xFFFF5A00),
+                      CircularProgressIndicator(
+                        color: cs.primary,
                         strokeWidth: 3,
                       ),
                       const SizedBox(height: 20),
@@ -650,7 +655,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          color: isDark ? Colors.white : cs.onSurface,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -658,7 +663,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                         "Cifrando datos de seguridad",
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -687,6 +692,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
     bool showVisibilityToggle = true,
     Widget? customSuffix,
   }) {
+    final cs = Theme.of(context).colorScheme;
     final hasError = errorText != null;
 
     return Column(
@@ -703,13 +709,13 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
             boxShadow: [
               if (focusNode.hasFocus && !hasError)
                 BoxShadow(
-                  color: const Color(0xFFFF5A00).withOpacity(0.12),
+                  color: cs.primary.withValues(alpha: 0.12),
                   blurRadius: 10,
                   spreadRadius: 1,
                 ),
               if (hasError)
                 BoxShadow(
-                  color: Colors.redAccent.withOpacity(0.08),
+                  color: Colors.redAccent.withValues(alpha: 0.08),
                   blurRadius: 10,
                   spreadRadius: 1,
                 ),
@@ -740,7 +746,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                       child: IconButton(
                         icon: Icon(
                           obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                          color: hasError ? Colors.redAccent.withOpacity(0.7) : Colors.grey.shade500,
+                          color: hasError ? Colors.redAccent.withValues(alpha: 0.7) : Colors.grey.shade500,
                           size: 20,
                         ),
                         onPressed: onToggleVisibility,
@@ -757,7 +763,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: hasError ? Colors.redAccent : const Color(0xFFFF5A00),
+                  color: hasError ? Colors.redAccent : cs.primary,
                   width: 1.5,
                 ),
               ),
@@ -801,7 +807,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
       children: [
         Icon(
           isValid ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-          color: isValid ? Colors.green : labelColor.withOpacity(0.4),
+          color: isValid ? Colors.green : labelColor.withValues(alpha: 0.4),
           size: 16,
         ),
         const SizedBox(width: 8),
@@ -809,7 +815,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
           text,
           style: TextStyle(
             fontSize: 13,
-            color: isValid ? Colors.green : labelColor.withOpacity(0.8),
+            color: isValid ? Colors.green : labelColor.withValues(alpha: 0.8),
             fontWeight: isValid ? FontWeight.bold : FontWeight.normal,
           ),
         ),

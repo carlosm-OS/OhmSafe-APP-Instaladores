@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../controllers/app_state_provider.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../core/theme/app_theme_extension.dart';
+import '../features/perfil/domain/repositories/perfil_repository.dart';
+import '../widgets/ohm_gradient_button.dart';
 
 class DatosGeneralesScreen extends StatefulWidget {
   const DatosGeneralesScreen({super.key});
@@ -15,6 +20,10 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
   late TextEditingController _telefonoController;
   late TextEditingController _correoController;
   late TextEditingController _curpController;
+
+  // Identificadores del instalador (solo lectura, vienen de Odoo).
+  String _numeroInstalador = '';
+  String _codigoVenta = '';
   bool _initialized = false;
 
   @override
@@ -33,7 +42,28 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
       _correoController = TextEditingController(text: state.installerEmail);
       _curpController = TextEditingController(text: state.installerCurp);
       _initialized = true;
+      _cargarDeOdoo(); // espejo Odoo→app: refresca con lo que hay en Odoo
     }
+  }
+
+  /// Lee el perfil de Odoo y refresca los campos (espejo Odoo→app).
+  Future<void> _cargarDeOdoo() async {
+    final result = await sl.get<PerfilRepository>().getPerfil();
+    if (!mounted) return;
+    result.fold((perfil) {
+      final parts = perfil.nombre.trim().split(' ');
+      setState(() {
+        if (perfil.nombre.isNotEmpty) {
+          _nombreController.text = parts.first;
+          if (parts.length > 1) _apellidosController.text = parts.sublist(1).join(' ');
+        }
+        if (perfil.telefono.isNotEmpty) _telefonoController.text = perfil.telefono;
+        if (perfil.email.isNotEmpty) _correoController.text = perfil.email;
+        _curpController.text = perfil.curp; // refleja el valor de Odoo (aunque esté vacío)
+        _numeroInstalador = perfil.numeroInstalador;
+        _codigoVenta = perfil.codigoVenta;
+      });
+    }, (_) {/* si falla, se quedan los valores locales */});
   }
 
   @override
@@ -49,12 +79,14 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
     // Styling constants matching the screenshot
-    final labelColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF7E92A9);
-    final fillColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8);
+    final labelColor = cs.onSurfaceVariant;
+    final fillColor = ohm.surfaceContainer;
 
     final labelStyle = TextStyle(
       fontSize: 12,
@@ -98,11 +130,11 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -117,7 +149,7 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                               onPressed: () {},
                               icon: Icon(
                                 Icons.notifications,
-                                color: theme.iconTheme.color?.withOpacity(0.7),
+                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
                               ),
                             ),
                             Positioned(
@@ -195,11 +227,15 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+                              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
+
+                        // Identidad del instalador (solo lectura, viene de Odoo)
+                        _buildIdentidadCard(context),
+                        const SizedBox(height: 24),
 
                         // Form fields
                         _buildField(
@@ -243,59 +279,55 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                         const SizedBox(height: 16),
 
                         // Save Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              final name = "${_nombreController.text.trim()} ${_apellidosController.text.trim()}".trim();
-                              final phone = _telefonoController.text.trim();
-                              final email = _correoController.text.trim();
-                              final curp = _curpController.text.trim();
+                        OhmGradientButton(
+                          label: "Guardar",
+                          onPressed: () async {
+                            final name = "${_nombreController.text.trim()} ${_apellidosController.text.trim()}".trim();
+                            final phone = _telefonoController.text.trim();
+                            final email = _correoController.text.trim();
+                            final curp = _curpController.text.trim();
 
-                              if (name.isEmpty || phone.isEmpty || email.isEmpty || curp.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Por favor, llena todos los campos"),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              state.updateInstallerInfo(
-                                name: name,
-                                phone: phone,
-                                email: email,
-                                curp: curp,
-                              );
-
+                            if (name.isEmpty || phone.isEmpty || email.isEmpty || curp.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text(
+                                  content: Text("Por favor, llena todos los campos"),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Estado local (UI) + persistencia en el backend (Odoo).
+                            state.updateInstallerInfo(
+                              name: name,
+                              phone: phone,
+                              email: email,
+                              curp: curp,
+                            );
+                            final result = await sl.get<PerfilRepository>().updatePerfil(
+                                  nombre: name,
+                                  telefono: phone,
+                                  curp: curp,
+                                );
+                            if (!mounted) return;
+                            result.fold(
+                              (_) => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
                                     "Datos guardados correctamente",
                                     style: TextStyle(fontWeight: FontWeight.bold),
                                   ),
-                                  backgroundColor: Color(0xFFFF5A00),
+                                  backgroundColor: cs.primary,
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF5A00),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
                               ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              "Guardar",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                              (failure) => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("No se pudieron guardar: ${failure.message}"),
+                                  backgroundColor: Colors.redAccent,
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -307,6 +339,94 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
 
           // Shared bottom navigation bar overlay
           const AppBottomNav(currentTab: "Perfil"),
+        ],
+      ),
+    );
+  }
+
+  /// Tarjeta de identidad del instalador: número (ID visible) y código de venta
+  /// para el bono por referidos. Solo lectura; el código se puede copiar.
+  Widget _buildIdentidadCard(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final ohm = context.ohm;
+    final tieneNumero = _numeroInstalador.isNotEmpty;
+    final tieneCodigo = _codigoVenta.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ohm.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Número de instalador
+          Row(
+            children: [
+              Icon(Icons.badge_outlined, size: 20, color: cs.onSurfaceVariant),
+              const SizedBox(width: 10),
+              Text("N.º de instalador",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+              const Spacer(),
+              Text(tieneNumero ? "#$_numeroInstalador" : "Se asigna al validar",
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: tieneNumero ? cs.onSurface : cs.onSurfaceVariant)),
+            ],
+          ),
+          Divider(height: 24, color: cs.outlineVariant),
+          // Código de venta (bono por referidos)
+          Row(
+            children: [
+              Icon(Icons.sell_outlined, size: 20, color: ohm.accent),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Código de venta",
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 2),
+                    Text("Compártelo: si venden con él, ganas bono",
+                        style: TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (tieneCodigo)
+                InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: _codigoVenta));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: const Text("Código copiado"), backgroundColor: ohm.accent),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: ohm.accentContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_codigoVenta,
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: ohm.onAccentContainer)),
+                        const SizedBox(width: 6),
+                        Icon(Icons.copy_rounded, size: 15, color: ohm.onAccentContainer),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Text("Se asigna al validar",
+                    style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+            ],
+          ),
         ],
       ),
     );

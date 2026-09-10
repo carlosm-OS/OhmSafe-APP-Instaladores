@@ -1,15 +1,43 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import '../controllers/app_state_provider.dart';
+import '../core/error/failures.dart';
+import '../features/perfil/domain/repositories/perfil_repository.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../core/di/injection_container.dart';
+import '../core/theme/app_theme_extension.dart';
+import '../features/auth/domain/repositories/auth_repository.dart';
 import 'datos_generales_screen.dart';
 import 'datos_bancarios_screen.dart';
 import 'contrasenas_screen.dart';
 import 'facturacion_screen.dart';
+import 'login_screen.dart';
+
+/// Formatea la imagen para que Odoo siempre la acepte: decodifica, redimensiona
+/// a máx 1024px y re-codifica como JPEG. Corre en un isolate (compute) para no
+/// congelar la UI. Devuelve null si la imagen no se pudo leer.
+Uint8List? _formatearAvatar(Uint8List input) {
+  final decoded = img.decodeImage(input);
+  if (decoded == null) return null;
+  final resized = (decoded.width > 1024 || decoded.height > 1024)
+      ? img.copyResize(
+          decoded,
+          width: decoded.width >= decoded.height ? 1024 : null,
+          height: decoded.height > decoded.width ? 1024 : null,
+        )
+      : decoded;
+  return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
+}
 
 class ProfileMainScreen extends StatefulWidget {
-  const ProfileMainScreen({super.key});
+  /// Se propaga a [LoginScreen] al cerrar sesión (para conservar el toggle de
+  /// tema). Opcional: el bottom nav abre esta pantalla sin el callback.
+  final VoidCallback? onToggleTheme;
+  const ProfileMainScreen({super.key, this.onToggleTheme});
 
   @override
   State<ProfileMainScreen> createState() => _ProfileMainScreenState();
@@ -20,24 +48,45 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
 
   Future<void> _pickImage(BuildContext context) async {
     final state = AppStateProvider.of(context);
+    final cs = Theme.of(context).colorScheme;
     try {
       final XFile? selected = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
+        imageQuality: 80,
+        maxWidth: 1024, // comprime en móvil (en macOS lo maneja el límite del backend)
+        maxHeight: 1024,
       );
       if (selected != null) {
-        state.updateAvatarPath(selected.path);
-        if (mounted) {
+        state.updateAvatarPath(selected.path); // preview local inmediato
+        // Formatea la imagen (redimensiona + JPEG) para que Odoo la acepte en
+        // cualquier plataforma (macOS no comprime con image_picker).
+        final raw = await selected.readAsBytes();
+        final formateada = await compute(_formatearAvatar, raw);
+        if (!mounted) return;
+        if (formateada == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                "Foto de perfil actualizada correctamente",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: Color(0xFFFF5A00),
+              content: Text("No pudimos leer esa imagen. Usa una foto JPG o PNG."),
+              backgroundColor: Colors.redAccent,
             ),
           );
+          return;
         }
+        final result = await sl
+            .get<PerfilRepository>()
+            .subirAvatar(contenidoBase64: base64Encode(formateada));
+        if (!mounted) return;
+        result.fold(
+          (_) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("Foto de perfil guardada", style: TextStyle(fontWeight: FontWeight.bold)),
+              backgroundColor: cs.primary,
+            ),
+          ),
+          (failure) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_mensajeErrorFoto(failure)), backgroundColor: Colors.redAccent),
+          ),
+        );
       }
     } catch (e) {
       debugPrint("Error picking image: $e");
@@ -52,9 +101,57 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
     }
   }
 
+  /// Traduce el fallo de subida a un mensaje claro para el instalador.
+  String _mensajeErrorFoto(Failure f) {
+    if (f is NetworkFailure) return "Sin conexión. Revisa tu internet e intenta de nuevo.";
+    if (f is AuthFailure) return "Tu sesión expiró. Vuelve a iniciar sesión.";
+    final m = f.message.toLowerCase();
+    if (m.contains("large") || m.contains("payload") || m.contains("entity")) {
+      return "La imagen es muy grande. Intenta con otra.";
+    }
+    if (m.contains("procesar") || m.contains("truncat") || m.contains("jpg") || m.contains("png") || m.contains("imagen")) {
+      return "No se pudo procesar la imagen. Usa una foto JPG o PNG.";
+    }
+    return "No se pudo guardar la foto: ${f.message}";
+  }
+
+  /// Pide confirmación, cierra la sesión (limpia sesión + token) y vuelve al
+  /// login borrando el stack de navegación.
+  Future<void> _cerrarSesion(BuildContext context) async {
+    final cs = Theme.of(context).colorScheme;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Cerrar sesión"),
+        content: const Text("¿Seguro que quieres cerrar sesión?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: cs.primary),
+            child: const Text("Cerrar sesión"),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+
+    await sl.get<AuthRepository>().logout();
+    if (!mounted) return;
+    AppStateProvider.of(context).updateAvatarPath(""); // limpia avatar local
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => LoginScreen(onToggleTheme: widget.onToggleTheme ?? () {})),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
@@ -87,11 +184,11 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
-                            const Text(
+                            Text(
                               "SAFE",
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFFF5A00),
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -106,7 +203,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                               onPressed: () {},
                               icon: Icon(
                                 Icons.notifications,
-                                color: theme.iconTheme.color?.withOpacity(0.7),
+                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
                               ),
                             ),
                             Positioned(
@@ -185,6 +282,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                                 size: 112,
                                 initials: "JM",
                                 imagePath: state.customAvatarPath,
+                                placeholderIcon: Icons.engineering_rounded,
                               ),
                               Positioned(
                                 bottom: 12,
@@ -193,10 +291,10 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                                   onTap: () => _pickImage(context),
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFFF5A00),
+                                    decoration: BoxDecoration(
+                                      color: cs.primary,
                                       shape: BoxShape.circle,
-                                      boxShadow: [
+                                      boxShadow: const [
                                         BoxShadow(
                                           color: Colors.black12,
                                           blurRadius: 4,
@@ -204,9 +302,9 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                                         ),
                                       ],
                                     ),
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.edit_rounded,
-                                      color: Colors.white,
+                                      color: cs.onPrimary,
                                       size: 18,
                                     ),
                                   ),
@@ -223,7 +321,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                             "${state.installerRole} ${state.installerId}",
                             style: TextStyle(
                               fontSize: 16,
-                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -231,17 +329,17 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         const SizedBox(height: 8),
 
                         // Star Rating Row
-                        const Center(
+                        Center(
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.star_rounded, color: Color(0xFFFF8D28), size: 24),
-                              Icon(Icons.star_rounded, color: Color(0xFFFF8D28), size: 24),
-                              Icon(Icons.star_rounded, color: Color(0xFFFF8D28), size: 24),
-                              Icon(Icons.star_rounded, color: Color(0xFFFF8D28), size: 24),
-                              Icon(Icons.star_half_rounded, color: Color(0xFFFF8D28), size: 24),
-                              SizedBox(width: 8),
-                              Text(
+                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
+                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
+                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
+                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
+                              Icon(Icons.star_half_rounded, color: cs.secondary, size: 24),
+                              const SizedBox(width: 8),
+                              const Text(
                                 "4.7",
                                 style: TextStyle(
                                   fontSize: 16,
@@ -254,11 +352,11 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         const SizedBox(height: 20),
 
                         // Unique Sales Code
-                        const Center(
+                        Center(
                           child: Text(
                             "Código de ventas: OSJM01",
                             style: TextStyle(
-                              color: Color(0xFFFF5A00),
+                              color: cs.primary,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -295,14 +393,10 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
 
                         // Orange outline Logout button
                         OutlinedButton(
-                          onPressed: () {
-                            // Clear custom photo or go back
-                            state.updateAvatarPath("");
-                            Navigator.pop(context);
-                          },
+                          onPressed: () => _cerrarSesion(context),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFFF5A00),
-                            side: const BorderSide(color: Color(0xFFFF5A00), width: 1.5),
+                            foregroundColor: cs.primary,
+                            side: BorderSide(color: cs.primary, width: 1.5),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -338,42 +432,52 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
     required Widget targetScreen,
   }) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF5F6F8),
+    // El color de fondo va en el Material (no en un Container decorado), para
+    // que el ListTile pinte su fondo/ripple directamente sobre él. Así se evita
+    // la aserción de Flutter "ListTile background color or ink splashes may be
+    // invisible" que ocurre cuando un DecoratedBox con color se interpone.
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: ohm.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF334155).withOpacity(0.5)
-              : const Color(0xFFE2E8F0).withOpacity(0.4),
-        ),
-      ),
-      child: ListTile(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => targetScreen),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-        leading: Icon(
-          icon,
-          color: const Color(0xFFFF5A00),
-          size: 22,
-        ),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => targetScreen),
           ),
-        ),
-        trailing: Icon(
-          Icons.chevron_right_rounded,
-          color: Colors.grey.shade400,
-          size: 22,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isDark
+                  ? cs.outline.withValues(alpha: 0.5)
+                  : cs.outlineVariant.withValues(alpha: 0.4),
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          leading: Icon(
+            icon,
+            color: cs.primary,
+            size: 22,
+          ),
+          title: Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
+            ),
+          ),
+          trailing: Icon(
+            Icons.chevron_right_rounded,
+            color: Colors.grey.shade400,
+            size: 22,
+          ),
         ),
       ),
     );

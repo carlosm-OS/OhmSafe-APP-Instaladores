@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+3
 
 environment:
   sdk: ^3.12.0
@@ -36,9 +36,12 @@ dependencies:
   cupertino_icons: ^1.0.8
   url_launcher: ^6.2.5
   image_picker: ^1.1.2
+  image: ^4.2.0
   # He fijado la versión a una más estable para evitar errores de compilación web
   file_picker: ^8.1.4
   geolocator: ^14.0.2
+  firebase_core: ^4.14.0
+  firebase_messaging: ^16.6.0
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +69,17 @@ flutter:
     - assets/assets/avatar.png
     - assets/assets/logo_light.png
     - assets/assets/logo_white.png
+
+  # Par tipográfico "Faena" (fuentes variables OFL, bundle offline-safe).
+  # Lexend = títulos (legibilidad/baja visión, ideal exterior); Inter = cuerpo.
+  # Son variables: Flutter mapea fontWeight (400–800) al eje wght.
+  fonts:
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/Lexend.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/ticket.dart';
 import '../services/hubspot_service.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../features/perfil/domain/repositories/perfil_repository.dart';
 
 class AppState extends ChangeNotifier {
   final HubspotService _hubspotService = HubspotService();
@@ -9,8 +12,18 @@ class AppState extends ChangeNotifier {
   String _installerName = "Juan Mora";
   String get installerName => _installerName;
 
-  final String installerId = "65243";
+  final String installerId = "65243"; // legado (fallback si aún no llega el real)
   final String installerRole = "Instalador";
+
+  // Número de instalador real (Odoo x_numero_instalador). Se carga con
+  // refreshBadges(); mientras tanto se usa el fallback de arriba.
+  String _numeroInstalador = '';
+  String get numeroInstalador => _numeroInstalador;
+  String get numeroVisible => _numeroInstalador.isNotEmpty ? _numeroInstalador : installerId;
+
+  // Código de venta / descuento (Odoo x_codigo_venta) para el bono por referidos.
+  String _codigoVenta = '';
+  String get codigoVenta => _codigoVenta;
   final String installerAvatar = "avatar.png";
 
   String _installerPhone = "55 5266 7879";
@@ -80,7 +93,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  int _instalacionesCount = 3;
+  // Los badges reflejan las asignaciones reales del backend (Odoo passthrough
+  // vía OrdenesRepository), no un valor fijo. Arrancan en 0 y se actualizan con
+  // refreshBadges() al abrir el home.
+  int _instalacionesCount = 0;
   int _reparacionesCount = 0;
   int _mantenimientosCount = 0;
   int _reemplazoCount = 0;
@@ -97,6 +113,25 @@ class AppState extends ChangeNotifier {
 
   int get instalacionesCount => _instalacionesCount;
   int get reparacionesCount => _reparacionesCount;
+
+  /// Actualiza los badges de instalaciones/reparaciones con el conteo real de
+  /// órdenes asignadas al instalador (mismo repositorio que usan las listas, así
+  /// el badge y la lista nunca se desincronizan). Silencioso ante fallos de red:
+  /// deja el último valor conocido.
+  Future<void> refreshBadges() async {
+    final repo = sl.get<OrdenesRepository>();
+    final inst = await repo.getOrdenes(tipo: 'instalacion');
+    inst.fold((list) => _instalacionesCount = list.length, (_) {});
+    final rep = await repo.getOrdenes(tipo: 'reparacion');
+    rep.fold((list) => _reparacionesCount = list.length, (_) {});
+    // Número de instalador y código de venta reales desde el perfil (Odoo).
+    final perfil = await sl.get<PerfilRepository>().getPerfil();
+    perfil.fold((p) {
+      _numeroInstalador = p.numeroInstalador;
+      _codigoVenta = p.codigoVenta;
+    }, (_) {});
+    notifyListeners();
+  }
   int get mantenimientosCount => _mantenimientosCount;
   int get reemplazoCount => _reemplazoCount;
   int get incidenciasCount => _incidenciasCount;
@@ -104,6 +139,20 @@ class AppState extends ChangeNotifier {
   bool get isSyncing => _isSyncing;
   String get syncStatusMessage => _syncStatusMessage;
   List<Ticket> get activeTickets => _activeTickets;
+
+  // Historial de tickets completados (instalaciones y reparaciones).
+  // En memoria durante la sesión; en producción vendría del backend.
+  final List<Map<String, dynamic>> _history = [];
+  List<Map<String, dynamic>> get history => List.unmodifiable(_history);
+
+  // Registra un ticket como completado, sellando la fecha de cierre.
+  void addCompletedTicket(Map<String, dynamic> ticket) {
+    final entry = Map<String, dynamic>.from(ticket);
+    entry['status'] = 'Completo';
+    entry['completedAt'] = DateTime.now();
+    _history.insert(0, entry); // el más reciente primero
+    notifyListeners();
+  }
 
   void adjustCount(String itemId, int delta) {
     switch (itemId) {

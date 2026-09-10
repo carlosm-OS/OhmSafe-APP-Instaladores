@@ -1,20 +1,99 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
+import 'reparaciones_screen.dart';
 import 'profile_main_screen.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/menu_item_tile.dart';
 
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
 
-  const HomeScreen({super.key, required this.onToggleTheme});
+  /// true justo tras el onboarding: muestra un aviso para subir la foto de perfil.
+  final bool promptFoto;
+
+  const HomeScreen({super.key, required this.onToggleTheme, this.promptFoto = false});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _fotoHint = false;
+  Timer? _hintTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.promptFoto) {
+      // Aviso flotante junto a la foto (tras el onboarding). Se auto-oculta.
+      _fotoHint = true;
+      _hintTimer = Timer(const Duration(seconds: 8), () {
+        if (mounted) setState(() => _fotoHint = false);
+      });
+    }
+    // Sincroniza los badges con las asignaciones reales del backend.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppStateProvider.of(context).refreshBadges();
+    });
+  }
+
+  @override
+  void dispose() {
+    _hintTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Toast flotante que "vuela" arriba de la foto invitando a subirla.
+  Widget _buildFotoHint(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.translate(offset: Offset(0, (1 - t) * -12), child: child),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: GestureDetector(
+          onTap: () {
+            setState(() => _fotoHint = false);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileMainScreen(onToggleTheme: widget.onToggleTheme)));
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              color: cs.primary,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: cs.primary.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 6)),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.photo_camera_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text("Sube tu foto de perfil", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                SizedBox(width: 8),
+                Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
@@ -41,7 +120,7 @@ class HomeScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text("OHM", style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                            const Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF5A00))),
+                            Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
                           ],
                         ),
                       ),
@@ -51,12 +130,12 @@ class HomeScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              onPressed: onToggleTheme,
-                              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: theme.iconTheme.color?.withOpacity(0.7)),
+                              onPressed: widget.onToggleTheme,
+                              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                             ),
                             IconButton(
                               onPressed: () {},
-                              icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withOpacity(0.7)),
+                              icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                             ),
                           ],
                         ),
@@ -88,21 +167,23 @@ class HomeScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      if (_fotoHint) _buildFotoHint(context),
                       GestureDetector(
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const ProfileMainScreen()),
+                          MaterialPageRoute(builder: (_) => ProfileMainScreen(onToggleTheme: widget.onToggleTheme)),
                         ),
                         child: AvatarHalo(
                           size: 112,
                           initials: "JM",
                           imagePath: state.customAvatarPath,
+                          placeholderIcon: Icons.engineering_rounded,
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(state.installerName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
                       const SizedBox(height: 2),
-                      Text("${state.installerRole} ${state.installerId}", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6))),
+                      Text("${state.installerRole} #${state.numeroVisible}", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6))),
                     ],
                   ),
                 ),
@@ -124,7 +205,10 @@ class HomeScreen extends StatelessWidget {
                       MenuItemTile(
                         label: "Reparaciones",
                         count: state.reparacionesCount,
-                        onTap: () => _showComingSoon(context, "Reparaciones"),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ReparacionesScreen()),
+                        ),
                       ),
                       MenuItemTile(
                         label: "Mantenimientos",

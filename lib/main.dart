@@ -1,11 +1,46 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'controllers/app_state.dart';
 import 'controllers/app_state_provider.dart';
-import 'screens/home_screen.dart';
+import 'core/config/env_config.dart';
+import 'core/di/injection_container.dart';
+import 'core/push/push_service.dart';
+import 'core/theme/app_theme.dart';
+import 'screens/instalaciones_screen.dart';
+import 'screens/login_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Configuración de entorno. useMock=true → la app corre 100% sin backend
+  // (datasources Mock con la forma del contrato). Para enchufar el backend
+  // real (local): pon useMock=false. apiBaseUrl ya apunta al backend local.
+  //   - Web/desktop en la Mac → http://localhost:3001/v1
+  //   - Simulador iOS         → http://localhost:3001/v1 (mismo host)
+  //   - Emulador Android      → usa http://10.0.2.2:3001/v1
+  const env = EnvConfig(
+    environment: Environment.development,
+    apiBaseUrl: 'https://api-dev.dashboard.ohmsafe.com/v1',
+    hubspotApiKey: '',
+    useMock: false, // backend en dev (api-dev). Local: http://localhost:3001/v1
+  );
+  await sl.init(env);
+
+  // Push (FCM) solo en Android/iOS; en macOS/desktop no hay Firebase configurado.
+  if (PushService.soportado) {
+    try {
+      await Firebase.initializeApp();
+      await PushService.instance.setupListeners();
+    } catch (_) {
+      // Nunca romper el arranque por push.
+    }
+  }
+
   runApp(const OhmSafeAppContainer());
 }
+
+/// Navegación global (para abrir pantallas al tocar una notificación push).
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 class OhmSafeAppContainer extends StatefulWidget {
   const OhmSafeAppContainer({super.key});
@@ -42,6 +77,17 @@ class OhmSafeApp extends StatefulWidget {
 class _OhmSafeAppState extends State<OhmSafeApp> {
   ThemeMode _themeMode = ThemeMode.light;
 
+  @override
+  void initState() {
+    super.initState();
+    // Al tocar la notificación de "instalación asignada", abre la lista.
+    PushService.instance.onOpenInstalacion = (_) {
+      appNavigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const InstalacionesScreen()),
+      );
+    };
+  }
+
   void _toggleTheme() {
     setState(() {
       _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
@@ -50,79 +96,16 @@ class _OhmSafeAppState extends State<OhmSafeApp> {
 
   @override
   Widget build(BuildContext context) {
-    const orangeAccent = Color(0xFFFF5A00);
-    const darkBlueBg = Color(0xFF0B0F19);
-    const darkBlueCard = Color(0xFF1E293B);
-
+    // Sistema de tema "Faena" (lib/core/theme). Alto contraste para exterior,
+    // áreas táctiles grandes y bordes en vez de sombras. Ver AppTheme.
     return MaterialApp(
       title: 'OhmSafe Pro',
       debugShowCheckedModeBanner: false,
+      navigatorKey: appNavigatorKey,
       themeMode: _themeMode,
-      
-      // Light Theme configuration
-      theme: ThemeData(
-        brightness: Brightness.light,
-        primaryColor: orangeAccent,
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-        cardColor: Colors.white,
-        dividerColor: const Color(0xFFECECF1),
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
-            fontFamily: 'System',
-          ),
-          bodyLarge: TextStyle(
-            color: Color(0xFF1E293B),
-            fontFamily: 'System',
-          ),
-          bodyMedium: TextStyle(
-            color: Color(0xFF64748B),
-            fontFamily: 'System',
-          ),
-        ),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: orangeAccent,
-          brightness: Brightness.light,
-          primary: orangeAccent,
-          surface: const Color(0xFFF8F8FA),
-        ),
-        useMaterial3: true,
-      ),
-
-      // Dark Theme configuration
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: orangeAccent,
-        scaffoldBackgroundColor: darkBlueBg,
-        cardColor: darkBlueCard,
-        dividerColor: const Color(0xFF334155),
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontFamily: 'System',
-          ),
-          bodyLarge: TextStyle(
-            color: Color(0xFFF8FAFC),
-            fontFamily: 'System',
-          ),
-          bodyMedium: TextStyle(
-            color: Color(0xFF94A3B8),
-            fontFamily: 'System',
-          ),
-        ),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: orangeAccent,
-          brightness: Brightness.dark,
-          primary: orangeAccent,
-          background: darkBlueBg,
-          surface: const Color(0xFF111827),
-        ),
-        useMaterial3: true,
-      ),
-      
-      home: HomeScreen(onToggleTheme: _toggleTheme),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      home: LoginScreen(onToggleTheme: _toggleTheme),
     );
   }
 }

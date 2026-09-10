@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 
 class MenuItemTile extends StatefulWidget {
   final String label;
@@ -55,6 +56,8 @@ class _MenuItemTileState extends State<MenuItemTile> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
     _scale = 1.0 - _pressController.value;
 
@@ -65,33 +68,33 @@ class _MenuItemTileState extends State<MenuItemTile> with SingleTickerProviderSt
 
     switch (widget.label) {
       case "Instalaciones":
-        iconBgColor = isDark ? const Color(0xFF2C1E18) : const Color(0xFFFFF1EB);
-        iconColor = const Color(0xFFFF5A00);
+        iconBgColor = cs.primaryContainer;
+        iconColor = cs.primary;
         iconData = Icons.construction_rounded;
         break;
       case "Reparaciones":
-        iconBgColor = isDark ? const Color(0xFF1E243A) : const Color(0xFFEEF2FF);
-        iconColor = const Color(0xFF4F46E5);
+        iconBgColor = ohm.infoContainer;
+        iconColor = ohm.info;
         iconData = Icons.build_outlined;
         break;
       case "Mantenimientos":
-        iconBgColor = isDark ? const Color(0xFF182C25) : const Color(0xFFECFDF5);
-        iconColor = const Color(0xFF059669);
+        iconBgColor = ohm.successContainer;
+        iconColor = ohm.success;
         iconData = Icons.settings_suggest_rounded;
         break;
       case "Reemplazo de equipo":
-        iconBgColor = isDark ? const Color(0xFF281E35) : const Color(0xFFFAF5FF);
-        iconColor = const Color(0xFF9333EA);
+        iconBgColor = ohm.accentContainer;
+        iconColor = ohm.accent;
         iconData = Icons.cached_rounded;
         break;
       case "Reportar incidencias":
-        iconBgColor = isDark ? const Color(0xFF3B2424) : const Color(0xFFFEE2E2);
-        iconColor = const Color(0xFFEF4444);
+        iconBgColor = cs.errorContainer;
+        iconColor = cs.error;
         iconData = Icons.warning_amber_rounded;
         break;
       default:
-        iconBgColor = isDark ? const Color(0xFF2D3748) : const Color(0xFFEDF2F7);
-        iconColor = isDark ? Colors.white70 : const Color(0xFF4A5568);
+        iconBgColor = ohm.surfaceContainer;
+        iconColor = cs.onSurfaceVariant;
         iconData = Icons.arrow_right_alt_rounded;
     }
 
@@ -105,17 +108,17 @@ class _MenuItemTileState extends State<MenuItemTile> with SingleTickerProviderSt
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.015),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               )
             ],
             border: Border.all(
-              color: isDark ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFE2E8F0).withOpacity(0.4),
+              color: isDark ? cs.outline.withValues(alpha: 0.5) : cs.outlineVariant.withValues(alpha: 0.4),
             ),
           ),
           child: Row(
@@ -142,7 +145,7 @@ class _MenuItemTileState extends State<MenuItemTile> with SingleTickerProviderSt
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: theme.textTheme.bodyLarge?.color?.withOpacity(0.85),
+                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
                   ),
                 ),
               ),
@@ -215,7 +218,7 @@ class _AnimatedBadgeState extends State<_AnimatedBadge> with SingleTickerProvide
 
   @override
   Widget build(BuildContext context) {
-    final accentOrange = const Color(0xFFFF5A00);
+    final accentOrange = Theme.of(context).colorScheme.primary;
 
     return ScaleTransition(
       scale: _popAnimation,
@@ -227,7 +230,7 @@ class _AnimatedBadgeState extends State<_AnimatedBadge> with SingleTickerProvide
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: accentOrange.withOpacity(0.3),
+              color: accentOrange.withValues(alpha: 0.3),
               blurRadius: 6,
               offset: const Offset(0, 2),
             )
