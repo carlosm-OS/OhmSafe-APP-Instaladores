@@ -29,25 +29,58 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   bool _loading = true;
   String? _error;
 
-  String _activeDay = "8"; // Lunes 8 activo por defecto (día "de hoy")
-  int? _openIndex = 0;
+  /// Hoy (solo fecha) — origen del calendario horizontal.
+  late final DateTime _today;
 
-  final List<Map<String, String>> _calendarDays = const [
-    {"name": "Lun", "num": "8"},
-    {"name": "Mar", "num": "9"},
-    {"name": "Mie", "num": "10"},
-    {"name": "Jue", "num": "11"},
-    {"name": "Vie", "num": "12"},
-    {"name": "Sab", "num": "13"},
-    {"name": "Dom", "num": "14"},
+  /// Día seleccionado en el calendario (solo fecha). Filtra las instalaciones
+  /// agendadas para ese día. Por defecto, hoy.
+  late DateTime _selectedDate;
+
+  /// Id de la tarjeta abierta (expandida). null = todas cerradas.
+  String? _openId;
+
+  static const List<String> _diasSemana = [
+    'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom', // weekday 1..7
   ];
 
   @override
   void initState() {
     super.initState();
+    _today = DateUtils.dateOnly(DateTime.now());
+    _selectedDate = _today;
     _repo = sl.get<OrdenesRepository>();
     _cargar();
   }
+
+  /// Fecha agendada (solo día) de una orden, o null si aún no está agendada
+  /// o la fecha no parsea. Se usa para colocar cada instalación en su día.
+  DateTime? _agendadaDate(Orden o) {
+    if (!o.agendado || (o.fechaAgendada?.isEmpty ?? true)) return null;
+    final dt = DateTime.tryParse(o.fechaAgendada!.replaceFirst(' ', 'T'));
+    if (dt == null) return null;
+    return DateTime(dt.year, dt.month, dt.day);
+  }
+
+  /// Días del calendario: 7 desde hoy, extendidos hasta la última fecha
+  /// agendada si cae más adelante (para que ese día sea alcanzable). Se
+  /// renderizan en un strip horizontal desplazable.
+  List<DateTime> get _calendarDays {
+    DateTime last = _today.add(const Duration(days: 6));
+    for (final o in _ordenes) {
+      final d = _agendadaDate(o);
+      if (d != null && d.isAfter(last)) last = d;
+    }
+    final count = last.difference(_today).inDays + 1;
+    return List.generate(count, (i) => _today.add(Duration(days: i)));
+  }
+
+  /// Cuántas instalaciones hay agendadas para [day] (para el badge del strip).
+  int _countForDay(DateTime day) => _ordenes
+      .where((o) {
+        final d = _agendadaDate(o);
+        return d != null && DateUtils.isSameDay(d, day);
+      })
+      .length;
 
   Future<void> _cargar() async {
     setState(() {
@@ -162,41 +195,68 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   ),
                 ),
 
-                // Calendario horizontal
+                // Calendario horizontal (días reales desde hoy, desplazable).
+                // Cada día filtra las instalaciones agendadas para esa fecha.
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   child: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                     decoration: BoxDecoration(
                       color: isDark ? cs.surface : ohm.surfaceContainer,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: _calendarDays.map((day) {
-                        final isActive = day["num"] == _activeDay;
-                        return GestureDetector(
-                          onTap: () => setState(() {
-                            _activeDay = day["num"]!;
-                            _openIndex = 0;
-                          }),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isActive ? (isDark ? cs.onSurfaceVariant : cs.onSurface) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      height: 70,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: _calendarDays.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 4),
+                        itemBuilder: (context, i) {
+                          final day = _calendarDays[i];
+                          final isActive = DateUtils.isSameDay(day, _selectedDate);
+                          final isToday = DateUtils.isSameDay(day, _today);
+                          final count = _countForDay(day);
+                          return GestureDetector(
+                            onTap: () => setState(() {
+                              _selectedDate = day;
+                              _openId = null;
+                            }),
+                            child: Container(
+                              width: 52,
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isActive ? (isDark ? cs.onSurfaceVariant : cs.onSurface) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                                border: isToday && !isActive
+                                    ? Border.all(color: cs.primary.withValues(alpha: 0.6), width: 1.4)
+                                    : null,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(_diasSemana[day.weekday - 1], style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withValues(alpha: 0.8) : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5))),
+                                  const SizedBox(height: 3),
+                                  Text('${day.day}', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: isActive ? Colors.white : theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8))),
+                                  const SizedBox(height: 3),
+                                  // Punto indicador si hay instalaciones agendadas ese día.
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: count > 0
+                                          ? (isActive ? Colors.white : cs.primary)
+                                          : Colors.transparent,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: Column(
-                              children: [
-                                Text(day["name"]!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: isActive ? Colors.white.withValues(alpha: 0.8) : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5))),
-                                const SizedBox(height: 3),
-                                Text(day["num"]!, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: isActive ? Colors.white : theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8))),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -219,20 +279,78 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     if (_error != null) {
       return _buildErrorState(theme);
     }
-    // Las órdenes cargadas se muestran en el día activo por defecto (hoy).
-    final visibles = _activeDay == "8" ? _ordenes : <Orden>[];
-    if (visibles.isEmpty) {
+    // Agendadas para el día seleccionado.
+    final agendadasDia = _ordenes.where((o) {
+      final d = _agendadaDate(o);
+      return d != null && DateUtils.isSameDay(d, _selectedDate);
+    }).toList();
+    // Pendientes de agendar (sin fecha): sección aparte, siempre visible.
+    final pendientes = _ordenes.where((o) => _agendadaDate(o) == null).toList();
+
+    if (agendadasDia.isEmpty && pendientes.isEmpty) {
       return _buildEmptyState(theme);
     }
-    return ListView.builder(
+
+    final children = <Widget>[];
+
+    // Sección: instalaciones del día.
+    children.add(_sectionHeader(theme, _tituloDia(), Icons.event_available_rounded));
+    if (agendadasDia.isEmpty) {
+      children.add(_sinAgendadasHint(theme));
+    } else {
+      children.addAll(agendadasDia.map((o) => _buildTicketCard(o, _openId == o.id)));
+    }
+
+    // Sección: pendientes de agendar.
+    if (pendientes.isNotEmpty) {
+      children.add(const SizedBox(height: 8));
+      children.add(_sectionHeader(theme, 'Pendientes de agendar', Icons.schedule_rounded));
+      children.addAll(pendientes.map((o) => _buildTicketCard(o, _openId == o.id)));
+    }
+
+    return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
       physics: const BouncingScrollPhysics(),
-      itemCount: visibles.length,
-      itemBuilder: (context, index) => _buildTicketCard(visibles[index], index, index == _openIndex),
+      children: children,
     );
   }
 
-  Widget _buildTicketCard(Orden orden, int index, bool isOpen) {
+  /// Título del día seleccionado ("Hoy", "Mañana" o "Vie 12 sep").
+  String _tituloDia() {
+    if (DateUtils.isSameDay(_selectedDate, _today)) return 'Hoy';
+    if (DateUtils.isSameDay(_selectedDate, _today.add(const Duration(days: 1)))) return 'Mañana';
+    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    return '${_diasSemana[_selectedDate.weekday - 1]} ${_selectedDate.day} ${meses[_selectedDate.month - 1]}';
+  }
+
+  Widget _sectionHeader(ThemeData theme, String label, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, top: 2, left: 2),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.2, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Aviso cuando el día seleccionado no tiene instalaciones agendadas.
+  Widget _sinAgendadasHint(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        'Sin instalaciones agendadas para este día.',
+        style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.55), height: 1.4),
+      ),
+    );
+  }
+
+  Widget _buildTicketCard(Orden orden, bool isOpen) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
@@ -273,7 +391,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
       ),
       child: InkWell(
-        onTap: () => setState(() => _openIndex = isOpen ? null : index),
+        onTap: () => setState(() => _openId = isOpen ? null : orden.id),
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
