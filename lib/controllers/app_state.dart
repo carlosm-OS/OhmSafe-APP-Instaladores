@@ -177,13 +177,16 @@ class AppState extends ChangeNotifier {
     _fotoBase64 = p.fotoBase64;
   }
 
-  /// Siembra el estado justo tras el login con lo que ya trae la sesión (el
-  /// nombre real) y con el perfil cacheado del arranque anterior (foto y
-  /// número). Así el home pinta la foto correcta de inmediato, sin el hueco de
-  /// ~2.3 s que tarda `/instalador/perfil`.
+  /// Siembra el estado justo tras el login con lo que ya trae la sesión
+  /// (nombre y número reales) y con el perfil cacheado del arranque anterior
+  /// (la foto). Así el home pinta los datos correctos de inmediato, sin el
+  /// hueco de ~2.3 s que tarda `/instalador/perfil`.
   Future<void> seedFromSesion(Sesion sesion) async {
     _instaladorId = sesion.instaladorId;
     if (sesion.nombre.isNotEmpty) _installerName = sesion.nombre;
+    if (sesion.numeroInstalador.isNotEmpty) {
+      _numeroInstalador = sesion.numeroInstalador;
+    }
     notifyListeners();
 
     final cache = await PerfilCache.leer(_instaladorId);
