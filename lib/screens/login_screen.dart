@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../controllers/app_state_provider.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../core/push/push_service.dart';
@@ -58,6 +59,9 @@ class _LoginScreenState extends State<LoginScreen> {
         // gestor del sistema (Contraseñas de iOS / Chrome-Google en Android)
         // ofrezca GUARDAR la contraseña. La próxima vez la autocompleta.
         TextInput.finishAutofillContext();
+        // Siembra nombre + perfil cacheado (foto/número) del arranque anterior
+        // para que el home los pinte de inmediato, sin esperar a /perfil.
+        AppStateProvider.of(context).seedFromSesion(sesion);
         // Registra el token FCM del dispositivo (best-effort) ahora que hay
         // sesión: el backend lo liga al instalador para el push de asignación.
         PushService.instance.registrarToken();

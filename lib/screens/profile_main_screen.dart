@@ -64,7 +64,12 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
     final result = await sl.get<PerfilRepository>().getPerfil();
     if (!mounted) return;
     result.fold(
-      (p) => setState(() => _perfil = p),
+      (p) {
+        setState(() => _perfil = p);
+        // Propaga al estado global (y a la caché) para que el home muestre la
+        // foto nueva de inmediato y el próximo arranque la pinte al instante.
+        AppStateProvider.of(context).aplicarPerfil(p);
+      },
       (_) {},
     );
   }
@@ -349,7 +354,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         // Name / Role ID
                         Center(
                           child: Text(
-                            "${state.installerRole} ${state.installerId}",
+                            "${state.installerRole} ${state.numeroVisible}",
                             style: TextStyle(
                               fontSize: 16,
                               color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),

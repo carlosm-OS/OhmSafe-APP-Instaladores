@@ -3,23 +3,33 @@ import 'package:flutter/material.dart';
 import '../models/ticket.dart';
 import '../services/hubspot_service.dart';
 import '../core/di/injection_container.dart';
+import '../features/auth/domain/entities/sesion.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../features/perfil/data/perfil_cache.dart';
+import '../features/perfil/domain/entities/perfil.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
 
 class AppState extends ChangeNotifier {
   final HubspotService _hubspotService = HubspotService();
 
-  String _installerName = "Juan Mora";
+  String _installerName = "";
   String get installerName => _installerName;
 
-  final String installerId = "65243"; // legado (fallback si aún no llega el real)
+  /// Id del instalador de la sesión (Odoo). Se usa para cachear su perfil por
+  /// usuario; no es el número visible.
+  String _instaladorId = '';
+  String get instaladorId => _instaladorId;
+
   final String installerRole = "Instalador";
 
-  // Número de instalador real (Odoo x_numero_instalador). Se carga con
-  // refreshBadges(); mientras tanto se usa el fallback de arriba.
+  // Número de instalador real (Odoo x_numero_instalador). Llega del perfil
+  // (el login devuelve el id de usuario, no este número) o de la caché.
   String _numeroInstalador = '';
   String get numeroInstalador => _numeroInstalador;
-  String get numeroVisible => _numeroInstalador.isNotEmpty ? _numeroInstalador : installerId;
+
+  /// Número a mostrar. Vacío mientras no se conozca el real: preferimos no
+  /// pintar nada a pintar un número que no es el del instalador.
+  String get numeroVisible => _numeroInstalador;
 
   // Código de venta / descuento (Odoo x_codigo_venta) para el bono por referidos.
   String _codigoVenta = '';
@@ -125,20 +135,77 @@ class AppState extends ChangeNotifier {
   /// deja el último valor conocido.
   Future<void> refreshBadges() async {
     final repo = sl.get<OrdenesRepository>();
-    final inst = await repo.getOrdenes(tipo: 'instalacion');
-    inst.fold((list) => _instalacionesCount = list.length, (_) {});
-    final rep = await repo.getOrdenes(tipo: 'reparacion');
-    rep.fold((list) => _reparacionesCount = list.length, (_) {});
-    // Número de instalador, código de venta, nombre y foto reales desde el
-    // perfil (Odoo). El nombre se refresca aquí para que un cambio en Datos
-    // Generales se refleje tras recargar el home.
-    final perfil = await sl.get<PerfilRepository>().getPerfil();
-    perfil.fold((p) {
-      _numeroInstalador = p.numeroInstalador;
-      _codigoVenta = p.codigoVenta;
-      if (p.nombre.isNotEmpty) _installerName = p.nombre;
-      _fotoBase64 = p.fotoBase64;
-    }, (_) {});
+
+    // Las tres llamadas van EN PARALELO. Antes iban en serie y `notifyListeners`
+    // sólo corría al final, así que la foto (que viene en /perfil) tardaba la
+    // suma de las tres (~3.6 s) en aparecer. Ahora el perfil se aplica y se
+    // notifica en cuanto llega, sin esperar a los conteos.
+    final perfilFuture = sl.get<PerfilRepository>().getPerfil().then((perfil) {
+      perfil.fold((p) {
+        _aplicarPerfil(p);
+        notifyListeners();
+        // Se cachea para que el próximo arranque pinte la foto al instante.
+        PerfilCache.guardar(_instaladorId, p);
+      }, (_) {});
+    });
+
+    final instFuture = repo.getOrdenes(tipo: 'instalacion').then(
+          (inst) => inst.fold((list) => _instalacionesCount = list.length, (_) {}),
+        );
+    final repFuture = repo.getOrdenes(tipo: 'reparacion').then(
+          (rep) => rep.fold((list) => _reparacionesCount = list.length, (_) {}),
+        );
+
+    await Future.wait([perfilFuture, instFuture, repFuture]);
+    notifyListeners();
+  }
+
+  /// Aplica un perfil recién leído (p. ej. tras subir una foto nueva) para que
+  /// el home y la caché queden al día sin esperar al siguiente refreshBadges().
+  void aplicarPerfil(Perfil p) {
+    _aplicarPerfil(p);
+    notifyListeners();
+    PerfilCache.guardar(_instaladorId, p);
+  }
+
+  /// Vuelca el perfil (Odoo) al estado. El nombre se refresca aquí para que un
+  /// cambio en Datos Generales se refleje tras recargar el home.
+  void _aplicarPerfil(Perfil p) {
+    _numeroInstalador = p.numeroInstalador;
+    _codigoVenta = p.codigoVenta;
+    if (p.nombre.isNotEmpty) _installerName = p.nombre;
+    _fotoBase64 = p.fotoBase64;
+  }
+
+  /// Siembra el estado justo tras el login con lo que ya trae la sesión (el
+  /// nombre real) y con el perfil cacheado del arranque anterior (foto y
+  /// número). Así el home pinta la foto correcta de inmediato, sin el hueco de
+  /// ~2.3 s que tarda `/instalador/perfil`.
+  Future<void> seedFromSesion(Sesion sesion) async {
+    _instaladorId = sesion.instaladorId;
+    if (sesion.nombre.isNotEmpty) _installerName = sesion.nombre;
+    notifyListeners();
+
+    final cache = await PerfilCache.leer(_instaladorId);
+    if (cache == null) return;
+    if (_installerName.isEmpty && cache.nombre.isNotEmpty) {
+      _installerName = cache.nombre;
+    }
+    if (_numeroInstalador.isEmpty) _numeroInstalador = cache.numeroInstalador;
+    if (_codigoVenta.isEmpty) _codigoVenta = cache.codigoVenta;
+    if (_fotoBase64.isEmpty) _fotoBase64 = cache.fotoBase64;
+    notifyListeners();
+  }
+
+  /// Olvida el perfil cacheado de este instalador (al cerrar sesión), para que
+  /// el siguiente usuario del teléfono no vea su foto.
+  Future<void> limpiarPerfilCacheado() async {
+    await PerfilCache.limpiar(_instaladorId);
+    _instaladorId = '';
+    _installerName = '';
+    _numeroInstalador = '';
+    _codigoVenta = '';
+    _fotoBase64 = '';
     notifyListeners();
   }
   int get mantenimientosCount => _mantenimientosCount;
