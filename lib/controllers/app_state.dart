@@ -96,6 +96,14 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Suelta el preview local de la foto recién elegida. Se llama cuando Odoo ya
+  /// devolvió la foto persistida: a partir de ahí manda [fotoBase64], que es la
+  /// que sobrevive al reinicio y la que ven todas las pantallas.
+  void clearAvatarPath() {
+    _customAvatarPath = null;
+    notifyListeners();
+  }
+
   String? _taxCertificatePath;
   String? get taxCertificatePath => _taxCertificatePath;
 

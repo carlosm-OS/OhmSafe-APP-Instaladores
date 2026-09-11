@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import '../controllers/app_state_provider.dart';
 import '../core/error/failures.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
-import '../features/perfil/domain/entities/perfil.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
@@ -47,29 +46,21 @@ class ProfileMainScreen extends StatefulWidget {
 class _ProfileMainScreenState extends State<ProfileMainScreen> {
   final ImagePicker _picker = ImagePicker();
 
-  /// Perfil cargado desde Odoo (getPerfil). Aporta la foto persistida
-  /// (fotoBase64) y el nombre para las iniciales, así la foto no depende de una
-  /// selección local de esta sesión.
-  Perfil? _perfil;
-
   @override
   void initState() {
     super.initState();
     _loadPerfil();
   }
 
-  /// Lee el perfil desde el repositorio y refresca la UI con la foto/nombre
-  /// reales. Silencioso ante fallos: deja el último valor conocido.
+  /// Refresca el perfil desde Odoo. No guarda copia local a propósito: la
+  /// única fuente de verdad de foto/nombre es AppState, que ya lo comparte con
+  /// el home y lo persiste en caché. Silencioso ante fallos: se queda con lo
+  /// último conocido (que gracias a la caché nunca es vacío).
   Future<void> _loadPerfil() async {
     final result = await sl.get<PerfilRepository>().getPerfil();
     if (!mounted) return;
     result.fold(
-      (p) {
-        setState(() => _perfil = p);
-        // Propaga al estado global (y a la caché) para que el home muestre la
-        // foto nueva de inmediato y el próximo arranque la pinte al instante.
-        AppStateProvider.of(context).aplicarPerfil(p);
-      },
+      (p) => AppStateProvider.of(context).aplicarPerfil(p),
       (_) {},
     );
   }
@@ -105,16 +96,19 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
             .subirAvatar(contenidoBase64: base64Encode(formateada));
         if (!mounted) return;
         result.fold(
-          (_) {
+          (perfilActualizado) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text("Foto de perfil guardada", style: TextStyle(fontWeight: FontWeight.bold)),
                 backgroundColor: cs.primary,
               ),
             );
-            // Re-lee el perfil para reflejar la foto ya persistida en Odoo
-            // (no solo el preview local).
-            _loadPerfil();
+            // subirAvatar ya devuelve el perfil con la foto persistida en Odoo:
+            // se propaga al estado global (home + Mi cuenta + cache) sin volver
+            // a pedir /perfil. Y se suelta el preview local para que mande la
+            // foto real de Odoo, que es la que sobrevive al reinicio.
+            state.aplicarPerfil(perfilActualizado);
+            if (perfilActualizado.fotoBase64.isNotEmpty) state.clearAvatarPath();
           },
           (failure) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -313,11 +307,14 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         Center(
                           child: Stack(
                             children: [
+                              // Misma fuente que el home (AppState): la foto se
+                              // pinta al instante desde la cache, en vez de
+                              // esperar a /perfil y quedar vacia si falla.
                               AvatarHalo(
                                 size: 112,
-                                initials: initialsFromName(_perfil?.nombre),
+                                initials: initialsFromName(state.installerName),
                                 imagePath: state.customAvatarPath,
-                                imageBase64: _perfil?.fotoBase64,
+                                imageBase64: state.fotoBase64,
                                 placeholderIcon: Icons.engineering_rounded,
                               ),
                               Positioned(
@@ -387,18 +384,22 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Unique Sales Code
-                        Center(
-                          child: Text(
-                            "Código de ventas: OSJM01",
-                            style: TextStyle(
-                              color: cs.primary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                        // Código de venta real (Odoo x_codigo_venta). Se oculta
+                        // mientras no se conozca, en vez de mostrar uno falso.
+                        if (state.codigoVenta.isNotEmpty) ...[
+                          Center(
+                            child: Text(
+                              "Código de ventas: ${state.codigoVenta}",
+                              style: TextStyle(
+                                color: cs.primary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 32),
+                          const SizedBox(height: 32),
+                        ] else
+                          const SizedBox(height: 12),
 
                         // Styled ListTile Menu Buttons
                         _buildMenuItem(
