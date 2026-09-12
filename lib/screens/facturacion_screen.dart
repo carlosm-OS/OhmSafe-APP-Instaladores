@@ -19,6 +19,7 @@ class FacturacionScreen extends StatefulWidget {
 
 class _FacturacionScreenState extends State<FacturacionScreen> {
   bool _isUploading = false;
+  bool _isDeleting = false;
   String? _selectedFileName;
   String? _selectedFilePath;
   String? _errorMessage;
@@ -78,6 +79,20 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
     );
   }
 
+  /// Tope del archivo, alineado con el que valida el backend.
+  static const int _maxConstanciaBytes = 10 * 1024 * 1024;
+
+  /// Un PDF siempre empieza por "%PDF-". Comprobar la cabecera es más fiable
+  /// que la extensión, que en iOS puede llegar vacía y además se puede falsear.
+  static bool _esPdf(List<int> bytes) {
+    if (bytes.length < 5) return false;
+    const firma = [0x25, 0x50, 0x44, 0x46, 0x2D]; // %PDF-
+    for (var i = 0; i < firma.length; i++) {
+      if (bytes[i] != firma[i]) return false;
+    }
+    return true;
+  }
+
   Future<void> _pickFile(AppState state) async {
     setState(() {
       _errorMessage = null;
@@ -93,24 +108,35 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
 
-        // Verify it is indeed a PDF
-        if (file.extension?.toLowerCase() != 'pdf') {
-          setState(() {
-            _errorMessage = "Solo se admiten archivos en formato .PDF";
-          });
-          return;
-        }
-
-        // Web check: check bytes if kIsWeb, or path on mobile/desktop
-        final bool hasData = kIsWeb ? (file.bytes != null) : (file.path != null);
-        if (!hasData) {
+        // Lo que necesitamos para subir son los BYTES (van en base64), no la
+        // ruta: en iOS un archivo de iCloud/Files puede llegar sin `path` y
+        // antes eso lo rechazaba aunque el contenido estuviera disponible.
+        final bytes = file.bytes;
+        if (bytes == null || bytes.isEmpty) {
           setState(() {
             _errorMessage = "No se pudo leer el archivo. Intenta de nuevo.";
           });
           return;
         }
 
-        // Start upload simulation
+        if (bytes.length > _maxConstanciaBytes) {
+          final mb = (bytes.length / (1024 * 1024)).toStringAsFixed(1);
+          setState(() {
+            _errorMessage = "El archivo pesa $mb MB. El máximo son 10 MB.";
+          });
+          return;
+        }
+
+        // Se valida el CONTENIDO, no la extensión: en iOS `file.extension`
+        // puede venir vacío, y un archivo renombrado a .pdf no es un PDF.
+        // Todo PDF empieza por los bytes "%PDF-".
+        if (!_esPdf(bytes)) {
+          setState(() {
+            _errorMessage = "Ese archivo no es un PDF válido. Sube tu constancia en .PDF";
+          });
+          return;
+        }
+
         setState(() {
           _selectedFileName = file.name;
           _selectedFilePath = kIsWeb ? 'web_upload/${file.name}' : file.path;
@@ -167,6 +193,39 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
     );
   }
 
+  /// Borra la constancia DE VERDAD: se lo pide al backend, que elimina el
+  /// adjunto en Odoo. Antes esto sólo limpiaba el estado local — decía
+  /// "eliminada" mientras el archivo seguía en Odoo y reaparecía al recargar.
+  /// El estado local sólo se limpia si el servidor confirma.
+  Future<void> _eliminarConstancia(AppState state) async {
+    setState(() {
+      _isDeleting = true;
+      _errorMessage = null;
+    });
+    final result = await sl.get<PerfilRepository>().eliminarConstancia();
+    if (!mounted) return;
+    setState(() => _isDeleting = false);
+    result.fold(
+      (_) {
+        setState(() {
+          _selectedFileName = null;
+          _selectedFilePath = null;
+          _isUploading = false;
+        });
+        state.updateTaxCertificate(null, null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Constancia fiscal eliminada"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      },
+      (failure) => setState(() {
+        _errorMessage = "No se pudo eliminar la constancia: ${failure.message}";
+      }),
+    );
+  }
+
   void _deleteFile(AppState state) {
     showDialog(
       context: context,
@@ -196,18 +255,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                setState(() {
-                  _selectedFileName = null;
-                  _selectedFilePath = null;
-                  _isUploading = false;
-                });
-                state.updateTaxCertificate(null, null);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Constancia fiscal eliminada"),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
+                _eliminarConstancia(state);
               },
               child: const Text(
                 "Eliminar",
@@ -322,7 +370,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                           width: double.infinity,
                           alignment: Alignment.center,
                           child: Text(
-                            "Perfil",
+                            "Facturación",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 22,
@@ -392,19 +440,23 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                               ),
                             ),
                             const SizedBox(width: 10),
-                            SizedBox(
-                              height: 52,
-                              child: ElevatedButton(
-                                onPressed: _savingRfc ? null : _guardarRfc,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: cs.primary,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                ),
-                                child: _savingRfc
-                                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                    : const Text("Guardar", style: TextStyle(fontWeight: FontWeight.bold)),
+                            // El tamaño se fija con `minimumSize`, NO envolviendo
+                            // el botón en un SizedBox: dentro de un Row los hijos
+                            // sin flex reciben ancho infinito para medirse, el
+                            // SizedBox se lo pasaba al ElevatedButton y este no
+                            // admite ancho infinito. Esa excepción tumbaba el
+                            // layout de TODA la pantalla y la dejaba en blanco.
+                            ElevatedButton(
+                              onPressed: _savingRfc ? null : _guardarRfc,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: cs.primary,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(112, 52),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               ),
+                              child: _savingRfc
+                                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Text("Guardar", style: TextStyle(fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
@@ -596,7 +648,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
 
                                 // Trash action button
                                 IconButton(
-                                  onPressed: () => _deleteFile(state),
+                                  onPressed: _isDeleting ? null : () => _deleteFile(state),
                                   icon: Icon(
                                     Icons.delete_outline_rounded,
                                     color: isDark ? Colors.white70 : Colors.black87,

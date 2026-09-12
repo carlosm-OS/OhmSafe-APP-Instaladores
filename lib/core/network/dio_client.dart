@@ -93,6 +93,9 @@ class DioClient {
   Future<Map<String, dynamic>> put(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) =>
       _sendBody('PUT', path, body: body, headers: headers);
 
+  Future<Map<String, dynamic>> delete(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) =>
+      _sendBody('DELETE', path, body: body, headers: headers);
+
   /// Envío con cuerpo JSON (POST/PUT), con el mismo manejo de errores que get().
   Future<Map<String, dynamic>> _sendBody(String method, String path,
       {Map<String, dynamic>? body, Map<String, String>? headers}) async {

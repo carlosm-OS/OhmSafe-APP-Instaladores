@@ -55,6 +55,19 @@ class PerfilMockDataSource implements PerfilDataSource {
   }
 
   @override
+  Future<PerfilModel> eliminarConstancia() async {
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    _perfil = PerfilModel(
+      id: _perfil.id, nombre: _perfil.nombre, email: _perfil.email,
+      telefono: _perfil.telefono, rfc: _perfil.rfc, curp: _perfil.curp,
+      constanciaUrl: '', estado: 'pendiente_perfil', perfilCompleto: false,
+      numeroInstalador: _perfil.numeroInstalador, codigoVenta: _perfil.codigoVenta,
+      fotoBase64: _perfil.fotoBase64,
+    );
+    return _perfil;
+  }
+
+  @override
   Future<PerfilModel> subirAvatar({required String contenidoBase64}) async {
     await Future.delayed(const Duration(milliseconds: 250));
     return _perfil; // mock: no persiste imagen

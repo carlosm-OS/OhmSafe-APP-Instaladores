@@ -36,6 +36,9 @@ class PerfilRepositoryImpl implements PerfilRepository {
       _run(() => dataSource.subirConstancia(nombreArchivo: nombreArchivo, contenidoBase64: contenidoBase64, mimetype: mimetype));
 
   @override
+  Future<Result<Perfil>> eliminarConstancia() => _run(() => dataSource.eliminarConstancia());
+
+  @override
   Future<Result<Perfil>> subirAvatar({required String contenidoBase64}) =>
       _run(() => dataSource.subirAvatar(contenidoBase64: contenidoBase64));
 
