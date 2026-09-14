@@ -45,6 +45,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   // MAC real del equipo, detectada por el diagnóstico (se guarda en Odoo).
   String _macDetectada = '';
 
+  /// Diagnóstico real devuelto por el backend (serie, MAC, en línea, cerca,
+  /// firmware, último reporte). null hasta que se encuentre el equipo.
+  Map<String, dynamic>? _diag;
+
   void _startScanning() {
     setState(() {
       _currentState = LinkState.scanning;
@@ -83,10 +87,16 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       setState(() {
         _isLoading = false;
         if (d['encontrado'] != true) {
-          _retornoStatus = 'Rojo';
+          // De vuelta al input: sin equipo no hay nada que diagnosticar. Antes
+          // el estado se quedaba en `validating` y el panel de pruebas (con su
+          // título de éxito) seguía en pantalla junto al banner de error.
+          _diag = null;
+          _macDetectada = '';
+          _currentState = LinkState.input;
           _triggerBanner(false, "No se encontró un equipo con la serie \"$s\"");
           return;
         }
+        _diag = Map<String, dynamic>.from(d);
         _macDetectada = (d['mac'] ?? '').toString();
         // Telemetría real -> estado de cada prueba.
         _retornoStatus = d['conexionLinea'] == true ? 'Verde' : 'Rojo'; // energía de la calle
@@ -102,6 +112,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     }, (f) {
       setState(() {
         _isLoading = false;
+        _currentState = LinkState.input;
         _triggerBanner(false, "No se pudo leer el equipo: ${f.message}");
       });
     });
@@ -602,7 +613,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           children: [
             const SizedBox(height: 12),
             Text(
-              "¡Vinculación exitosa!",
+              _allCompleted ? "Equipo listo para vincular" : "Diagnóstico del equipo",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
@@ -612,7 +623,9 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              "El Sistema OhmSafe ha sido vinculado",
+              _allCompleted
+                  ? "Todas las pruebas en verde. Continúa con el cierre."
+                  : "Revisa las pruebas y confirma la tierra física antes de continuar",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -670,11 +683,17 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               ),
               child: Column(
                 children: [
-                  _buildDetailRow("Estado de la cerca", "Activa"),
+                  _buildDetailRow("Número de serie", _diag?['serie']?.toString() ?? '—'),
                   const SizedBox(height: 8),
-                  _buildDetailRow("Conexión Wi-Fi", "En línea"),
+                  _buildDetailRow("MAC", _diag?['mac']?.toString() ?? '—'),
                   const SizedBox(height: 8),
-                  _buildDetailRow("Red de soporte SIM", "Activa"),
+                  _buildDetailRow("Estado de la cerca", _diag?['cercaActiva'] == true ? "Activa" : "Desarmada"),
+                  const SizedBox(height: 8),
+                  _buildDetailRow("Equipo en línea", _diag?['enLinea'] == true ? "Sí" : "Sin reporte reciente"),
+                  const SizedBox(height: 8),
+                  _buildDetailRow("Firmware", _diag?['firmware']?.toString() ?? '—'),
+                  const SizedBox(height: 8),
+                  _buildDetailRow("Último reporte", _formatUltimoReporte(_diag?['ultimoReporte'])),
                 ],
               ),
             ),
@@ -844,6 +863,15 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           ),
       ],
     );
+  }
+
+  /// "dd/MM/yyyy HH:mm" a partir del ISO del backend; "Nunca" si no hay reporte.
+  String _formatUltimoReporte(dynamic iso) {
+    if (iso == null || iso.toString().isEmpty) return "Nunca";
+    final dt = DateTime.tryParse(iso.toString())?.toLocal();
+    if (dt == null) return iso.toString();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return "${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}";
   }
 
   Widget _buildDetailRow(String key, String value) {
