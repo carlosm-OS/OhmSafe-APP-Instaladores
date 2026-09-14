@@ -156,3 +156,17 @@ Odoo sin tocar Stripe/checkout:
 4. ⬜ **Fase 4** (pago al instalador) y **Fase 5** (encuesta + ranking).
 5. ⬜ **Bono Capa B** (atribución de ventas), acoplado a Stripe→Odoo.
 6. ⬜ **Publicación**: TestFlight/Play con el bundle `com.ohmsafe.instalador`.
+
+## Estado E2E — 2026-09-14 (simulador iOS, ticket 43 "Carlos M TestFlight")
+
+**Verificado contra Odoo (con auditoría en el chatter):** iniciar ruta → *En ruta*; marcar llegada → *En sitio*; perímetro → *En proceso* con `x_obstaculos_perimetro=["Vegetación","Árboles"]`; materiales → `x_materiales_instalados` completo. El calendario coloca la instalación en su fecha agendada (17/09 08:00).
+
+**Paso 4 (energizador):** pantalla corregida (b26e3fe) validada con la serie real `003` (equipo sin reportar desde julio): ya no declara "Vinculación exitosa" sin equipo; muestra "Diagnóstico del equipo", pruebas con telemetría real y una tarjeta con serie/MAC/cerca/en línea/firmware/último reporte (se quitaron "Wi-Fi" y "SIM", que eran texto fijo sin dato detrás). **Pendiente:** pasada completa con un equipo en verde (`OHM-CARLOS-DEV`) y paso 5 (cierre).
+
+**Backend:** `writeTaskAvanzando` (Back- 341df44): las etapas solo avanzan; re-tocar pasos tras reabrir la app ya no rebobina el ticket ni pisa `x_hora_*`. Verificado desde la app: `iniciar-ruta`/`marcar-llegada` sobre *En proceso* no escriben nada; `inspeccion`/`instalacion` reescriben datos sin mover la etapa.
+
+**Bloqueos para un E2E real en campo (decisión pendiente):**
+1. Token de sesión de **15 min** sin refresco (el `refreshToken` del login no se persiste ni hay endpoint); el 401 se muestra como aviso fugaz y la app no lleva al login. Una instalación dura horas.
+2. La app **no retoma** desde la etapa de Odoo: siempre arranca en el paso 1 (`_stepNCompleted` en memoria). Con 1) obliga a rehacer pasos a mitad de trabajo.
+3. `_allCompleted` no exige `enLinea`: telemetría de días atrás pasa las pruebas.
+4. UX: "Cancelar instalación" pegado bajo el CTA primario en tres pantallas (mismo ancho) — riesgo de cancelar por error.
