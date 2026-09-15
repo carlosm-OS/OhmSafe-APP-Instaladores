@@ -3,7 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/gestures.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
@@ -76,6 +77,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   String? _step2Error;
 
   // Step 3 State: Signature Canvas
+  /// Llave del lienzo: se usa para convertir coordenadas globales a locales
+  /// y para conocer su tamaño al rasterizar la firma a PNG.
+  final GlobalKey _signatureCanvasKey = GlobalKey();
   List<Offset> _signaturePoints = [];
   bool _signatureConfirmed = false;
   String? _step3Error;
@@ -227,13 +231,75 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     }
   }
 
+  // ----- Firma: captura de trazos y rasterizado -----
+
+  RenderBox? get _signatureBox =>
+      _signatureCanvasKey.currentContext?.findRenderObject() as RenderBox?;
+
+  /// Agrega un punto del trazo, en coordenadas locales del lienzo y recortado
+  /// a su área (un arrastre puede salirse del recuadro).
+  void _agregarTrazo(Offset globalPosition) {
+    final box = _signatureBox;
+    if (box == null) return;
+    final local = box.globalToLocal(globalPosition);
+    final size = box.size;
+    final clamped = Offset(
+      local.dx.clamp(0.0, size.width),
+      local.dy.clamp(0.0, size.height),
+    );
+    setState(() {
+      _signaturePoints = List.from(_signaturePoints)..add(clamped);
+    });
+  }
+
+  /// Marca el fin de un trazo (el pincel levanta): el painter no une puntos
+  /// separados por este centinela.
+  void _terminarTrazo() {
+    setState(() {
+      _signaturePoints = List.from(_signaturePoints)..add(const Offset(-1, -1));
+    });
+  }
+
+  /// Rasteriza la firma a PNG (base64, sin prefijo data:).
+  ///
+  /// No captura la pantalla: redibuja los trazos sobre fondo blanco con tinta
+  /// oscura, para que el documento sea legible sin importar el tema de la app
+  /// ni el estado visual del lienzo.
+  Future<String?> _firmaPngBase64() async {
+    final box = _signatureBox;
+    if (box == null || _signaturePoints.isEmpty) return null;
+    final size = box.size;
+    if (size.width <= 0 || size.height <= 0) return null;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(
+      recorder,
+      Rect.fromLTWH(0, 0, size.width, size.height),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..color = const Color(0xFFFFFFFF),
+    );
+    SignaturePainter(_signaturePoints, const Color(0xFF111111)).paint(canvas, size);
+
+    final picture = recorder.endRecording();
+    try {
+      final image = await picture.toImage(size.width.ceil(), size.height.ceil());
+      try {
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (bytes == null) return null;
+        return base64Encode(bytes.buffer.asUint8List());
+      } finally {
+        image.dispose();
+      }
+    } finally {
+      picture.dispose();
+    }
+  }
+
   // Submit all details and complete installation
   Future<void> _submitCierreInstalacion() async {
     // Compile JSON Payload
-    final List<String> urlsFotos = [
-      ..._photoPaths.values.where((p) => p != null).map((p) => p!),
-    ];
-
     final Map<String, dynamic> geoJson = {};
     _photoLocations.forEach((category, pos) {
       if (pos != null) {
@@ -252,24 +318,41 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (_anomControl) 'control_no_funciona',
     ];
 
+    // La firma se rasteriza ANTES de mostrar el overlay de carga: el lienzo
+    // debe seguir montado para poder medirlo.
+    final firmaBase64 = await _firmaPngBase64();
+    if (!mounted) return;
+    if (firmaBase64 == null) {
+      setState(() => _step3Error =
+          "No se pudo capturar la firma. Pide al cliente que firme de nuevo.");
+      return;
+    }
+
+    // Las claves deben coincidir con el esquema del backend (camelCase). Con
+    // snake_case, Zod las descartaba en silencio y el cierre se guardaba vacío.
     final payload = {
-      "ticket_id": widget.ticket["id"] ?? "999",
-      "urls_fotos": urlsFotos,
+      "evidencias": [
+        for (final entry in _photoPaths.entries)
+          if (entry.value != null)
+            {"fileKey": entry.value!, "categoria": entry.key},
+      ],
       "geolocalizacion": geoJson,
-      "entrega_equipo": {
-        "control_remoto_entregado": _controlEntregado,
-        "entrega_funcional": !_entregaConAnomalias,
+      "entregaEquipo": {
+        "controlRemotoEntregado": _controlEntregado,
+        "entregaFuncional": !_entregaConAnomalias,
         "anomalias": anomalias,
+        "comentarios": _step2CommentsController.text.trim(),
       },
-      "firma_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJY...", // Simulado
-      "comentarios_generales": "Paso 1: ${_photoCommentsController.text.trim()} | Paso 2: ${_step2CommentsController.text.trim()}",
+      "firmaBase64": firmaBase64,
+      "comentariosGenerales":
+          "Paso 1: ${_photoCommentsController.text.trim()} | Paso 2: ${_step2CommentsController.text.trim()}",
     };
 
-    debugPrint("ENVIANDO CIERRE:");
-    debugPrint(const JsonEncoder.withIndent('  ').convert(payload));
-
     // Enviar al backend vía repositorio (Mock o Api según EnvConfig.useMock).
-    setState(() => _isLoading = true);
+    setState(() {
+      _step3Error = null;
+      _isLoading = true;
+    });
     final repo = sl.get<OrdenesRepository>();
     final ticketId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     final result = await repo.guardarCierre(ticketId, payload);
@@ -277,7 +360,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     result.fold(
       (_) => Navigator.pop(context, 'cierre_completed'),
       (failure) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _step3Error = "No se pudo enviar el cierre: ${failure.message}";
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("No se pudo enviar el cierre: ${failure.message}")),
         );
@@ -1481,36 +1567,36 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(19),
-                child: Builder(
-                  builder: (canvasContext) {
-                    return GestureDetector(
-                      onPanUpdate: _signatureConfirmed 
-                        ? null 
-                        : (details) {
-                            final renderBox = canvasContext.findRenderObject() as RenderBox;
-                            final localPosition = renderBox.globalToLocal(details.globalPosition);
-                            setState(() {
-                              _signaturePoints = List.from(_signaturePoints)..add(localPosition);
-                            });
-                          },
-                      onPanEnd: _signatureConfirmed 
-                        ? null 
-                        : (details) {
-                            setState(() {
-                              _signaturePoints = List.from(_signaturePoints)..add(const Offset(-1, -1));
-                            });
-                          },
-                      child: CustomPaint(
-                        painter: SignaturePainter(
-                          _signaturePoints, 
-                          _signatureConfirmed 
-                            ? Colors.green 
-                            : (isDark ? Colors.white : Colors.black)
-                        ),
-                        size: Size.infinite,
-                      ),
-                    );
-                  }
+                // El lienzo compite con el SingleChildScrollView que lo contiene:
+                // un GestureDetector normal pierde el arrastre vertical contra el
+                // scroll y la firma sale entrecortada (solo trazos horizontales).
+                // Por eso usamos un reconocedor que reclama el puntero al tocar.
+                child: RawGestureDetector(
+                  key: _signatureCanvasKey,
+                  behavior: HitTestBehavior.opaque,
+                  gestures: _signatureConfirmed
+                      ? const <Type, GestureRecognizerFactory>{}
+                      : <Type, GestureRecognizerFactory>{
+                          _FirmaPanRecognizer:
+                              GestureRecognizerFactoryWithHandlers<_FirmaPanRecognizer>(
+                            () => _FirmaPanRecognizer(),
+                            (_FirmaPanRecognizer r) {
+                              r.dragStartBehavior = DragStartBehavior.down;
+                              r.onStart = (d) => _agregarTrazo(d.globalPosition);
+                              r.onUpdate = (d) => _agregarTrazo(d.globalPosition);
+                              r.onEnd = (_) => _terminarTrazo();
+                            },
+                          ),
+                        },
+                  child: CustomPaint(
+                    painter: SignaturePainter(
+                      _signaturePoints,
+                      _signatureConfirmed
+                          ? Colors.green
+                          : (isDark ? Colors.white : Colors.black),
+                    ),
+                    size: Size.infinite,
+                  ),
                 ),
               ),
             ),
@@ -1718,4 +1804,18 @@ class SignaturePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(SignaturePainter oldDelegate) => true;
+}
+
+/// Reconocedor de arrastre para el lienzo de firma.
+///
+/// Reclama el puntero en cuanto el dedo toca ([GestureDisposition.accepted]),
+/// de modo que el `SingleChildScrollView` que envuelve el formulario no le
+/// robe el arrastre vertical. Sin esto, firmar mueve la pantalla en lugar de
+/// dibujar y el instalador no puede confirmar el cierre.
+class _FirmaPanRecognizer extends PanGestureRecognizer {
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    resolve(GestureDisposition.accepted);
+  }
 }
