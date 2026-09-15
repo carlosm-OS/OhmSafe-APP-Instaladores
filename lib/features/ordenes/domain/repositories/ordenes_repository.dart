@@ -23,7 +23,7 @@ abstract class OrdenesRepository {
   Future<Result<bool>> marcarLlegada(String id);
 
   /// Guarda la inspección del perímetro.
-  Future<Result<bool>> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos});
+  Future<Result<bool>> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales});
 
   /// Guarda el registro de instalación (conteos de material, paso 3 de instalación).
   Future<Result<bool>> guardarInstalacion(String id, Map<String, dynamic> registro);
@@ -32,7 +32,7 @@ abstract class OrdenesRepository {
   Future<Result<bool>> guardarReparacion(String id, Map<String, dynamic> costeo);
 
   /// Vincula el energizador (por QR o número de serie).
-  Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie});
+  Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
 
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
   Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie);

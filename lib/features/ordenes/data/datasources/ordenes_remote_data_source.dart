@@ -47,9 +47,13 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
-  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos}) async {
+  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales}) async {
     await dioClient.post('/instalador/ordenes/$id/inspeccion-perimetro',
-        body: {'sinObstaculos': sinObstaculos, 'obstaculos': obstaculos});
+        body: {
+          'sinObstaculos': sinObstaculos,
+          'obstaculos': obstaculos,
+          if (metrosReales != null) 'metrosReales': metrosReales,
+        });
   }
 
   @override
@@ -63,11 +67,16 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
-  Future<void> vincularEnergizador(String id, {required String codigo, String? serie}) async {
+  Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
     // `codigo` = MAC del energizador (Odoo x_mac_address). `serie` = número de
     // serie instalado en campo (Odoo x_numero_serie).
     await dioClient.post('/instalador/ordenes/$id/vincular-energizador',
-        body: {'qr': serie ?? codigo, 'mac': codigo, if (serie != null) 'serial': serie});
+        body: {
+          'qr': serie ?? codigo,
+          'mac': codigo,
+          if (serie != null) 'serial': serie,
+          if (tierraConfirmada != null) 'tierraConfirmada': tierraConfirmada,
+        });
   }
 
   @override

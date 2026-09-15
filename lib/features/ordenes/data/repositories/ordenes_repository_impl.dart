@@ -87,8 +87,8 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   Future<Result<bool>> marcarLlegada(String id) => _accion(() => dataSource.marcarLlegada(id));
 
   @override
-  Future<Result<bool>> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos}) =>
-      _accion(() => dataSource.guardarInspeccion(id, sinObstaculos: sinObstaculos, obstaculos: obstaculos));
+  Future<Result<bool>> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales}) =>
+      _accion(() => dataSource.guardarInspeccion(id, sinObstaculos: sinObstaculos, obstaculos: obstaculos, metrosReales: metrosReales));
 
   @override
   Future<Result<bool>> guardarInstalacion(String id, Map<String, dynamic> registro) =>
@@ -99,8 +99,8 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       _accion(() => dataSource.guardarReparacion(id, costeo));
 
   @override
-  Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie}) =>
-      _accion(() => dataSource.vincularEnergizador(id, codigo: codigo, serie: serie));
+  Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) =>
+      _accion(() => dataSource.vincularEnergizador(id, codigo: codigo, serie: serie, tierraConfirmada: tierraConfirmada));
 
   @override
   Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie) async {

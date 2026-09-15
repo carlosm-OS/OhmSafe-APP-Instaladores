@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -23,6 +25,18 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Reference coordinates for anti-fraud location verification
   // (Centred in Mexico City - Juarez/Roma area, where our mock installer is operating)
+  /// Validación anti-fraude por GPS: **DESACTIVADA a propósito**.
+  ///
+  /// Comparaba la posición de cada foto contra una referencia fija de CDMX y
+  /// bloqueaba el cierre con una "alerta de fraude" en cuanto no coincidía. En
+  /// el simulador —y en cualquier equipo sin GPS fijado— eso es un falso
+  /// positivo que impide cerrar la instalación. La posición se SIGUE
+  /// registrando en el payload; lo único apagado es que bloquee.
+  ///
+  /// PENDIENTE: rehacerla contra la dirección real del ticket (geocodificada),
+  /// no contra una constante, y decidir el radio tolerado.
+  static const bool _validarGeolocalizacion = false;
+
   final double _refLat = 19.432608;
   final double _refLng = -99.133209;
 
@@ -37,9 +51,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   final Map<String, Position?> _photoLocations = {};
   final Map<String, DateTime?> _photoTimestamps = {};
   final Map<String, bool> _geoMismatches = {};
+  final ImagePicker _picker = ImagePicker();
 
   // Simulated photo list and capture states
-  final List<String> _simulatedPhotos = [];
+  final List<String> _fotosCapturadas = [];
   String? _capturingCategory;
 
   final _photoCommentsController = TextEditingController();
@@ -142,34 +157,72 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     return latDiff < 0.002 && lngDiff < 0.002;
   }
 
-  // Simulated photo capture for Step 1
-  Future<void> _simulatePhotoCapture(String category) async {
-    if (_capturingCategory != null) return; // Prevent concurrent captures
+  /// Toma o elige una foto de evidencia. Antes esto era una simulación: esperaba
+  /// 2 segundos y guardaba la ruta falsa "simulated_path_<categoria>.png", así
+  /// que el cierre viajaba sin ninguna evidencia real.
+  Future<void> _capturarFoto(String category) async {
+    if (_capturingCategory != null) return; // evita capturas concurrentes
+
+    final origen = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded),
+              title: const Text('Tomar foto'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Elegir de la galería'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (origen == null || !mounted) return;
 
     setState(() {
       _capturingCategory = category;
       _step1Error = null;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      final position = await _getCurrentLocation();
-      final timestamp = DateTime.now();
-      bool isMatched = true;
-      if (position != null) {
-        isMatched = _validateGeoLocation(position.latitude, position.longitude);
+    try {
+      final XFile? foto = await _picker.pickImage(
+        source: origen,
+        imageQuality: 70,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      );
+      if (!mounted) return;
+      if (foto == null) {
+        setState(() => _capturingCategory = null);
+        return;
       }
 
+      // La ubicación se sigue registrando aunque no bloquee (ver
+      // _validarGeolocalizacion): sirve como dato del cierre.
+      final position = await _getCurrentLocation();
+      if (!mounted) return;
+      final desubicada = position != null &&
+          !_validateGeoLocation(position.latitude, position.longitude);
+
       setState(() {
-        if (!_simulatedPhotos.contains(category)) {
-          _simulatedPhotos.add(category);
-        }
-        _photoPaths[category] = "simulated_path_$category.png";
+        if (!_fotosCapturadas.contains(category)) _fotosCapturadas.add(category);
+        _photoPaths[category] = foto.path;
         _photoLocations[category] = position;
-        _photoTimestamps[category] = timestamp;
-        _geoMismatches[category] = !isMatched;
+        _photoTimestamps[category] = DateTime.now();
+        _geoMismatches[category] = desubicada;
         _capturingCategory = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _capturingCategory = null;
+        _step1Error = "No se pudo tomar la foto: $e";
       });
     }
   }
@@ -237,7 +290,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Solo se puede agregar otra foto cuando todas las actuales ya se tomaron.
   bool get _canAddRepairPhoto =>
-      _repairPhotoSlots.every((id) => _simulatedPhotos.contains(_repairKey(id)));
+      _repairPhotoSlots.every((id) => _fotosCapturadas.contains(_repairKey(id)));
 
   void _addRepairPhotoSlot() {
     setState(() {
@@ -254,7 +307,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       _photoLocations.remove(key);
       _photoTimestamps.remove(key);
       _geoMismatches.remove(key);
-      _simulatedPhotos.remove(key);
+      _fotosCapturadas.remove(key);
     });
   }
 
@@ -264,12 +317,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       // Al menos una foto y sin slots vacíos.
       if (_repairPhotoSlots.isEmpty) return false;
       for (final id in _repairPhotoSlots) {
-        if (!_simulatedPhotos.contains(_repairKey(id))) return false;
+        if (!_fotosCapturadas.contains(_repairKey(id))) return false;
       }
       return true;
     }
     for (String cat in _categories) {
-      if (!_simulatedPhotos.contains(cat)) return false;
+      if (!_fotosCapturadas.contains(cat)) return false;
     }
     return true;
   }
@@ -278,10 +331,13 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   bool _validateStep1() {
     if (!_evidenciasCompletas()) return false;
 
-    // Anti-fraud validation: if any photo has location mismatch, comments must be provided
-    bool hasMismatch = _geoMismatches.values.contains(true);
-    if (hasMismatch && _photoCommentsController.text.trim().isEmpty) {
-      return false;
+    // La discrepancia de ubicación NO bloquea mientras _validarGeolocalizacion
+    // esté apagada: se registra en el payload, pero no impide cerrar.
+    if (_validarGeolocalizacion) {
+      final bool hasMismatch = _geoMismatches.values.contains(true);
+      if (hasMismatch && _photoCommentsController.text.trim().isEmpty) {
+        return false;
+      }
     }
 
     return true;
@@ -332,7 +388,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
     if (_currentStep == 1) {
       if (!_validateStep1()) {
-        bool hasMismatch = _geoMismatches.values.contains(true);
+        bool hasMismatch = _validarGeolocalizacion && _geoMismatches.values.contains(true);
         setState(() {
           _step1Error = hasMismatch
             ? "⚠️ Alerta de fraude. Se detectó discrepancia de ubicación. Justifica las anomalías en el campo de texto."
@@ -763,8 +819,20 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               width: 50,
               height: 50,
               color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
+              // Ahora que la foto es real, se muestra: es la evidencia que
+              // el instalador acaba de tomar, no un palomeo.
               child: hasPhoto
-                  ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary, size: 28)
+                  ? Image.file(
+                      File(path),
+                      fit: BoxFit.cover,
+                      width: 50,
+                      height: 50,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.check_circle,
+                        color: Theme.of(context).colorScheme.secondary,
+                        size: 28,
+                      ),
+                    )
                   : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
             ),
           ),
@@ -818,7 +886,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   ),
                 )
               : IconButton(
-                  onPressed: () => _simulatePhotoCapture(category),
+                  onPressed: () => _capturarFoto(category),
                   icon: Icon(
                     hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
                     color: hasPhoto ? Colors.green : brandOrange,
@@ -861,8 +929,20 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               width: 50,
               height: 50,
               color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
+              // Ahora que la foto es real, se muestra: es la evidencia que
+              // el instalador acaba de tomar, no un palomeo.
               child: hasPhoto
-                  ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary, size: 28)
+                  ? Image.file(
+                      File(_photoPaths[key]!),
+                      fit: BoxFit.cover,
+                      width: 50,
+                      height: 50,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.check_circle,
+                        color: Theme.of(context).colorScheme.secondary,
+                        size: 28,
+                      ),
+                    )
                   : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
             ),
           ),
@@ -923,7 +1003,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   ),
                 )
               : IconButton(
-                  onPressed: () => _simulatePhotoCapture(key),
+                  onPressed: () => _capturarFoto(key),
                   icon: Icon(
                     hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
                     color: hasPhoto ? Colors.green : brandOrange,

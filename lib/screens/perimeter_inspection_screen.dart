@@ -34,8 +34,31 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
   bool _noObstaclesSelected = false;
   final Set<String> _selectedObstacles = {};
 
+  /// Metraje REAL medido en sitio. Arranca con el agendado (de la llamada) pero
+  /// el instalador lo corrige con lo que mide: el agendado se conserva aparte
+  /// para poder contrastar lo cotizado contra lo real.
+  final TextEditingController _metrosController = TextEditingController();
+  bool _metrosInicializado = false;
+
+  /// Solo dígitos del metraje que viene del ticket ("85 m" -> "85").
+  String _metrajeAgendado() {
+    final raw = (widget.ticket['details']?['metraje'] ?? '').toString();
+    final m = RegExp(r'[\d.]+').firstMatch(raw);
+    return m?.group(0) ?? '';
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_metrosInicializado) {
+      _metrosController.text = _metrajeAgendado();
+      _metrosInicializado = true;
+    }
+  }
+
   @override
   void dispose() {
+    _metrosController.dispose();
     _reasonController.dispose();
     super.dispose();
   }
@@ -72,6 +95,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
           id,
           sinObstaculos: _noObstaclesSelected,
           obstaculos: _selectedObstacles.toList(),
+          metrosReales: double.tryParse(_metrosController.text.trim()),
         );
     if (!mounted) return;
     result.fold(
@@ -237,7 +261,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  "Metros a instalar:  ",
+                                  "Metraje agendado:  ",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
@@ -250,6 +274,47 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                                     fontSize: 14,
                                     color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                                     fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // El metraje REAL lo mide el instalador en sitio; el
+                            // agendado (arriba) queda intacto para comparar.
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Metraje real:  ",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: theme.textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 96,
+                                  child: TextField(
+                                    controller: _metrosController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: theme.textTheme.bodyLarge?.color,
+                                    ),
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      suffixText: "m",
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                      filled: true,
+                                      fillColor: context.ohm.surfaceContainer,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],

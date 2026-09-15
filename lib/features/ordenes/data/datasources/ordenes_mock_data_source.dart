@@ -144,7 +144,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> marcarLlegada(String id) => _ok();
 
   @override
-  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos}) => _ok();
+  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales}) => _ok();
 
   @override
   Future<void> guardarInstalacion(String id, Map<String, dynamic> registro) => _ok();
@@ -153,7 +153,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) => _ok();
 
   @override
-  Future<void> vincularEnergizador(String id, {required String codigo, String? serie}) => _ok();
+  Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) => _ok();
 
   @override
   Future<Map<String, dynamic>> diagnosticoEnergizador(String serie) async {

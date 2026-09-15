@@ -23,7 +23,11 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   bool _isLoading = false;
 
   // Validation indicators state
-  String _tierraStatus = 'Gris'; // Gris, Verde, Rojo
+  /// Declaración explícita del técnico de que hizo la tierra física conforme
+  /// al procedimiento. NO es una prueba: no hay telemetría que la valide, por
+  /// eso dejó de pintarse como "Pendiente" junto a las que sí se miden — eso
+  /// daba a entender que el sistema la comprobaría.
+  bool _tierraConfirmada = false;
   String _bateriaStatus = 'Gris';
   String _redLteStatus = 'Gris';
   String _retornoStatus = 'Gris';
@@ -118,9 +122,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     });
   }
 
-  /// Tierra física: confirmación manual del instalador (sin telemetría).
   void _toggleTierra() {
-    setState(() => _tierraStatus = _tierraStatus == 'Verde' ? 'Gris' : 'Verde');
+    setState(() => _tierraConfirmada = !_tierraConfirmada);
   }
 
   void _triggerBanner(bool isSuccess, String text) {
@@ -144,6 +147,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           id,
           codigo: _macDetectada.isNotEmpty ? _macDetectada : serie,
           serie: serie,
+          tierraConfirmada: _tierraConfirmada,
         );
     if (!mounted) return;
     result.fold(
@@ -158,7 +162,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   }
 
   bool get _allCompleted =>
-      _tierraStatus == 'Verde' &&
+      _tierraConfirmada &&
       _bateriaStatus == 'Verde' &&
       _redLteStatus == 'Verde' &&
       _retornoStatus == 'Verde';
@@ -649,17 +653,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             // 4 Indicators
             // Tierra física: sin telemetría en esta versión → check manual
             // obligatorio del instalador; control de calidad lo valida después.
-            GestureDetector(
-              onTap: _toggleTierra,
-              behavior: HitTestBehavior.opaque,
-              child: _buildTestIndicatorRow(
-                "Instalación de tierra física",
-                _tierraStatus,
-                errorSubtitle: _tierraStatus != 'Verde'
-                    ? "Toca para confirmar que la realizaste (control de calidad la validará)"
-                    : null,
-              ),
-            ),
+            _buildTierraCheckbox(),
             _buildTestIndicatorRow("Prueba de alto voltaje exitosa", _bateriaStatus),
             _buildTestIndicatorRow("Conexión de batería auxiliar", _redLteStatus),
             _buildTestIndicatorRow(
@@ -764,6 +758,70 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           ],
         );
     }
+  }
+
+  /// Casilla explícita de la tierra física. Va aparte de las pruebas del
+  /// sistema justamente porque no se mide: es una declaración del técnico, con
+  /// su responsabilidad, que control de calidad verifica después.
+  Widget _buildTierraCheckbox() {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: _tierraConfirmada ? cs.primary.withValues(alpha: 0.08) : theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _tierraConfirmada ? cs.primary : theme.dividerColor.withValues(alpha: 0.6),
+          width: _tierraConfirmada ? 1.5 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: _toggleTierra,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _tierraConfirmada,
+                onChanged: (_) => _toggleTierra(),
+                activeColor: cs.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
+                    Text(
+                      "Confirmo que instalé la tierra física conforme al procedimiento",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 1.35,
+                        color: theme.textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Obligatorio para cerrar. Queda registrado a tu nombre y control de calidad lo verifica en sitio.",
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.65),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildTestIndicatorRow(String title, String status, {String? errorSubtitle}) {
