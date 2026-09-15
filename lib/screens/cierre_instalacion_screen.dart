@@ -1279,7 +1279,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         const SizedBox(height: 32),
         Row(
           children: [
+            // El boton de conclusion lleva la etiqueta larga, asi que se le da
+            // el doble de espacio que a "Atras" para que no se trunque.
             Expanded(
+              flex: 2,
               child: SizedBox(
                 height: 52,
                 child: OutlinedButton(
@@ -1672,9 +1675,18 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   backgroundColor: Colors.green.shade600,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade300,
+                  disabledForegroundColor: Colors.grey.shade600,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  // OBLIGATORIO dentro de un Row: el tema global fija
+                  // `minimumSize: Size.fromHeight(...)`, que es
+                  // Size(double.infinity, h). En un Row el ancho disponible no
+                  // esta acotado, asi que el boton pedia un ancho infinito, el
+                  // layout de ese subarbol fallaba y el boton no se pintaba ni
+                  // recibia toques: el instalador no podia confirmar la firma.
+                  // (Mismo origen que la pantalla de Facturacion en blanco.)
+                  minimumSize: const Size(150, 44),
                 ),
               )
             else
@@ -1723,6 +1735,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
+              flex: 3,
               child: OhmGradientButton(
                 label: _isReparacion ? "TERMINAR REPARACIÓN" : "TERMINAR INSTALACIÓN",
                 icon: Icons.check_circle_rounded,
