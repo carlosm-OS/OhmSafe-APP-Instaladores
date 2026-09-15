@@ -59,6 +59,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   String? _capturingCategory;
 
   final _photoCommentsController = TextEditingController();
+  /// fileKey que devolvió el backend por cada foto ya subida. Es lo que viaja
+  /// en el cierre; la ruta local del teléfono no le sirve al servidor.
+  final Map<String, String> _photoFileKeys = {};
   String? _step1Error;
 
   // Reparación: evidencias fotográficas dinámicas (se agregan una a una).
@@ -192,6 +195,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     setState(() {
       _capturingCategory = category;
       _step1Error = null;
+      // Al retomar una foto, su subida anterior deja de ser válida: si no se
+      // olvida, el cierre enviaría la referencia de la foto vieja.
+      _photoFileKeys.remove(category);
     });
 
     try {
@@ -220,8 +226,32 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         _photoLocations[category] = position;
         _photoTimestamps[category] = DateTime.now();
         _geoMismatches[category] = desubicada;
-        _capturingCategory = null;
       });
+
+      // La foto se sube AQUÍ, no al cerrar: en campo la señal es mala y un
+      // solo envío con las cuatro fotos hace que un corte tire el cierre
+      // completo. Así cada foto es reintentable por separado (volver a
+      // tomarla) y el cierre solo manda referencias.
+      final bytes = await foto.readAsBytes();
+      if (!mounted) return;
+      final ticketId =
+          (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+      final subida = await sl
+          .get<OrdenesRepository>()
+          .subirEvidencia(ticketId, category, base64Encode(bytes));
+      if (!mounted) return;
+      subida.fold(
+        (fileKey) => setState(() {
+          _photoFileKeys[category] = fileKey;
+          _capturingCategory = null;
+        }),
+        (failure) => setState(() {
+          // La foto queda visible, pero sin fileKey: el cierre avisará.
+          _capturingCategory = null;
+          _step1Error =
+              "La foto de \"$category\" no se pudo subir (${failure.message}). Vuelve a tomarla.";
+        }),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -318,6 +348,18 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (_anomControl) 'control_no_funciona',
     ];
 
+    // Una foto capturada pero no subida no llega a la orden de servicio, así
+    // que se avisa antes de cerrar en lugar de emitir un documento incompleto.
+    final sinSubir = _photoPaths.entries
+        .where((e) => e.value != null && !_photoFileKeys.containsKey(e.key))
+        .map((e) => e.key)
+        .toList();
+    if (sinSubir.isNotEmpty) {
+      setState(() => _step3Error =
+          "Falta subir ${sinSubir.length == 1 ? 'la foto' : 'las fotos'} de ${sinSubir.join(', ')}. Vuelve al paso 1 y tómala de nuevo.");
+      return;
+    }
+
     // La firma se rasteriza ANTES de mostrar el overlay de carga: el lienzo
     // debe seguir montado para poder medirlo.
     final firmaBase64 = await _firmaPngBase64();
@@ -332,9 +374,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     // snake_case, Zod las descartaba en silencio y el cierre se guardaba vacío.
     final payload = {
       "evidencias": [
-        for (final entry in _photoPaths.entries)
-          if (entry.value != null)
-            {"fileKey": entry.value!, "categoria": entry.key},
+        for (final entry in _photoFileKeys.entries)
+          {"fileKey": entry.value, "categoria": entry.key},
       ],
       "geolocalizacion": geoJson,
       "entregaEquipo": {

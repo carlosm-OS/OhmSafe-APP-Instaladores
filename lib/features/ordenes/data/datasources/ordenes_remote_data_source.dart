@@ -86,6 +86,16 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
+  Future<String> subirEvidencia(String id, String categoria, String imagenBase64) async {
+    final res = await dioClient.post(
+      '/instalador/ordenes/$id/evidencias',
+      body: {'categoria': categoria, 'imagenBase64': imagenBase64},
+    );
+    final data = (res['data'] as Map<String, dynamic>?) ?? const {};
+    return (data['fileKey'] ?? '').toString();
+  }
+
+  @override
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre) async {
     await dioClient.post('/instalador/ordenes/$id/cierre', body: cierre);
   }

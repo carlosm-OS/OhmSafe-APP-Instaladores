@@ -37,6 +37,13 @@ abstract class OrdenesRepository {
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
   Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie);
 
+  /// Sube UNA foto de evidencia al ticket y devuelve su fileKey.
+  ///
+  /// Se sube en el momento de tomarla, no al cerrar: en campo la señal es mala
+  /// y un solo envío con todas las fotos hace que un corte tire el cierre
+  /// completo. Así cada foto es reintentable por separado.
+  Future<Result<String>> subirEvidencia(String id, String categoria, String imagenBase64);
+
   /// Guarda el cierre del servicio (evidencias, entrega de equipo, firma).
   Future<Result<bool>> guardarCierre(String id, Map<String, dynamic> cierre);
 }

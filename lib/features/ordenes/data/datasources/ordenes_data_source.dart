@@ -21,5 +21,7 @@ abstract class OrdenesDataSource {
   Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
   Future<Map<String, dynamic>> diagnosticoEnergizador(String serie);
+  /// Sube UNA foto de evidencia y devuelve su fileKey en Odoo.
+  Future<String> subirEvidencia(String id, String categoria, String imagenBase64);
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre);
 }

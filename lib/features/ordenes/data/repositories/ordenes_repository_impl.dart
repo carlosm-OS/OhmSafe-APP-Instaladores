@@ -118,6 +118,21 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
+  Future<Result<String>> subirEvidencia(String id, String categoria, String imagenBase64) async {
+    try {
+      return Success(await dataSource.subirEvidencia(id, categoria, imagenBase64));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Result<bool>> guardarCierre(String id, Map<String, dynamic> cierre) =>
       _accion(() => dataSource.guardarCierre(id, cierre));
 }

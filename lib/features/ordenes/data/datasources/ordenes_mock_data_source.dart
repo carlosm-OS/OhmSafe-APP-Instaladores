@@ -166,5 +166,9 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   }
 
   @override
+  Future<String> subirEvidencia(String id, String categoria, String imagenBase64) async =>
+      '/web/content/0';
+
+  @override
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre) => _ok();
 }
