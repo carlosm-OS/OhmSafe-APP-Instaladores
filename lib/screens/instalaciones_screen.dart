@@ -708,6 +708,18 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   const SizedBox(height: 6),
                   _detailRow(theme, "Agendada: ", _formatFechaAgendada(orden.fechaAgendada!)),
                 ],
+                if (orden.fechaPagoConfirmado?.isNotEmpty ?? false) ...[
+                  const SizedBox(height: 6),
+                  _detailRow(theme, "Pago confirmado: ", _formatFechaAgendada(orden.fechaPagoConfirmado!)),
+                ],
+                const SizedBox(height: 6),
+                _detailRow(theme, "Contrato firmado: ", orden.contratoFirmado ? "Sí" : "Pendiente"),
+                // Lo que el instalador debe saber ANTES de llegar: malla,
+                // vegetación, mascotas, acceso... Se resalta si hay algo.
+                if (orden.condicionesTerreno.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  _detailRow(theme, "Condiciones del terreno: ", orden.condicionesTerreno.join(', ')),
+                ],
               ],
               const SizedBox(height: 12),
               Divider(height: 1, color: theme.dividerColor),

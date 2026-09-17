@@ -62,6 +62,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   /// fileKey que devolvió el backend por cada foto ya subida. Es lo que viaja
   /// en el cierre; la ruta local del teléfono no le sirve al servidor.
   final Map<String, String> _photoFileKeys = {};
+  /// Estado de la subida por foto. Se muestra en la tarjeta: sin esto una
+  /// foto que falló al subir se veía igual que una subida y el instalador
+  /// solo se enteraba al intentar firmar.
+  final Map<String, _EstadoSubida> _subidaFotos = {};
   String? _step1Error;
 
   // Reparación: evidencias fotográficas dinámicas (se agregan una a una).
@@ -71,7 +75,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   int _repairPhotoCounter = 1;
 
   // Step 2 State: confirmación de entrega del equipo (checks, sin foto/serie).
-  bool _controlEntregado = false;        // Entregué el control remoto al cliente
+  bool _controlEntregado = false;        // Entregué el control remoto funcional
+  // Addons del servicio. null = sin responder; el técnico debe decir si los
+  // instaló o si el servicio no los incluye. No se infiere del plan porque
+  // hoy el ticket no trae los addons contratados.
+  String? _camaras;                      // 'instaladas' | 'no_aplica'
+  String? _sensores;                     // 'instaladas' | 'no_aplica'
   bool _entregaConAnomalias = false;     // false = todo funcional; true = hubo anomalías
   bool _anomFisica = false;              // Daño físico
   bool _anomFuncionamiento = false;      // Falla de funcionamiento
@@ -228,30 +237,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         _geoMismatches[category] = desubicada;
       });
 
+      setState(() => _capturingCategory = null);
       // La foto se sube AQUÍ, no al cerrar: en campo la señal es mala y un
       // solo envío con las cuatro fotos hace que un corte tire el cierre
-      // completo. Así cada foto es reintentable por separado (volver a
-      // tomarla) y el cierre solo manda referencias.
-      final bytes = await foto.readAsBytes();
-      if (!mounted) return;
-      final ticketId =
-          (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
-      final subida = await sl
-          .get<OrdenesRepository>()
-          .subirEvidencia(ticketId, category, base64Encode(bytes));
-      if (!mounted) return;
-      subida.fold(
-        (fileKey) => setState(() {
-          _photoFileKeys[category] = fileKey;
-          _capturingCategory = null;
-        }),
-        (failure) => setState(() {
-          // La foto queda visible, pero sin fileKey: el cierre avisará.
-          _capturingCategory = null;
-          _step1Error =
-              "La foto de \"$category\" no se pudo subir (${failure.message}). Vuelve a tomarla.";
-        }),
-      );
+      // completo. Así cada foto es reintentable por separado y el cierre
+      // solo manda referencias.
+      await _subirFoto(category);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -259,6 +250,51 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         _step1Error = "No se pudo tomar la foto: $e";
       });
     }
+  }
+
+  // ----- Evidencias: subida por foto con estado visible y reintento -----
+
+  /// Sube la foto de [category] y deja su estado en `_subidaFotos`.
+  /// Reutilizable para reintentar sin volver a tomar la foto.
+  Future<void> _subirFoto(String category) async {
+    final path = _photoPaths[category];
+    if (path == null) return;
+    setState(() => _subidaFotos[category] = _EstadoSubida.subiendo);
+
+    final ticketId =
+        (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    try {
+      final bytes = await File(path).readAsBytes();
+      final subida = await sl
+          .get<OrdenesRepository>()
+          .subirEvidencia(ticketId, category, base64Encode(bytes));
+      if (!mounted) return;
+      subida.fold(
+        (fileKey) => setState(() {
+          _photoFileKeys[category] = fileKey;
+          _subidaFotos[category] = _EstadoSubida.ok;
+        }),
+        (_) => setState(() => _subidaFotos[category] = _EstadoSubida.error),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _subidaFotos[category] = _EstadoSubida.error);
+    }
+  }
+
+  /// Fotos tomadas que aún no tienen fileKey (fallaron o siguen subiendo).
+  List<String> get _fotosSinSubir => _photoPaths.entries
+      .where((e) => e.value != null && !_photoFileKeys.containsKey(e.key))
+      .map((e) => e.key)
+      .toList();
+
+  /// Antes de cerrar se reintentan solas las subidas pendientes: el
+  /// instalador no debe volver al paso 1 por un corte de red momentáneo.
+  Future<void> _reintentarSubidasPendientes() async {
+    final pendientes = _fotosSinSubir
+        .where((c) => _subidaFotos[c] != _EstadoSubida.subiendo)
+        .toList();
+    await Future.wait(pendientes.map(_subirFoto));
   }
 
   // ----- Firma: captura de trazos y rasterizado -----
@@ -348,15 +384,21 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (_anomControl) 'control_no_funciona',
     ];
 
-    // Una foto capturada pero no subida no llega a la orden de servicio, así
-    // que se avisa antes de cerrar en lugar de emitir un documento incompleto.
-    final sinSubir = _photoPaths.entries
-        .where((e) => e.value != null && !_photoFileKeys.containsKey(e.key))
-        .map((e) => e.key)
-        .toList();
+    // Una foto capturada pero no subida no llega a la orden de servicio. Antes
+    // de avisar se reintenta la subida: casi siempre fue un corte momentáneo.
+    if (_fotosSinSubir.isNotEmpty) {
+      setState(() {
+        _step3Error = null;
+        _isLoading = true;
+      });
+      await _reintentarSubidasPendientes();
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
+    final sinSubir = _fotosSinSubir;
     if (sinSubir.isNotEmpty) {
       setState(() => _step3Error =
-          "Falta subir ${sinSubir.length == 1 ? 'la foto' : 'las fotos'} de ${sinSubir.join(', ')}. Vuelve al paso 1 y tómala de nuevo.");
+          "No se pudo subir ${sinSubir.length == 1 ? 'la foto' : 'las fotos'} de ${sinSubir.join(', ')}. Revisa tu conexión y toca «Reintentar» en el paso 1.");
       return;
     }
 
@@ -383,6 +425,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         "entregaFuncional": !_entregaConAnomalias,
         "anomalias": anomalias,
         "comentarios": _step2CommentsController.text.trim(),
+        if (_camaras != null) "camaras": _camaras,
+        if (_sensores != null) "sensores": _sensores,
       },
       "firmaBase64": firmaBase64,
       "comentariosGenerales":
@@ -475,8 +519,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     // En reparación sin cambio de energizador no aplica el paso de equipo.
     if (!_requiereEquipo) return true;
 
-    // Debe confirmar la entrega del control remoto al cliente.
+    // Debe confirmar la entrega del control remoto funcional.
     if (!_controlEntregado) return false;
+    // Y responder por los addons: instalados o no aplica. Sin respuesta no
+    // hay forma de saber si faltó algo del servicio.
+    if (_camaras == null || _sensores == null) return false;
 
     // Si reporta anomalías, debe marcar al menos un tipo o describirlas.
     if (_entregaConAnomalias) {
@@ -532,8 +579,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (!_validateStep2()) {
         setState(() {
           _step2Error = !_controlEntregado
-            ? "Confirma la entrega del control remoto al cliente."
-            : "Indica el tipo de anomalía o descríbela en los comentarios.";
+            ? "Confirma que entregaste el control remoto funcional."
+            : (_camaras == null || _sensores == null)
+                ? "Indica si instalaste cámaras y sensores, o marca «No aplica»."
+                : "Indica el tipo de anomalía o descríbela en los comentarios.";
         });
         return;
       }
@@ -917,6 +966,55 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     );
   }
 
+  /// Estado de la subida de la foto. En error, tocarlo reintenta sin volver a
+  /// tomar la foto.
+  Widget _estadoSubidaChip(String category) {
+    final estado = _subidaFotos[category];
+    switch (estado) {
+      case _EstadoSubida.subiendo:
+        return Row(
+          children: const [
+            SizedBox(width: 11, height: 11, child: CircularProgressIndicator(strokeWidth: 1.6)),
+            SizedBox(width: 6),
+            Text("Subiendo…", style: TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        );
+      case _EstadoSubida.ok:
+        return const Row(
+          children: [
+            Icon(Icons.cloud_done_rounded, size: 13, color: Colors.green),
+            SizedBox(width: 4),
+            Text("Subida", style: TextStyle(fontSize: 11, color: Colors.green)),
+          ],
+        );
+      case _EstadoSubida.error:
+        return Semantics(
+          button: true,
+          label: "Reintentar subida de $category",
+          child: InkWell(
+            onTap: () => _subirFoto(category),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              // Área táctil cómoda sin agrandar la tarjeta.
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: const [
+                  Icon(Icons.cloud_off_rounded, size: 13, color: Colors.redAccent),
+                  SizedBox(width: 4),
+                  Text(
+                    "No se subió · Reintentar",
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      case null:
+        return const SizedBox.shrink();
+    }
+  }
+
   Widget _buildPhotoCategoryCard(String category, Color brandDark, Color brandOrange) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -994,6 +1092,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 4),
+                  _estadoSubidaChip(category),
                 ],
               ],
             ),
@@ -1194,7 +1294,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          "Confirma la entrega del control remoto al cliente y el estado del equipo. No se requiere foto ni número de serie.",
+          "Confirma lo que entregaste e instalaste. Si el servicio no incluye un addon, márcalo como «No aplica». No se requiere foto ni número de serie.",
           style: TextStyle(
             fontSize: 13,
             color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
@@ -1203,17 +1303,50 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 20),
 
-        // Check: entrega del control remoto
+        // Check: entrega del control remoto funcional
         _entregaCheckTile(
           theme,
           isDark,
           value: _controlEntregado,
-          label: "Entregué el control remoto al cliente",
+          label: "Entregué funcional el control remoto",
           onChanged: (v) => setState(() {
             _controlEntregado = v;
             _step2Error = null;
           }),
           brandOrange: brandOrange,
+        ),
+        const SizedBox(height: 20),
+
+        // Addons del servicio: cámaras y sensores
+        Text(
+          "ADDONS DEL SERVICIO",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _addonRow(
+          theme,
+          brandOrange,
+          label: "Instalé y dejé funcionando cámaras",
+          value: _camaras,
+          onChanged: (v) => setState(() {
+            _camaras = v;
+            _step2Error = null;
+          }),
+        ),
+        const SizedBox(height: 8),
+        _addonRow(
+          theme,
+          brandOrange,
+          label: "Instalé y dejé funcionando sensores",
+          value: _sensores,
+          onChanged: (v) => setState(() {
+            _sensores = v;
+            _step2Error = null;
+          }),
         ),
         const SizedBox(height: 20),
 
@@ -1355,6 +1488,86 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   }
 
   // Fila-check reutilizable (tap para alternar).
+  /// Fila de addon con dos opciones excluyentes: instalado o no aplica.
+  /// Se exige respuesta explícita (no un check que se pueda dejar vacío) para
+  /// distinguir "no lo instalé" de "el servicio no lo incluye".
+  Widget _addonRow(
+    ThemeData theme,
+    Color brandOrange, {
+    required String label,
+    required String? value,
+    required ValueChanged<String> onChanged,
+  }) {
+    Widget opcion(String v, String texto, IconData icono) {
+      final activo = value == v;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: activo,
+          label: "$label: $texto",
+          child: InkWell(
+            onTap: () => onChanged(v),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              // 44 de alto: mínimo táctil de la guía.
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: activo ? brandOrange.withValues(alpha: 0.12) : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: activo ? brandOrange : theme.dividerColor,
+                  width: activo ? 1.6 : 1,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icono, size: 16, color: activo ? brandOrange : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      texto,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+                        color: activo ? brandOrange : theme.textTheme.bodyMedium?.color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              opcion('instaladas', "Instalé y funciona", Icons.check_circle_outline_rounded),
+              const SizedBox(width: 8),
+              opcion('no_aplica', "No aplica", Icons.block_rounded),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _entregaCheckTile(
     ThemeData theme,
     bool isDark, {
@@ -1873,3 +2086,6 @@ class _FirmaPanRecognizer extends PanGestureRecognizer {
     resolve(GestureDisposition.accepted);
   }
 }
+
+/// Estado de la subida de una foto de evidencia.
+enum _EstadoSubida { subiendo, ok, error }

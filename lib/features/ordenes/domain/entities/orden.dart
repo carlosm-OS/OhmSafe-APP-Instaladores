@@ -20,6 +20,10 @@ class Orden {
   final String stripePaymentId; // referencia de pago Stripe
   final String? fechaAgendada; // ISO "2026-09-15 10:00:00" o null si no agendada
   final bool agendado; // true cuando el equipo de servicio ya agendó día/hora
+  // Capturado por operaciones en la llamada de agendamiento.
+  final String? fechaPagoConfirmado;
+  final bool contratoFirmado;
+  final List<String> condicionesTerreno; // malla, vegetación, mascotas, acceso...
 
   const Orden({
     required this.id,
@@ -40,6 +44,9 @@ class Orden {
     this.stripePaymentId = '',
     this.fechaAgendada,
     this.agendado = false,
+    this.fechaPagoConfirmado,
+    this.contratoFirmado = false,
+    this.condicionesTerreno = const [],
   });
 
   bool get esReparacion {
@@ -65,6 +72,7 @@ class Orden {
           'ciudad': ciudad,
           'cp': cp,
           'telefono': telefono,
+          'condicionesTerreno': condicionesTerreno.join(', '),
         },
       };
 }

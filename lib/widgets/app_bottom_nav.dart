@@ -9,6 +9,13 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Con el teclado abierto el Scaffold encoge el body y esta barra, que es
+    // un Positioned sobre el borde inferior, sube hasta tapar el campo que
+    // se esta escribiendo. Se oculta mientras haya teclado: no se navega a
+    // media captura y el campo queda a la vista.
+    if (MediaQuery.viewInsetsOf(context).bottom > 0) {
+      return const SizedBox.shrink();
+    }
     return Positioned(
       bottom: 16,
       left: 20,

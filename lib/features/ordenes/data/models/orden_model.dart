@@ -21,6 +21,9 @@ class OrdenModel extends Orden {
     super.stripePaymentId,
     super.fechaAgendada,
     super.agendado,
+    super.fechaPagoConfirmado,
+    super.contratoFirmado,
+    super.condicionesTerreno,
   });
 
   factory OrdenModel.fromJson(Map<String, dynamic> json) {
@@ -44,6 +47,9 @@ class OrdenModel extends Orden {
       stripePaymentId: s(json['stripePaymentId']),
       fechaAgendada: json['fechaAgendada'] as String?,
       agendado: json['agendado'] == true,
+      fechaPagoConfirmado: json['fechaPagoConfirmado'] as String?,
+      contratoFirmado: json['contratoFirmado'] == true,
+      condicionesTerreno: (json['condicionesTerreno'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 }
