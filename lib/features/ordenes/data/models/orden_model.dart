@@ -24,6 +24,7 @@ class OrdenModel extends Orden {
     super.fechaPagoConfirmado,
     super.contratoFirmado,
     super.condicionesTerreno,
+    super.pasoActual,
   });
 
   factory OrdenModel.fromJson(Map<String, dynamic> json) {
@@ -50,6 +51,7 @@ class OrdenModel extends Orden {
       fechaPagoConfirmado: json['fechaPagoConfirmado'] as String?,
       contratoFirmado: json['contratoFirmado'] == true,
       condicionesTerreno: (json['condicionesTerreno'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      pasoActual: s(json['pasoActual']).isEmpty ? 'iniciar_ruta' : s(json['pasoActual']),
     );
   }
 }

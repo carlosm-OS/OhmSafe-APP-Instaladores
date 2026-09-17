@@ -327,7 +327,13 @@ class WheelSpokesPainter extends CustomPainter {
 // --- SERVICE STEPS SCREEN ---
 class ServiceStepsScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
-  const ServiceStepsScreen({super.key, required this.ticket});
+
+  /// Paso con el que se abre la pantalla (1 = ruta … 5 = cierre). Los pasos
+  /// anteriores se marcan completados: es lo que permite retomar un servicio
+  /// que ya tiene llegada, inspección o equipo guardados en Odoo.
+  final int pasoInicial;
+
+  const ServiceStepsScreen({super.key, required this.ticket, this.pasoInicial = 1});
 
   @override
   State<ServiceStepsScreen> createState() => _ServiceStepsScreenState();
@@ -355,6 +361,12 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   @override
   void initState() {
     super.initState();
+    // Retomar: lo que ya quedó guardado en Odoo no se vuelve a pedir.
+    _step1Completed = widget.pasoInicial > 1;
+    _step2Completed = widget.pasoInicial > 2;
+    _step3Completed = widget.pasoInicial > 3;
+    // En reparación no hay paso de vinculación; el cierre sigue al paso 3.
+    _step4Completed = widget.pasoInicial > 4 || (_isReparacion && widget.pasoInicial > 3);
     // Hide the toast automatically after 4 seconds
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {

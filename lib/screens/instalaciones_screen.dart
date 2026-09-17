@@ -737,7 +737,14 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   _pendienteAgendarPill(theme, cs, ohm)
                 else
                   ElevatedButton(
-                    onPressed: cancelado ? null : () => _showConfirmationDialog(context, orden),
+                    // Si el servicio ya arrancó, la acción retoma el paso
+                    // pendiente; "iniciar ruta" solo aplica al primer paso
+                    // (y es el único que avisa al cliente).
+                    onPressed: cancelado
+                        ? null
+                        : orden.enCurso
+                            ? () => _retomarServicio(orden)
+                            : () => _showConfirmationDialog(context, orden),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: cancelado ? (isDark ? cs.outline : cs.outlineVariant) : cs.primary,
                       foregroundColor: cancelado ? (isDark ? Colors.white30 : Colors.white70) : Colors.white,
@@ -745,7 +752,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
-                    child: const Text("Iniciar ruta de servicio", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    child: Text(_etiquetaAccion(orden), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   ),
               ]
             ],
@@ -804,6 +811,48 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   }
 
   /// Reporta el inicio de ruta al backend (repo) y, si va bien, entra al flujo.
+  /// Texto del botón según el paso pendiente. "Continuar ·" deja claro que
+  /// no se reinicia nada.
+  String _etiquetaAccion(Orden orden) {
+    switch (orden.pasoActual) {
+      case 'marcar_llegada':
+        return "Continuar · Marcar llegada";
+      case 'inspeccion':
+        return "Continuar · Inspección del perímetro";
+      case 'instalacion':
+        return "Continuar · Registrar instalación";
+      case 'vinculacion':
+        return "Continuar · Vincular energizador";
+      case 'cierre':
+        return "Continuar · Cierre y firma";
+      default:
+        return "Iniciar ruta de servicio";
+    }
+  }
+
+  /// Abre el flujo directamente en el paso pendiente, sin la animación de
+  /// salida ni volver a marcar "en ruta" (eso ya quedó registrado en Odoo).
+  Future<void> _retomarServicio(Orden orden) async {
+    const paso = {
+      'marcar_llegada': 1,
+      'inspeccion': 2,
+      'instalacion': 3,
+      'vinculacion': 4,
+      'cierre': 5,
+    };
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ServiceStepsScreen(
+          ticket: orden.toTicketMap(),
+          pasoInicial: paso[orden.pasoActual] ?? 1,
+        ),
+      ),
+    );
+    // Al volver, la orden pudo avanzar o completarse: se refresca.
+    if (mounted) _cargar(silencioso: true);
+  }
+
   Future<void> _iniciarServicio(Orden orden) async {
     final result = await _repo.iniciarRuta(orden.id);
     if (!mounted) return;
