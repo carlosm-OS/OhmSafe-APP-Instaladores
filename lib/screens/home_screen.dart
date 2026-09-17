@@ -5,6 +5,7 @@ import 'instalaciones_screen.dart';
 import 'reparaciones_screen.dart';
 import 'profile_main_screen.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/notification_bell.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/menu_item_tile.dart';
 
@@ -133,10 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onPressed: widget.onToggleTheme,
                               icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                             ),
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
-                            ),
+                            const NotificationBell(),
                           ],
                         ),
                       ),

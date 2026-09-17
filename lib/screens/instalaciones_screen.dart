@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'service_steps_screen.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/notification_bell.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/entities/orden.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
@@ -193,10 +194,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),

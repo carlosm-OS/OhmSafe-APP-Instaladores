@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../features/notificaciones/data/notificaciones_repository.dart';
 import 'package:flutter/material.dart';
 import '../models/ticket.dart';
 import '../services/hubspot_service.dart';
@@ -134,6 +135,22 @@ class AppState extends ChangeNotifier {
     _activeTickets = _hubspotService.getTicketsForCount(_instalacionesCount);
   }
 
+  /// No leídas del centro de notificaciones (badge de la campana).
+  int _notificacionesNoLeidas = 0;
+  int get notificacionesNoLeidas => _notificacionesNoLeidas;
+
+  void setNotificacionesNoLeidas(int n) {
+    if (_notificacionesNoLeidas == n) return;
+    _notificacionesNoLeidas = n;
+    notifyListeners();
+  }
+
+  /// Relee el contador (al abrir el home y al volver del centro).
+  Future<void> refreshNotificaciones() async {
+    final res = await sl.get<NotificacionesRepository>().listar();
+    res.fold((data) => setNotificacionesNoLeidas(data.noLeidas), (_) {});
+  }
+
   int get instalacionesCount => _instalacionesCount;
   int get reparacionesCount => _reparacionesCount;
 
@@ -164,7 +181,12 @@ class AppState extends ChangeNotifier {
           (rep) => rep.fold((list) => _reparacionesCount = list.length, (_) {}),
         );
 
-    await Future.wait([perfilFuture, instFuture, repFuture]);
+    // El badge de la campana viaja con los demás: una sola espera.
+    final notifFuture = sl.get<NotificacionesRepository>().listar().then(
+          (res) => res.fold((data) => _notificacionesNoLeidas = data.noLeidas, (_) {}),
+        );
+
+    await Future.wait([perfilFuture, instFuture, repFuture, notifFuture]);
     notifyListeners();
   }
 

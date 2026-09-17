@@ -18,6 +18,7 @@ import '../../features/perfil/data/datasources/perfil_mock_data_source.dart';
 import '../../features/perfil/data/datasources/perfil_remote_data_source.dart';
 import '../../features/perfil/data/repositories/perfil_repository_impl.dart';
 import '../../features/perfil/domain/repositories/perfil_repository.dart';
+import '../../features/notificaciones/data/notificaciones_repository.dart';
 
 class sl {
   static final Map<Type, dynamic> _instances = {};
@@ -47,6 +48,8 @@ class sl {
     // Core Dependencies
     registerSingleton<EnvConfig>(envConfig);
     registerLazySingleton<DioClient>(() => DioClient(envConfig: get<EnvConfig>()));
+    registerLazySingleton<NotificacionesRepository>(
+        () => NotificacionesRepository(dioClient: get<DioClient>()));
 
     // Features dependencies
     registerLazySingleton<HomeRemoteDataSource>(

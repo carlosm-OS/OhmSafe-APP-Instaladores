@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/notification_bell.dart';
 import '../core/theme/app_theme_extension.dart';
 
 /// Historial de tickets completados (instalaciones y reparaciones).
@@ -104,10 +105,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),
