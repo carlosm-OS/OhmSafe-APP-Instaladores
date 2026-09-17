@@ -82,9 +82,14 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       })
       .length;
 
-  Future<void> _cargar() async {
+  /// Trae las instalaciones del backend.
+  ///
+  /// [silencioso] lo usa el gesto de jalar-para-recargar: el indicador propio
+  /// del gesto ya comunica el progreso, y prender `_loading` reemplazaria la
+  /// lista por un spinner de pantalla completa a media animacion.
+  Future<void> _cargar({bool silencioso = false}) async {
     setState(() {
-      _loading = true;
+      if (!silencioso) _loading = true;
       _error = null;
     });
     final result = await _repo.getOrdenes(tipo: 'instalacion');
@@ -308,10 +313,21 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       children.addAll(pendientes.map((o) => _buildTicketCard(o, _openId == o.id)));
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-      physics: const BouncingScrollPhysics(),
-      children: children,
+    // Jalar hacia abajo vuelve a pedir las ordenes al backend: un ticket que
+    // se agrega, cambia de etapa o se borra en Odoo se refleja sin salir de
+    // la pantalla.
+    return RefreshIndicator(
+      onRefresh: () => _cargar(silencioso: true),
+      color: Theme.of(context).colorScheme.primary,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+        // AlwaysScrollable: el gesto debe funcionar aunque haya una sola
+        // orden y la lista no llegue a desbordar la pantalla.
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        children: children,
+      ),
     );
   }
 

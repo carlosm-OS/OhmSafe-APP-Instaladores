@@ -191,9 +191,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // Main Options List Card
                  Expanded(
-                  child: ListView(
+                  // Jalar hacia abajo vuelve a pedir los contadores al backend.
+                  // Sin esto, un ticket que cambia en Odoo no se refleja hasta
+                  // cerrar y reabrir la app.
+                  child: RefreshIndicator(
+                    onRefresh: () => AppStateProvider.of(context).refreshBadges(),
+                    color: cs.primary,
+                    child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    physics: const BouncingScrollPhysics(),
+                    // AlwaysScrollable: el gesto debe funcionar aunque la lista
+                    // no llegue a desbordar la pantalla.
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
                     children: [
                       MenuItemTile(
                         label: "Instalaciones",
@@ -228,6 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 100), // Extra space to scroll above the bottom nav
                     ],
+                    ),
                   ),
                 ),
               ],
