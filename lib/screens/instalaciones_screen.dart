@@ -108,7 +108,16 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     return celdas;
   }
 
+  /// ¿Sigue siendo trabajo por hacer? Regla base de las tarjetas: una orden
+  /// completada o cancelada sale de la lista y del conteo del calendario.
+  bool _esTrabajoVivo(Orden o) {
+    if (widget.completedTicketTitle == o.titulo) return false;
+    if (widget.cancelledTicketTitle == o.titulo) return false;
+    return o.estado != 'completo' && o.estado != 'cancelado';
+  }
+
   int _countForDay(DateTime day) => _ordenes
+      .where(_esTrabajoVivo)
       .where((o) {
         final d = _agendadaDate(o);
         return d != null && DateUtils.isSameDay(d, day);
@@ -252,12 +261,18 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       return _buildErrorState(theme);
     }
     // Agendadas para el día seleccionado.
-    final agendadasDia = _ordenes.where((o) {
+    // REGLA 1 — la lista de trabajo solo muestra órdenes vivas. Una terminada
+    // o cancelada ya no es trabajo por hacer: vive en Historial. Antes seguía
+    // apareciendo en su día y ofreciendo "Iniciar ruta" sobre un servicio ya
+    // cerrado (y esa acción vuelve a avisarle al cliente).
+    final activas = _ordenes.where(_esTrabajoVivo).toList();
+
+    final agendadasDia = activas.where((o) {
       final d = _agendadaDate(o);
       return d != null && DateUtils.isSameDay(d, _selectedDate);
     }).toList();
     // Pendientes de agendar (sin fecha): sección aparte, siempre visible.
-    final pendientes = _ordenes.where((o) => _agendadaDate(o) == null).toList();
+    final pendientes = activas.where((o) => _agendadaDate(o) == null).toList();
 
     if (agendadasDia.isEmpty && pendientes.isEmpty) {
       return _buildEmptyState(theme);
@@ -738,7 +753,9 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                     // Si el servicio ya arrancó, la acción retoma el paso
                     // pendiente; "iniciar ruta" solo aplica al primer paso
                     // (y es el único que avisa al cliente).
-                    onPressed: cancelado
+                    // Sin acción cuando no hay trabajo que hacer: cerrada,
+                    // cancelada o aún sin agendar.
+                    onPressed: (cancelado || !_esTrabajoVivo(orden) || orden.pasoActual == 'agendar')
                         ? null
                         : orden.enCurso
                             ? () => _retomarServicio(orden)
@@ -813,6 +830,17 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   /// no se reinicia nada.
   String _etiquetaAccion(Orden orden) {
     switch (orden.pasoActual) {
+      // REGLA 2 — una orden cerrada no ofrece acción de trabajo. Si llegara a
+      // pintarse (p. ej. justo al volver del cierre, antes de refrescar), el
+      // botón lo dice en vez de invitar a reiniciar el servicio.
+      case 'completo':
+        return "Servicio completado";
+      case 'cancelado':
+        return "Servicio cancelado";
+      // REGLA 3 — sin fecha agendada no hay ruta que iniciar: agendar es de
+      // operaciones, no del instalador.
+      case 'agendar':
+        return "Pendiente de agendar";
       case 'marcar_llegada':
         return "Continuar · Marcar llegada";
       case 'inspeccion':

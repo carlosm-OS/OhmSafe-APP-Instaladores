@@ -6,8 +6,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:ohmsafe_app/controllers/app_state.dart';
+import 'package:ohmsafe_app/controllers/app_state_provider.dart';
 import 'package:ohmsafe_app/core/di/injection_container.dart';
+import 'package:ohmsafe_app/core/network/dio_client.dart';
+import 'package:ohmsafe_app/core/config/env_config.dart';
 import 'package:ohmsafe_app/core/theme/app_theme.dart';
+import 'package:ohmsafe_app/features/notificaciones/data/notificaciones_repository.dart';
 import 'package:ohmsafe_app/features/ordenes/data/datasources/ordenes_mock_data_source.dart';
 import 'package:ohmsafe_app/features/ordenes/data/repositories/ordenes_repository_impl.dart';
 import 'package:ohmsafe_app/features/ordenes/domain/repositories/ordenes_repository.dart';
@@ -18,12 +23,25 @@ void main() {
     sl.registerSingleton<OrdenesRepository>(
       OrdenesRepositoryImpl(dataSource: OrdenesMockDataSource()),
     );
+    // La campana del encabezado lee el contador de no leídas, así que la
+    // pantalla necesita el repositorio y un AppStateProvider por encima.
+    sl.registerSingleton<EnvConfig>(const EnvConfig(
+      environment: Environment.development,
+      apiBaseUrl: 'http://localhost',
+      hubspotApiKey: 'test',
+    ));
+    sl.registerSingleton<NotificacionesRepository>(
+      NotificacionesRepository(dioClient: DioClient(envConfig: sl.get<EnvConfig>())),
+    );
   });
 
   Future<void> abrirPantalla(WidgetTester tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.light,
-      home: const InstalacionesScreen(),
+    await tester.pumpWidget(AppStateProvider(
+      notifier: AppState(),
+      child: MaterialApp(
+        theme: AppTheme.light,
+        home: const InstalacionesScreen(),
+      ),
     ));
     await tester.pumpAndSettle();
   }
