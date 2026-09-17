@@ -41,5 +41,12 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      # Xcode 27 rechaza cualquier target por debajo de iOS 15: el helper de
+      # Flutter deja algunos pods (entre ellos el propio 'Flutter') en 13.0 y
+      # la compilacion falla con "the range of supported deployment target
+      # versions is 15.0 to 27.0.x". Se alinean con el platform del Podfile.
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    end
   end
 end
