@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -427,13 +428,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(
-                            Icons.notifications_none_rounded,
-                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                          ),
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),

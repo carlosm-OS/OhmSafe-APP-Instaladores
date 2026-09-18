@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
@@ -375,13 +376,7 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                         child: Stack(
                           alignment: Alignment.topRight,
                           children: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(
-                                Icons.notifications,
-                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                              ),
-                            ),
+                            const NotificationBell(),
                             Positioned(
                               top: 10,
                               right: 10,

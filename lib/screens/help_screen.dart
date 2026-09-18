@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
@@ -183,13 +184,7 @@ class HelpScreen extends StatelessWidget {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(
-                            Icons.notifications,
-                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                          ),
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:ui';
 import 'dart:convert';
@@ -332,13 +333,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                         child: Stack(
                           alignment: Alignment.topRight,
                           children: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(
-                                Icons.notifications,
-                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                              ),
-                            ),
+                            const NotificationBell(),
                             Positioned(
                               top: 10,
                               right: 10,

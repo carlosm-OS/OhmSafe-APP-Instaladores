@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
@@ -228,13 +229,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         child: Stack(
                           alignment: Alignment.topRight,
                           children: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(
-                                Icons.notifications,
-                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                              ),
-                            ),
+                            const NotificationBell(),
                             Positioned(
                               top: 10,
                               right: 10,

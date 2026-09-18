@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
@@ -95,13 +96,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(
-                            Icons.notifications_none_rounded,
-                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                          ),
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),
