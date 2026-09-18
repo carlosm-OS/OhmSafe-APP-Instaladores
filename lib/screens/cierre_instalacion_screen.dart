@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -648,27 +649,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: Stack(
-                          alignment: Alignment.topRight,
-                          children: [
-                            Icon(
-                              Icons.notifications,
-                              color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                            ),
-                            Positioned(
-                              top: 2,
-                              right: 2,
-                              child: Container(
-                                width: 7,
-                                height: 7,
-                                decoration: const BoxDecoration(
-                                  color: Colors.blueAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),
