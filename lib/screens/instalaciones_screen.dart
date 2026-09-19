@@ -6,6 +6,7 @@ import '../widgets/notification_bell.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/entities/orden.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/utils/fechas_odoo.dart';
 
 /// Sección Instalaciones. Carga las órdenes de instalación desde el
 /// repositorio (Mock o Api según `EnvConfig.useMock`). Cada orden arranca
@@ -71,10 +72,9 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   /// Fecha agendada (solo día) de una orden, o null si aún no está agendada
   /// o la fecha no parsea. Se usa para colocar cada instalación en su día.
   DateTime? _agendadaDate(Orden o) {
-    if (!o.agendado || (o.fechaAgendada?.isEmpty ?? true)) return null;
-    final dt = DateTime.tryParse(o.fechaAgendada!.replaceFirst(' ', 'T'));
-    if (dt == null) return null;
-    return DateTime(dt.year, dt.month, dt.day);
+    if (!o.agendado) return null;
+    // Odoo guarda en UTC; el dia se decide ya en la zona del dispositivo.
+    return FechasOdoo.soloDia(o.fechaAgendada);
   }
 
   /// Días del calendario: 7 desde hoy, extendidos hasta la última fecha
@@ -698,7 +698,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 const SizedBox(height: 16),
                 Text("Abierto por ${orden.diasAbierto} días", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color)),
                 const SizedBox(height: 6),
-                _detailRow(theme, "Fecha de Creación: ", orden.fechaCreacion),
+                _detailRow(theme, "Fecha de Creación: ", FechasOdoo.fechaHora(orden.fechaCreacion)),
                 const SizedBox(height: 6),
                 _detailRow(theme, "Metraje: ", orden.metraje),
                 const SizedBox(height: 6),
@@ -789,14 +789,9 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     );
   }
 
-  /// Formatea la fecha ISO del backend ("2026-09-15 10:00:00") a algo legible
-  /// como "15/09/2026 10:00". Si no parsea, devuelve el string original.
-  String _formatFechaAgendada(String raw) {
-    final dt = DateTime.tryParse(raw.replaceFirst(' ', 'T'));
-    if (dt == null) return raw;
-    String two(int n) => n.toString().padLeft(2, '0');
-    return "${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}";
-  }
+  /// Fecha UTC de Odoo ("2026-09-15 16:00:00") en hora local del dispositivo,
+  /// legible como "15/09/2026 10:00". Si no parsea, devuelve el texto original.
+  String _formatFechaAgendada(String raw) => FechasOdoo.fechaHora(raw);
 
   /// Píldora informativa (no interactiva) cuando la orden aún no está agendada.
   /// El instalador no puede iniciar la ruta hasta que servicio confirme día/hora.

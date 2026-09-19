@@ -7,6 +7,7 @@ import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/entities/orden.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/utils/fechas_odoo.dart';
 
 /// Sección Reparaciones (accesible desde el Home).
 /// Carga las órdenes de reparación desde el repositorio (Mock o Api según
@@ -245,7 +246,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                 const SizedBox(height: 16),
                 Text("Abierto por ${orden.diasAbierto} días", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color)),
                 const SizedBox(height: 6),
-                _detailRow(theme, "Fecha de Creación: ", orden.fechaCreacion),
+                _detailRow(theme, "Fecha de Creación: ", FechasOdoo.fechaHora(orden.fechaCreacion)),
                 const SizedBox(height: 6),
                 _detailRow(theme, "Metraje: ", orden.metraje),
                 const SizedBox(height: 6),

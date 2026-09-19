@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../core/di/injection_container.dart';
-import '../core/theme/app_theme_extension.dart';
 import '../controllers/app_state_provider.dart';
 import '../features/notificaciones/data/notificaciones_repository.dart';
 import '../features/notificaciones/domain/notificacion.dart';
+import '../core/utils/fechas_odoo.dart';
 
 /// Centro de notificaciones del instalador: asignaciones, reagendas,
 /// cancelaciones y mensajes de operaciones.
@@ -72,10 +72,10 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
     }, (_) {});
   }
 
-  /// Odoo entrega la fecha en UTC sin zona; se interpreta como tal y se
-  /// muestra en relativo, que es lo útil en una bandeja.
+  /// Odoo entrega la fecha en UTC sin zona; se pasa a hora del dispositivo y
+  /// se muestra en relativo, que es lo útil en una bandeja.
   String _relativo(String fecha) {
-    final dt = DateTime.tryParse('${fecha.replaceFirst(' ', 'T')}Z')?.toLocal();
+    final dt = FechasOdoo.aLocal(fecha);
     if (dt == null) return '';
     final d = DateTime.now().difference(dt);
     if (d.inMinutes < 1) return 'ahora';

@@ -7,6 +7,7 @@ import '../widgets/cancellation_flow.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/utils/fechas_odoo.dart';
 
 enum LinkState { input, scanning, validating }
 
@@ -921,10 +922,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// "dd/MM/yyyy HH:mm" a partir del ISO del backend; "Nunca" si no hay reporte.
   String _formatUltimoReporte(dynamic iso) {
     if (iso == null || iso.toString().isEmpty) return "Nunca";
-    final dt = DateTime.tryParse(iso.toString())?.toLocal();
-    if (dt == null) return iso.toString();
-    String two(int n) => n.toString().padLeft(2, '0');
-    return "${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}";
+    return FechasOdoo.fechaHora(iso.toString());
   }
 
   Widget _buildDetailRow(String key, String value) {

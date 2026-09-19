@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 import '../config/env_config.dart';
 import '../di/injection_container.dart';
@@ -58,14 +59,29 @@ class PushService {
       await sl.get<DioClient>().post('/instalador/push/registrar', body: {
         'token': token,
         'platform': Platform.isIOS ? 'ios' : 'android',
+        // Zona IANA del dispositivo (p. ej. America/Tijuana). El backend la
+        // guarda en el `tz` del instalador para redactar avisos y PDF en su
+        // hora, no en la de CDMX por defecto.
+        'zonaHoraria': ?await _zonaHoraria(),
       });
     } catch (_) {
       // Best-effort: si falla el registro, el push simplemente no llega aún.
     }
   }
 
+  /// Identificador IANA de la zona del dispositivo, o null si no se pudo leer.
+  Future<String?> _zonaHoraria() async {
+    try {
+      final id = (await FlutterTimezone.getLocalTimezone()).identifier.trim();
+      return id.isEmpty ? null : id;
+    } catch (_) {
+      return null;
+    }
+  }
+
   void _abrir(RemoteMessage m) {
-    if (m.data['tipo'] == 'asignacion_instalacion') {
+    const abren = {'asignacion_instalacion', 'agenda_instalacion', 'reagenda_instalacion'};
+    if (abren.contains(m.data['tipo'])) {
       onOpenInstalacion?.call((m.data['taskId'] ?? '').toString());
     }
   }

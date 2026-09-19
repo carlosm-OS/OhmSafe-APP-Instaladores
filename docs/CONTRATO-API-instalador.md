@@ -28,6 +28,16 @@
 | GET/PUT | `/v1/instalador/datos-bancarios` | `{titular, clabe, banco, cuenta}` |
 | GET/PUT | `/v1/instalador/facturacion` | datos fiscales |
 
+## 2b. Push y zona horaria
+| Método | Ruta | Notas |
+|---|---|---|
+| POST | `/v1/instalador/push/registrar` | `{token, platform, zonaHoraria?}`. `zonaHoraria` es el IANA del dispositivo (`America/Tijuana`), leído con `flutter_timezone`; el backend lo guarda en el `tz` del instalador en Odoo y con él redacta la hora de los avisos y del PDF. Respuesta `{ok, zonaHoraria}` |
+
+**Fechas:** todo lo que llega del backend con forma `"YYYY-MM-DD HH:MM:SS"` (`fechaAgendada`,
+`fechaCreacion`, `fechaPagoConfirmado`, `fecha` de notificaciones) está en **UTC sin zona**, tal
+como lo guarda Odoo. La app lo convierte siempre a la hora del dispositivo con
+`FechasOdoo` (`lib/core/utils/fechas_odoo.dart`); nunca parsear el texto crudo.
+
 ## 3. Órdenes de servicio (dominio nuevo `field-service`)
 | Método | Ruta | Notas |
 |---|---|---|
