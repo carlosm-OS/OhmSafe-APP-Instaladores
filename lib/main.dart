@@ -53,6 +53,13 @@ class _OhmSafeAppContainerState extends State<OhmSafeAppContainer> {
   final AppState _appState = AppState();
 
   @override
+  void initState() {
+    super.initState();
+    // Push con la app abierta: la campana se actualiza al instante.
+    PushService.instance.onMensajeEnPrimerPlano = (_) => _appState.refreshNotificaciones();
+  }
+
+  @override
   void dispose() {
     _appState.dispose();
     super.dispose();

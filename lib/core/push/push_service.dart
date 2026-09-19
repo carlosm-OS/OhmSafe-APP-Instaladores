@@ -28,12 +28,23 @@ class PushService {
   /// Callback que la app fija para navegar al tocar la notificación.
   void Function(String taskId)? onOpenInstalacion;
 
+  /// Callback cuando llega un push con la app ABIERTA (primer plano). La app
+  /// lo usa para refrescar el contador de la campana sin esperar al usuario.
+  void Function(String tipo)? onMensajeEnPrimerPlano;
+
   /// Permisos + listeners. Llamar una vez al arrancar (tras Firebase.initializeApp).
   Future<void> setupListeners() async {
     if (!soportado) return;
     try {
       await _fm.requestPermission();
+      // iOS NO muestra el banner de un push si la app está en primer plano,
+      // salvo que se le pida. Sin esto, el instalador que tiene la app abierta
+      // viendo el calendario no se entera del reagendamiento hasta abrir la
+      // campana. (Android sigue sin banner en primer plano: FCM lo delega a
+      // la app; ahí se refresca la campana vía onMensajeEnPrimerPlano.)
+      await _fm.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
       _fm.onTokenRefresh.listen(_registrar);
+      FirebaseMessaging.onMessage.listen((m) => onMensajeEnPrimerPlano?.call((m.data['tipo'] ?? '').toString()));
       FirebaseMessaging.onMessageOpenedApp.listen(_abrir);
       // App abierta desde una notificación (estado terminado).
       final inicial = await _fm.getInitialMessage();
