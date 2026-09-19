@@ -150,6 +150,14 @@ Odoo sin tocar Stripe/checkout:
   con Operaciones.
 
 ## Pendientes priorizados
+0. ⬜ **Módulos del home ocultos en el MVP (2026-09-18)** — el home solo muestra
+   *Instalaciones* y *Reportar incidencias*. Quedan comentados en
+   `lib/screens/home_screen.dart` para construirse uno a uno en la siguiente versión:
+   - **Reparaciones** (la pantalla `reparaciones_screen.dart` y las tarifas ya existen;
+     falta cerrar el flujo E2E y el cobro).
+   - **Mantenimientos** (sin pantalla; solo "próximamente").
+   - **Reemplazo de equipo** (sin pantalla; solo "próximamente").
+   - *Reportar incidencias* sigue visible pero aún es "próximamente": es el siguiente a construir.
 1. 🟡 **Probar el push en un teléfono** (Android primero) — cierra el ciclo.
 2. 🟡 **HubSpot**: pegar la acción de webhook en el workflow (tiempo real).
 3. ⬜ **iOS**: APNs Auth Key en Firebase.

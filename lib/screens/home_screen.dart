@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
-import 'reparaciones_screen.dart';
+// import 'reparaciones_screen.dart'; // oculto en el MVP, ver tiles comentados abajo
 import 'profile_main_screen.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/notification_bell.dart';
@@ -211,24 +211,30 @@ class _HomeScreenState extends State<HomeScreen> {
                           MaterialPageRoute(builder: (_) => const InstalacionesScreen()),
                         ),
                       ),
-                      MenuItemTile(
-                        label: "Reparaciones",
-                        count: state.reparacionesCount,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ReparacionesScreen()),
-                        ),
-                      ),
-                      MenuItemTile(
-                        label: "Mantenimientos",
-                        count: state.mantenimientosCount,
-                        onTap: () => _showComingSoon(context, "Mantenimientos"),
-                      ),
-                      MenuItemTile(
-                        label: "Reemplazo de equipo",
-                        count: state.reemplazoCount,
-                        onTap: () => _showComingSoon(context, "Reemplazo de equipo"),
-                      ),
+                      // MVP (2026-09-18): solo Instalaciones y Reportar incidencias.
+                      // Reparaciones, Mantenimientos y Reemplazo de equipo quedan
+                      // ocultos hasta la siguiente version; se construyen uno a uno.
+                      // Para reactivar un modulo basta descomentar su tile (y el
+                      // import de reparaciones_screen.dart). Ver
+                      // docs/ESTADO-INSTALADORES.md > "Pendientes priorizados".
+                      // MenuItemTile(
+                      //   label: "Reparaciones",
+                      //   count: state.reparacionesCount,
+                      //   onTap: () => Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(builder: (_) => const ReparacionesScreen()),
+                      //   ),
+                      // ),
+                      // MenuItemTile(
+                      //   label: "Mantenimientos",
+                      //   count: state.mantenimientosCount,
+                      //   onTap: () => _showComingSoon(context, "Mantenimientos"),
+                      // ),
+                      // MenuItemTile(
+                      //   label: "Reemplazo de equipo",
+                      //   count: state.reemplazoCount,
+                      //   onTap: () => _showComingSoon(context, "Reemplazo de equipo"),
+                      // ),
                       MenuItemTile(
                         label: "Reportar incidencias",
                         count: state.incidenciasCount,
