@@ -252,3 +252,20 @@ La app ya opera intervenciones con sus particularidades:
 `x_` siguen sirviendo a las 29 tareas viejas hasta que se cierren; se retiran en la fase
 6 al archivar el proyecto. Los módulos ocultos del home y «Reportar incidencias» siguen
 como estaban: los cubre la fase 4 (Helpdesk, Mantenimiento, Encuestas, Citas).
+
+## Fase 4 — HECHA y verificada (2026-09-25, backend `96eb27c`, app fase 4, build 12)
+
+| Pendiente original | Cómo quedó |
+|---|---|
+| Reportar incidencias | **Helpdesk**: equipo «Incidencias de campo» (id 5), etiquetas por tipo, prioridad (riesgo = urgente), propiedades `intervencion/instalador/ubicacion`, foto, instalador suscrito, nota en la orden. App: módulo Incidencias (lista + reporte). Operaciones convierte en intervención desde el ticket (puente instalado) |
+| Mantenimientos | **Mantenimiento**: al vincular, equipo por serie (categoría «Energizador OhmSafe», cliente) + solicitud preventiva anual recurrente (equipo «Servicio OhmSafe»). App: tile Mantenimientos = intervenciones de mantenimiento |
+| Encuesta y ranking (fase 5 original) | **Encuestas**: «Satisfacción del servicio OhmSafe» (escala 1-5, recomendaría, comentario) enviada al cerrar; `perfil.calificacion` real (null sin respuestas). Adiós al 4.7 fijo |
+| Disponibilidad del cliente (pendiente 3) | **Citas**: tipo «Visita de instalación OhmSafe» por recursos (Juan Mora Test, lun-sáb 9-13/14-18). La reserva la convierte operaciones en intervención; la automatización cita→intervención queda para después |
+
+E2E por HTTP (S00156 / intervención 10): incidencia #1 en Helpdesk con orden ligada; equipo
+`TEST-INST-0010` y preventivo al 2027-09-25 en Mantenimiento; encuesta enviada al cliente y,
+contestada con 5, `perfil.calificacion = 5.0 (1)`.
+
+Trampas: la definición de propiedades del ticket vive en `helpdesk.team.ticket_properties`;
+`survey.invite` + `action_invite` deja el `survey.user_input` que se guarda en
+`op_encuesta_id`; la encuesta se contesta desde el correo del cliente.

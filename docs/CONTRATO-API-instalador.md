@@ -59,6 +59,16 @@ diálogo «Estás lejos del sitio» y reenvía con `confirmarUbicacion:true` si 
 confirma (queda en el chatter de Odoo). La app **nunca inventa** una posición: sin GPS o
 permiso manda la petición sin `ubicacion`. `ServerFailure` ahora trae `code` y `details`.
 
+## 2e. Postventa (fase 4, 2026-09-25)
+| Método | Ruta | Notas |
+|---|---|---|
+| POST | `/v1/instalador/incidencias` | `{tipo, descripcion, ordenId?, fotoBase64?, ubicacion?}` → ticket de **Helpdesk** (equipo «Incidencias de campo»). `tipo` ∈ `equipo_danado \| cliente_ausente \| riesgo_en_sitio \| falta_material \| acceso_al_sitio \| otro`. Respuesta `{id, referencia, tipo, titulo, descripcion, estado, fecha, ordenId}` |
+| GET | `/v1/instalador/incidencias` | mis tickets (los que sigo con la etiqueta de la app), misma forma |
+| GET | `/v1/instalador/perfil` | ahora trae `calificacion` (promedio 1-5 de las encuestas de satisfacción, **null** sin respuestas) y `respuestasEncuesta` |
+
+Al vincular un energizador el backend lo registra en **Mantenimiento** con su preventivo anual;
+al cerrar manda la **encuesta** al cliente. Ninguno de los dos bloquea el paso de la app.
+
 ## 3. Órdenes de servicio (dominio nuevo `field-service`)
 | Método | Ruta | Notas |
 |---|---|---|
