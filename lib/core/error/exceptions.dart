@@ -8,7 +8,10 @@
 /// [message] trae, si existe, el texto de error que devolvió el backend.
 class ServerException implements Exception {
   final String message;
-  const ServerException([this.message = "Error del servidor"]);
+  /// Código del backend (`error` en `{success:false, error, message, details}`), p. ej. FUERA_DE_SITIO.
+  final String code;
+  final Map<String, dynamic> details;
+  const ServerException([this.message = "Error del servidor", this.code = '', this.details = const {}]);
 }
 
 /// Credenciales inválidas o sesión no autorizada (HTTP 401).

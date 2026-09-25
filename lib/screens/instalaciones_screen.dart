@@ -717,6 +717,15 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   const SizedBox(height: 6),
                   _detailRow(theme, "Plan: ", orden.plan),
                 ],
+                if (orden.ordenVenta.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  _detailRow(theme, "Orden de venta: ", orden.ordenVenta),
+                ],
+                // Hoja de trabajo de Odoo (intervenciones): lo que ya se registró en sitio.
+                for (final campo in orden.hojaTrabajo.where((c) => c['valor'] != null && c['valor'] != false && '${c['valor']}'.isNotEmpty)) ...[
+                  const SizedBox(height: 6),
+                  _detailRow(theme, "${campo['etiqueta']}: ", campo['valor'] == true ? 'Sí' : '${campo['valor']}'),
+                ],
                 if (orden.agendado && (orden.fechaAgendada?.isNotEmpty ?? false)) ...[
                   const SizedBox(height: 6),
                   _detailRow(theme, "Agendada: ", _formatFechaAgendada(orden.fechaAgendada!)),

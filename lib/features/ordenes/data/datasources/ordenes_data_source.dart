@@ -14,7 +14,7 @@ abstract class OrdenesDataSource {
 
   // Acciones de escritura
   Future<void> iniciarRuta(String id);
-  Future<void> marcarLlegada(String id);
+  Future<void> marcarLlegada(String id, {Map<String, dynamic>? ubicacion});
   Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales});
   Future<void> guardarInstalacion(String id, Map<String, dynamic> registro);
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo);

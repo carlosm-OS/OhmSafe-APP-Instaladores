@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/notification_bell.dart';
 import 'package:geolocator/geolocator.dart';
+
+import '../core/error/failures.dart';
+import '../core/utils/ubicacion.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
@@ -27,20 +30,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Reference coordinates for anti-fraud location verification
   // (Centred in Mexico City - Juarez/Roma area, where our mock installer is operating)
-  /// Validación anti-fraude por GPS: **DESACTIVADA a propósito**.
-  ///
-  /// Comparaba la posición de cada foto contra una referencia fija de CDMX y
-  /// bloqueaba el cierre con una "alerta de fraude" en cuanto no coincidía. En
-  /// el simulador —y en cualquier equipo sin GPS fijado— eso es un falso
-  /// positivo que impide cerrar la instalación. La posición se SIGUE
-  /// registrando en el payload; lo único apagado es que bloquee.
-  ///
-  /// PENDIENTE: rehacerla contra la dirección real del ticket (geocodificada),
-  /// no contra una constante, y decidir el radio tolerado.
-  static const bool _validarGeolocalizacion = false;
-
-  final double _refLat = 19.432608;
-  final double _refLng = -99.133209;
+  // La validación de ubicación vive en el backend: compara la posición del
+  // cierre con la de la llegada (radio de 300 m) y pide confirmación si está lejos.
 
   // Step 1 State: Photos, Metadatas and Anomaly Justifications
   final List<String> _categories = [
@@ -52,6 +43,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   final Map<String, String?> _photoPaths = {};
   final Map<String, Position?> _photoLocations = {};
   final Map<String, DateTime?> _photoTimestamps = {};
+  // Ya no se calcula discrepancia por foto en la app (la valida el backend al cerrar); queda vacío.
   final Map<String, bool> _geoMismatches = {};
   final ImagePicker _picker = ImagePicker();
 
@@ -117,62 +109,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     super.dispose();
   }
 
-  // Fetch current GPS location with high accuracy
-  Future<Position?> _getCurrentLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        // Return dummy position for testing if GPS is off
-        return Position(
-          latitude: 19.4326,
-          longitude: -99.1332,
-          timestamp: DateTime.now(),
-          accuracy: 5.0,
-          altitude: 2240.0,
-          heading: 0.0,
-          speed: 0.0,
-          speedAccuracy: 0.0,
-          altitudeAccuracy: 1.0,
-          headingAccuracy: 1.0,
-        );
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return null;
-      }
-      if (permission == LocationPermission.deniedForever) return null;
-
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 4),
-      );
-    } catch (e) {
-      debugPrint("Error fetching location: $e");
-      // Fallback location close to Mexico City reference coordinates
-      return Position(
-        latitude: 19.432608 + 0.0005, // slightly offset to test mismatch optionally
-        longitude: -99.133209 - 0.0003,
-        timestamp: DateTime.now(),
-        accuracy: 10.0,
-        altitude: 2240.0,
-        heading: 0.0,
-        speed: 0.0,
-        speedAccuracy: 0.0,
-        altitudeAccuracy: 1.0,
-        headingAccuracy: 1.0,
-      );
-    }
-  }
-
-  // Validate geolocalisation distance (Haversine or simple threshold check)
-  // Distance mismatch threshold ~ 200 meters (~0.002 degrees difference)
-  bool _validateGeoLocation(double photoLat, double photoLng) {
-    final double latDiff = (photoLat - _refLat).abs();
-    final double lngDiff = (photoLng - _refLng).abs();
-    return latDiff < 0.002 && lngDiff < 0.002;
-  }
+  /// Posición real del teléfono o null; nunca una posición inventada.
+  Future<Position?> _getCurrentLocation() => ubicacionActual(limite: const Duration(seconds: 4));
 
   /// Toma o elige una foto de evidencia. Antes esto era una simulación: esperaba
   /// 2 segundos y guardaba la ruta falsa "simulated_path_<categoria>.png", así
@@ -227,15 +165,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       // _validarGeolocalizacion): sirve como dato del cierre.
       final position = await _getCurrentLocation();
       if (!mounted) return;
-      final desubicada = position != null &&
-          !_validateGeoLocation(position.latitude, position.longitude);
 
       setState(() {
         if (!_fotosCapturadas.contains(category)) _fotosCapturadas.add(category);
         _photoPaths[category] = foto.path;
         _photoLocations[category] = position;
         _photoTimestamps[category] = DateTime.now();
-        _geoMismatches[category] = desubicada;
       });
 
       setState(() => _capturingCategory = null);
@@ -365,7 +300,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   }
 
   // Submit all details and complete installation
-  Future<void> _submitCierreInstalacion() async {
+  Future<void> _submitCierreInstalacion({bool confirmarUbicacion = false}) async {
     // Compile JSON Payload
     final Map<String, dynamic> geoJson = {};
     _photoLocations.forEach((category, pos) {
@@ -374,7 +309,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           "lat": pos.latitude,
           "lng": pos.longitude,
           "timestamp": _photoTimestamps[category]?.toIso8601String(),
-          "mismatch": _geoMismatches[category] ?? false
         };
       }
     });
@@ -407,6 +341,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     // debe seguir montado para poder medirlo.
     final firmaBase64 = await _firmaPngBase64();
     if (!mounted) return;
+    final ubicacionCierre = ubicacionJson(await _getCurrentLocation());
+    if (!mounted) return;
     if (firmaBase64 == null) {
       setState(() => _step3Error =
           "No se pudo capturar la firma. Pide al cliente que firme de nuevo.");
@@ -430,6 +366,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         if (_sensores != null) "sensores": _sensores,
       },
       "firmaBase64": firmaBase64,
+      // Posición al cerrar: el backend la compara con la de la llegada.
+      if (ubicacionCierre != null) "ubicacion": ubicacionCierre,
+      if (confirmarUbicacion) "confirmarUbicacion": true,
       "comentariosGenerales":
           "Paso 1: ${_photoCommentsController.text.trim()} | Paso 2: ${_step2CommentsController.text.trim()}",
     };
@@ -446,15 +385,44 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     result.fold(
       (_) => Navigator.pop(context, 'cierre_completed'),
       (failure) {
-        setState(() {
-          _isLoading = false;
-          _step3Error = "No se pudo enviar el cierre: ${failure.message}";
-        });
+        setState(() => _isLoading = false);
+        if (failure is ServerFailure && failure.code == 'FUERA_DE_SITIO') {
+          _confirmarCierreLejos(failure);
+          return;
+        }
+        setState(() => _step3Error = "No se pudo enviar el cierre: ${failure.message}");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("No se pudo enviar el cierre: ${failure.message}")),
         );
       },
     );
+  }
+
+  /// El backend detectó que el cierre está a más de 300 m de la llegada. El
+  /// instalador puede confirmar; la confirmación queda en el chatter de Odoo.
+  Future<void> _confirmarCierreLejos(ServerFailure failure) async {
+    final distancia = failure.details['distanciaM'];
+    final cs = Theme.of(context).colorScheme;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Estás lejos del sitio'),
+        content: Text(
+          distancia != null
+              ? 'Estás a $distancia m del punto donde marcaste la llegada. ¿Confirmas que estás cerrando la instalación en el sitio correcto?'
+              : failure.message,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Revisar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: cs.primary),
+            child: const Text('Sí, cerrar aquí'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar == true && mounted) await _submitCierreInstalacion(confirmarUbicacion: true);
   }
 
   // ----- Reparación: manejo de fotos de evidencia dinámicas -----
@@ -502,16 +470,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   // Validate Step 1
   bool _validateStep1() {
     if (!_evidenciasCompletas()) return false;
-
-    // La discrepancia de ubicación NO bloquea mientras _validarGeolocalizacion
-    // esté apagada: se registra en el payload, pero no impide cerrar.
-    if (_validarGeolocalizacion) {
-      final bool hasMismatch = _geoMismatches.values.contains(true);
-      if (hasMismatch && _photoCommentsController.text.trim().isEmpty) {
-        return false;
-      }
-    }
-
     return true;
   }
 
@@ -563,13 +521,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
     if (_currentStep == 1) {
       if (!_validateStep1()) {
-        bool hasMismatch = _validarGeolocalizacion && _geoMismatches.values.contains(true);
         setState(() {
-          _step1Error = hasMismatch
-            ? "⚠️ Alerta de fraude. Se detectó discrepancia de ubicación. Justifica las anomalías en el campo de texto."
-            : (_isReparacion
-                ? "Agrega al menos una foto de la reparación (sin dejar fotos pendientes de captura)."
-                : "Por favor, toma las 4 fotografías obligatorias.");
+          _step1Error = _isReparacion
+              ? "Agrega al menos una foto de la reparación (sin dejar fotos pendientes de captura)."
+              : "Por favor, toma las 4 fotografías obligatorias.";
         });
         return;
       }

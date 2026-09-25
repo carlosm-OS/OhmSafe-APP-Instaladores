@@ -40,6 +40,25 @@
 como lo guarda Odoo. La app lo convierte siempre a la hora del dispositivo con
 `FechasOdoo` (`lib/core/utils/fechas_odoo.dart`); nunca parsear el texto crudo.
 
+## 2c. Órdenes con dos orígenes (fase 2, 2026-09-25)
+Una orden con id `i<n>` (p. ej. `i2`) es una **intervención de Planificación** de Odoo;
+un id numérico es una tarea de Proyecto (las viejas, hasta cerrarse). Todos los
+endpoints de `/ordenes/:id/...` aceptan ambos y devuelven la misma forma. Campos aditivos
+en las intervenciones: `origen: 'intervencion'`, `ordenVenta` (p. ej. `S00152`),
+`hojaTrabajo: [{nombre, etiqueta, tipo, valor}]`. En intervenciones `pasoActual` sale de
+los marcadores de Odoo (salida, llegada = sign in, hoja de trabajo, equipo vinculado,
+firma). Las notificaciones traen `ordenId` con el mismo prefijo. La app trata el id como
+texto opaco: no requiere cambios para leerlas.
+
+## 2d. Ubicación en llegada y cierre (fase 3, 2026-09-25)
+`POST /ordenes/:id/marcar-llegada` acepta `{ubicacion:{lat,lng,precision}}` (opcional). En
+intervenciones esa posición es la referencia del cierre. `POST /ordenes/:id/cierre` acepta
+`ubicacion` y `confirmarUbicacion`. Si el cierre está a más de **300 m** de la llegada el
+backend responde **409 `FUERA_DE_SITIO`** con `details:{distanciaM, radioM}`; la app muestra el
+diálogo «Estás lejos del sitio» y reenvía con `confirmarUbicacion:true` si el instalador
+confirma (queda en el chatter de Odoo). La app **nunca inventa** una posición: sin GPS o
+permiso manda la petición sin `ubicacion`. `ServerFailure` ahora trae `code` y `details`.
+
 ## 3. Órdenes de servicio (dominio nuevo `field-service`)
 | Método | Ruta | Notas |
 |---|---|---|

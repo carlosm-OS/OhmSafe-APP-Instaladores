@@ -28,6 +28,12 @@ class Orden {
   /// partir de lo ya guardado en Odoo: iniciar_ruta | marcar_llegada |
   /// inspeccion | instalacion | vinculacion | cierre | completo | ...
   final String pasoActual;
+  /// 'intervencion' (Planificación de Odoo) o '' (tarea de Proyecto, las viejas).
+  final String origen;
+  /// Orden de venta que originó el servicio (p. ej. S00154); vacío en tareas viejas.
+  final String ordenVenta;
+  /// Hoja de trabajo de Odoo: `[{nombre, etiqueta, tipo, valor}]`, vacía hasta que se llena.
+  final List<Map<String, dynamic>> hojaTrabajo;
 
   const Orden({
     required this.id,
@@ -52,7 +58,12 @@ class Orden {
     this.contratoFirmado = false,
     this.condicionesTerreno = const [],
     this.pasoActual = 'iniciar_ruta',
+    this.origen = '',
+    this.ordenVenta = '',
+    this.hojaTrabajo = const [],
   });
+
+  bool get esIntervencion => origen == 'intervencion';
 
   /// true cuando el servicio ya arrancó: la acción de la tarjeta debe
   /// retomar el paso pendiente, no volver a "iniciar ruta".
@@ -84,6 +95,8 @@ class Orden {
           'cp': cp,
           'telefono': telefono,
           'condicionesTerreno': condicionesTerreno.join(', '),
+          'ordenVenta': ordenVenta,
+          'origen': origen,
         },
       };
 }

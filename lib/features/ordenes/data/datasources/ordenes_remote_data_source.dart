@@ -42,8 +42,8 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
-  Future<void> marcarLlegada(String id) async {
-    await dioClient.post('/instalador/ordenes/$id/marcar-llegada');
+  Future<void> marcarLlegada(String id, {Map<String, dynamic>? ubicacion}) async {
+    await dioClient.post('/instalador/ordenes/$id/marcar-llegada', body: {'ubicacion': ?ubicacion});
   }
 
   @override

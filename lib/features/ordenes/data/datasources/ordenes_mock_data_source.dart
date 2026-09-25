@@ -141,7 +141,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> iniciarRuta(String id) => _ok();
 
   @override
-  Future<void> marcarLlegada(String id) => _ok();
+  Future<void> marcarLlegada(String id, {Map<String, dynamic>? ubicacion}) => _ok();
 
   @override
   Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales}) => _ok();

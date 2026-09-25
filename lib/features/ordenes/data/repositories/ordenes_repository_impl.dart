@@ -20,7 +20,7 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       // 401 en una lectura/acción = sesión expirada.
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
-      return FailureResult(ServerFailure(e.message));
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
@@ -37,7 +37,7 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       // 401 en una lectura/acción = sesión expirada.
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
-      return FailureResult(ServerFailure(e.message));
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
@@ -53,7 +53,7 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     } on UnauthorizedException {
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
-      return FailureResult(ServerFailure(e.message));
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
@@ -72,7 +72,7 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       // 401 en una lectura/acción = sesión expirada.
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
-      return FailureResult(ServerFailure(e.message));
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
@@ -84,7 +84,8 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   Future<Result<bool>> iniciarRuta(String id) => _accion(() => dataSource.iniciarRuta(id));
 
   @override
-  Future<Result<bool>> marcarLlegada(String id) => _accion(() => dataSource.marcarLlegada(id));
+  Future<Result<bool>> marcarLlegada(String id, {Map<String, dynamic>? ubicacion}) =>
+      _accion(() => dataSource.marcarLlegada(id, ubicacion: ubicacion));
 
   @override
   Future<Result<bool>> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales}) =>
@@ -109,7 +110,7 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     } on UnauthorizedException {
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
-      return FailureResult(ServerFailure(e.message));
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
@@ -124,7 +125,7 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     } on UnauthorizedException {
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {
-      return FailureResult(ServerFailure(e.message));
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {

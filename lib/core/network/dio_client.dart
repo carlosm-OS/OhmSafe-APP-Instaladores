@@ -180,15 +180,19 @@ class DioClient {
       return jsonDecode(responseBody) as Map<String, dynamic>;
     }
     String msg = "Respuesta fallida: $statusCode";
+    String code = '';
+    Map<String, dynamic> details = const {};
     try {
       final decoded = jsonDecode(responseBody);
       if (decoded is Map && decoded['message'] is String) {
         msg = decoded['message'] as String;
       }
+      if (decoded is Map && decoded['error'] is String) code = decoded['error'] as String;
+      if (decoded is Map && decoded['details'] is Map) details = Map<String, dynamic>.from(decoded['details'] as Map);
     } catch (_) {
       // cuerpo no-JSON: se queda el mensaje por defecto
     }
     if (statusCode == 401) throw UnauthorizedException(msg);
-    throw ServerException(msg);
+    throw ServerException(msg, code, details);
   }
 }

@@ -20,7 +20,8 @@ abstract class OrdenesRepository {
   Future<Result<bool>> iniciarRuta(String id);
 
   /// Marca la llegada del técnico al domicilio (completa el paso 1).
-  Future<Result<bool>> marcarLlegada(String id);
+  /// [ubicacion] = `{lat, lng, precision}` del teléfono; el backend la usa como referencia del cierre.
+  Future<Result<bool>> marcarLlegada(String id, {Map<String, dynamic>? ubicacion});
 
   /// Guarda la inspección del perímetro.
   Future<Result<bool>> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales});
