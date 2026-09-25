@@ -195,3 +195,40 @@ Todo aditivo e idempotente, ejecutado por RPC (guiones en la sesión). Lo que qu
 - Firma: `worksheet_signature` (PNG base64) + `worksheet_signed_by`. El portal ofrece
   «Sign Report» al cliente como alternativa.
 - Los adjuntos se leen con `raw` (llega base64 en texto), no con `datas`.
+
+## Fase 2 — HECHA en el backend (2026-09-25)
+
+`Back-` `src/domains/field-service/intervencion.service.ts` + despacho en `routes.ts`
+(doc `docs/field-service.md` §«Fase 2»). Ids `i<n>`; unión de fuentes en lista,
+historial y notificaciones; webhooks `/webhooks/intervencion/*`; marcadores operativos
+`op_*` como propiedades de los roles 1 y 2 (fase 1 extendida). Reparación en sitio deja
+el desglose en el chatter hasta la fase 5. Pendiente: encender las automatizaciones 10/11/12
+tras desplegar y probar E2E por HTTP.
+
+### Fase 2 — VERIFICADA de punta a punta por HTTP (2026-09-25, Back- `652c792`, api-dev)
+
+Venta S00154 → intervención 6 (asignada a Juan Mora Test) → app por HTTP con sesión de
+instalador: lista (`i6`, paso `iniciar_ruta`) → iniciar ruta → llegada (`sign in`) →
+inspección → instalación → vinculación (Device creado por la serie + línea de material
+«Energizador» con lote y `picked`) → 4 fotos → cierre con firma → `action_complete` →
+**reporte PDF enviado** (`/web/content/3057`) → historial. Avisos: «Nueva instalación
+asignada» (push 2/2) y «Servicio agendado» en la campana; webhooks 10/11/12 **encendidos**
+(con `?token=` en la URL, como los de las tareas).
+
+Lo que se corrigió sobre la marcha (queda en el código y en `docs/field-service.md`):
+- `planning.slot` **no tiene `active`** (no se archiva): la cancelación desde la app es el
+  marcador `op_cancelada` + motivo en el chatter.
+- Un turno creado a mano nace con la «Default Worksheet» vacía: el backend cambia a la
+  hoja «Instalación OhmSafe» si la actual no tiene campos.
+- `sign in`/`complete` reescriben `start_datetime` con la hora real ⇒ la automatización de
+  agenda dispararía un falso «reagendado»; se ignora en `in_progress`/`completed`.
+- Completar exige la serie en la entrega **y `picked=true`** en la línea de movimiento.
+- Una serie sólo se entrega una vez: repetir una prueba con la misma serie da «ya había
+  sido asignado». Es Odoo haciendo su trabajo.
+- Los datos de prueba: SO S00152/S00153/S00154, intervenciones 2/4/6, Device
+  `TEST-INST-0006` creado en el backend de dev.
+
+**Pendiente de decisión (fase 3):** cuando operaciones asigna al técnico después de
+programar, el aviso es «asignada» con la fecha; «agendado» aparte sólo si la fecha llega
+después. La app de hoy ya lee intervenciones sin cambios; la fase 3 la adapta a la hoja de
+trabajo y retira pdfkit/S3/`x_`.
