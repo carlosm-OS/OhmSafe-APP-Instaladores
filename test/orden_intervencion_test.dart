@@ -17,7 +17,7 @@ void main() {
     expect(o.esIntervencion, isTrue);
     expect(o.ordenVenta, 'S00154');
     expect(o.hojaTrabajo, hasLength(2));
-    expect(o.toTicketMap()['ordenVenta'], 'S00154');
+    expect((o.toTicketMap()['details'] as Map)['ordenVenta'], 'S00154');
   });
 
   test('una tarea vieja sigue igual: sin origen ni hoja', () {
