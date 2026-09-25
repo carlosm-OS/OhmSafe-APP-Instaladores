@@ -139,3 +139,43 @@ automatización dentro de Odoo al pasar a *Completed*.
 La app (Flutter), la sesión persistente, el push, las notificaciones, el centro de
 notificaciones, la zona horaria, el modelo casa→equipos del backend y el cobro por
 casa. Cambia **de qué modelo de Odoo cuelga la orden** y quién genera la evidencia.
+
+## 6. Hojas de trabajo (worksheets) en tu versión — verificado 2026-09-25
+
+**Nombre.** En Odoo se llaman *Worksheets* / **Hojas de trabajo**; el PDF que sale de
+ellas es el *Field Service Report* / **Reporte de servicio de campo**. Son el lugar
+donde viven el checklist, las observaciones y la **firma del cliente**.
+
+**Cómo funcionan en 19.2+ (ya no con Studio).** Nota de la versión 19.2: «Worksheet
+templates now use property fields instead of Studio fields». Verificado en tu base:
+
+- La plantilla es la **definición de propiedades del ROL** (`planning.role.
+  slot_properties_definition`): Planificación → Configuración → Roles → pestaña de
+  propiedades. Cada intervención de ese rol muestra esos campos
+  (`planning.slot.slot_properties`). Hoy los tres roles («Instalador OhmSafe
+  Externo/Interno», «Technician») tienen la definición **vacía**.
+- Tipos de campo disponibles: texto, texto largo, HTML, **casilla (check)**, entero,
+  decimal, monetario, fecha, fecha y hora, **selección**, etiquetas, relación a otro
+  modelo (uno o varios) y **separador** (agrupa checks bajo un título plegable). **No
+  hay tipo foto/archivo**: las fotos van como **adjuntos de la intervención** (chatter)
+  y el reporte las incluye.
+- El módulo **«Field Service Reports»** (`planning_field_service_worksheet`, sin
+  instalar) añade **plantillas de hoja de trabajo independientes del rol**
+  (`worksheet.template`, también con propiedades) para tener, por ejemplo, una hoja de
+  Instalación y otra de Reparación con el mismo rol. Con lo instalado hoy se puede
+  empezar con una plantilla por rol.
+- **Firma:** campos nativos `worksheet_signature` / `worksheet_signed_by` en la
+  intervención; el cliente firma en el portal o en el dispositivo del técnico.
+- **Reporte y envío:** ya existen el reporte `planning_field_service.worksheet_custom`
+  («Field Service Report») y la acción «Send Report» sobre la intervención.
+- **RPC verificado:** `action_send_report`, `action_sign_in`, `action_complete` y
+  `action_preview_worksheet` son métodos públicos de `planning.slot` y se pueden
+  invocar desde el backend. **El riesgo del PDF por RPC queda resuelto.**
+
+**Nuestra hoja de trabajo de instalación (borrador de checks por rol):**
+separador «Inspección» → sin obstáculos (check), obstáculos (texto), metraje real
+(decimal); separador «Instalación» → postes esquina/paso (entero), abanicos (entero),
+aisladores por poste (entero), inventario confirmado (check), checklist completado
+(check); separador «Entrega» → control remoto funcional (check), cámaras
+(selección: instaladas / no aplica), sensores (selección), observaciones (texto largo);
+fotos = adjuntos (perfil izq/der, frente, energizador); firma = campo nativo.
