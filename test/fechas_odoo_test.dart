@@ -36,4 +36,11 @@ void main() {
       expect(FechasOdoo.fechaHora(null), '');
     });
   });
+
+  test('una fecha sin hora es un día calendario: no se corre por la zona horaria', () {
+    expect(FechasOdoo.fecha('2026-09-20'), '20/09/2026');
+    final d = FechasOdoo.aLocal('2026-09-20')!;
+    expect([d.year, d.month, d.day, d.hour], [2026, 9, 20, 0]);
+    expect(FechasOdoo.soloDia('2026-01-01'), DateTime(2026, 1, 1));
+  });
 }

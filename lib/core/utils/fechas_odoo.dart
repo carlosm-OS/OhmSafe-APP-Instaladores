@@ -10,12 +10,21 @@ class FechasOdoo {
   FechasOdoo._();
 
   static final RegExp _conZona = RegExp(r'(Z|[+-]\d{2}:?\d{2})$');
+  static final RegExp _soloFecha = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
   /// Instante en hora local del dispositivo, o null si no parsea.
+  ///
+  /// Una fecha sin hora (`2026-09-20`, como `invoice_date` o `date_order` de
+  /// tipo Date en Odoo) es un día calendario, no un instante: se lee tal cual,
+  /// sin pasarla por UTC, o en América amanecería como el día anterior.
   static DateTime? aLocal(String? raw) {
     if (raw == null) return null;
     var s = raw.trim();
     if (s.isEmpty) return null;
+    if (_soloFecha.hasMatch(s)) {
+      final d = DateTime.tryParse(s);
+      return d == null ? null : DateTime(d.year, d.month, d.day);
+    }
     s = s.replaceFirst(' ', 'T');
     if (!_conZona.hasMatch(s)) s = '${s}Z';
     return DateTime.tryParse(s)?.toLocal();
