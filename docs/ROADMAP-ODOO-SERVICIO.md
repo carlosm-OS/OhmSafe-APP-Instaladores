@@ -149,3 +149,49 @@ Android real.
 Semana 1: fase 0 + fase 1 (dejo Odoo configurado y una intervención de prueba
 completa para que la veas). Semana 2: fase 2. Semana 3: fase 3 y build a TestFlight.
 Después, 4 y 5 en paralelo, y 6 para cerrar.
+
+## Fase 1 — HECHA y verificada en Odoo (2026-09-25)
+
+Todo aditivo e idempotente, ejecutado por RPC (guiones en la sesión). Lo que quedó:
+
+| Pieza | Registro en Odoo |
+|---|---|
+| Tipo de habilidad «Servicio OhmSafe» | `hr.skill.type` 6; habilidades 43-47; niveles Básico/Competente/Experto 26-28 |
+| Empleado del instalador de prueba | `hr.employee` 15 «Juan Mora Test» (contacto 106), rol Instalador OhmSafe Externo, 4 habilidades |
+| Productos que crean intervención | `product.template` 48 SRV-INSTALACION, 49 SRV-REPARACION, 50 SRV-REEMPLAZO; 32 Mantenimiento preventivo anual y 23 Visita/diagnóstico habilitados |
+| Ubicación van | `stock.location` 27 «WH/Stock/Van Juan Mora Test» |
+| Módulo instalado | **Field Service Reports** (`planning_field_service_worksheet` + `worksheet` + `planning_field_service_sale_worksheet`) |
+| Hoja de trabajo | `worksheet.template` 2 «Instalación OhmSafe» (16 campos, 3 separadores); por defecto en los 5 productos de servicio y en las 4 plantillas de turno |
+| Plantillas de turno | `planning.slot.template` 1-4 (Instalación jornada, Reparación 2 h, Mantenimiento 3 h, Reemplazo 2 h) |
+| Automatizaciones (APAGADAS) | `base.automation` 10/11/12 → acciones webhook 1306/1307/1308 (`/v1/instalador/webhooks/intervencion/asignacion|agenda|estado`) |
+| Prueba E2E | venta S00152 → intervención 2: asignada, programada, sign in, hoja llena, 4 fotos, firma, completada, **reporte PDF enviado al cliente** (adjunto 3045, notificación `sent`) |
+
+**Pendiente de decisión (Carlos):** el usuario de API dedicado es un usuario interno y
+**cuesta una licencia**; hasta decidirlo el backend sigue entrando como admin.
+
+### Lo que aprendimos del RPC (vale para la fase 2)
+
+- Al confirmar la venta nace un turno «por planificar» (sin fechas). **Escribirle fechas o
+  técnico por RPC no funciona**: la intervención real se crea con
+  `planning.slot.create({sale_line_id, partner_id, role_id, start/end_datetime,
+  employee_ids})` pasando el contexto `default_start_datetime/default_end_datetime`,
+  como hace el Gantt.
+- El técnico se asigna por **`resource_ids`** (recurso del empleado); `employee_ids` es
+  calculado y se ignora al escribir.
+- `action_planning_publish_and_send` (Programada + correo al cliente), `action_sign_in`
+  (En curso), `action_complete` (Completada) y `action_send_report` (abre el compositor
+  con la plantilla 74) son públicos. Para enviar sin interfaz: `mail.compose.message`
+  con `composition_mode=comment`, `template_id=74`, `partner_ids` y `action_send_mail`
+  ⇒ mensaje en el chatter con el PDF y notificación `sent`.
+  `mail.template.send_mail` también envía pero **no deja rastro en el chatter**.
+- El reporte exige horas, productos **u hoja de trabajo**: las propiedades del rol NO
+  cuentan; hace falta el módulo Field Service Reports y `worksheet_template_id` +
+  `worksheet_properties` en la intervención. Los separadores necesitan
+  `fold_by_default` o el reporte falla.
+- Fotos: adjuntos `ir.attachment` (`res_model=planning.slot`) escritos con **`raw`
+  en base64** (`datas` se ignora y deja el archivo vacío) y con
+  **`generate_access_token`**: el reporte los incrusta por `/web/image/<id>?access_token=`
+  y sin token salen iconos vacíos. La intervención los expone en `photo_ids`.
+- Firma: `worksheet_signature` (PNG base64) + `worksheet_signed_by`. El portal ofrece
+  «Sign Report» al cliente como alternativa.
+- Los adjuntos se leen con `raw` (llega base64 en texto), no con `datas`.
