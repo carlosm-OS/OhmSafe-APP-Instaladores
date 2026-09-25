@@ -269,3 +269,22 @@ contestada con 5, `perfil.calificacion = 5.0 (1)`.
 Trampas: la definición de propiedades del ticket vive en `helpdesk.team.ticket_properties`;
 `survey.invite` + `action_invite` deja el `survey.user_input` que se guarda en
 `op_encuesta_id`; la encuesta se contesta desde el correo del cliente.
+
+## Fase 5 — HECHA y verificada (2026-09-25, backend `2ba2797`, app fase 5, build 13)
+
+| Pendiente original | Cómo quedó |
+|---|---|
+| Facturación por intervención | **Contabilidad**: al cerrar, factura al cliente en borrador desde la orden de venta (`sale.advance.payment.inv` método `delivered`), sólo si la orden está confirmada y tiene algo por facturar; `op_factura_id`. Operaciones valida y cobra; el portal ya tiene Stripe (proveedor 18) |
+| Pago al instalador | **Compras**: factura de proveedor en borrador al contacto del instalador con el producto «Pago a instalador — Instalación/Reparación/Mantenimiento/Reemplazo» (`PAGO-*`, categoría «Pagos a instaladores», ids 51-54); importe = costo del producto (hoy 0: **Carlos lo fija en Odoo**; mientras, la factura lleva la nota «Sin tarifa configurada»); `op_pago_instalador_id`. App: Perfil › **Mis pagos** (totales pagado / por pagar / en revisión + lista) |
+| Venta en campo | **Ventas**: `GET /catalogo` (productos etiquetados «App instalador», tag id 1; hoy MO-ENERG-BAT, MO-ENERG-SIMPLE, MO-MTTO-ANUAL, OS-SUB-HOGAR-MEN; los SRV-* etiquetados pero sin precio) y `POST /cotizaciones`: contacto por correo, orden en borrador con atribución `source_id` «App instalador» (15) / `medium_id` «Venta en campo» (6) / `origin` «App instalador · <código de venta>», enviada con la plantilla nativa (48) → estado `sent`; el cliente paga desde `urlPortal`. App: tile **Cotizar venta** (lista + formulario con catálogo y cantidades; copiar/abrir enlace) |
+| Reparaciones | Siguen siendo intervenciones con producto SRV-REPARACION; el tile del home sigue oculto hasta cerrar su flujo E2E |
+| PoS | No: no habrá efectivo por ahora |
+
+E2E por HTTP (S00157 / intervención 12): al cerrar quedaron la factura al cliente 223 (borrador,
+$1.16 de prueba) y la factura de proveedor 224 (borrador, Juan Mora Test, $0 con nota de tarifa);
+`GET /pagos` la lista como «En revisión». Cotización S00158 para «Ana Prueba F5» con UTM y código
+OHMS-JUAN19, correo enviado (estado `enviada`) y enlace de portal.
+
+Decisiones que quedan para Carlos: (1) costo de los productos `PAGO-*`; (2) precio de los SRV-*
+si se quieren cotizar desde la app; (3) qué más etiquetar como «App instalador»; (4) comisión del
+instalador por cotización vendida (hoy sólo atribución). Nada de esto va a HubSpot.

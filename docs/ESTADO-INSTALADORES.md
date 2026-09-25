@@ -86,13 +86,14 @@ Odoo sin tocar Stripe/checkout:
   vincular energizador → cierre con firma), cada paso escribe en Odoo y mueve la
   etapa. Detalle campo por campo en [MANUAL-OPERACION-ODOO](MANUAL-OPERACION-ODOO.md).
 
-## Fases 4–5 — Pago al instalador y encuesta/ranking  ⬜
-- ⬜ **Pago (cuentas por pagar)**: al cerrar, abrir el flujo de pago al instalador
-  (proveedor), corte de viernes. Pendiente de construir.
-- ⬜ **Encuesta + ranking** (estilo Uber): migrar preguntas desde HubSpot; el
-  instalador ve solo su ranking; Operaciones ve las encuestas. Pendiente.
-- 🟡 **Bono por referidos (Capa B)**: el código de venta ya existe (Capa A). La
-  atribución de ventas + cálculo del bono se acopla al puente Stripe→Odoo.
+## Fases 4–5 — Pago al instalador y encuesta/ranking  ✅ (2026-09-25, sobre apps nativas de Odoo)
+- ✅ **Pago (cuentas por pagar)**: al cerrar nace la factura de proveedor en borrador
+  (Compras) con el producto `PAGO-<tipo>`; operaciones valida, contabilidad paga.
+  Perfil › Mis pagos. Falta que Carlos fije los costos de `PAGO-*` en Odoo.
+- ✅ **Encuesta + ranking**: encuesta nativa al cerrar; `perfil.calificacion` real.
+- 🟡 **Bono por referidos (Capa B)**: la atribución ya existe (cotización desde la app con
+  UTM «App instalador / Venta en campo» y código de venta en `origin`); falta la regla de
+  comisión.
 
 ---
 
@@ -162,8 +163,8 @@ Odoo sin tocar Stripe/checkout:
 1. 🟡 **Probar el push en un teléfono** (Android primero) — cierra el ciclo.
 2. 🟡 **HubSpot**: pegar la acción de webhook en el workflow (tiempo real).
 3. ⬜ **iOS**: APNs Auth Key en Firebase.
-4. ⬜ **Fase 4** (pago al instalador) y **Fase 5** (encuesta + ranking).
-5. ⬜ **Bono Capa B** (atribución de ventas), acoplado a Stripe→Odoo.
+4. ✅ **Fase 4** (postventa) y **Fase 5** (dinero) — ver `ROADMAP-ODOO-SERVICIO.md`.
+5. 🟡 **Bono Capa B**: atribución hecha (cotizaciones desde la app); falta la comisión.
 6. ⬜ **Publicación**: TestFlight/Play con el bundle `com.ohmsafe.instalador`.
 
 ## Estado E2E — 2026-09-14 (simulador iOS, ticket 43 "Carlos M TestFlight")

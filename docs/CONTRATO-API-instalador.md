@@ -69,6 +69,18 @@ permiso manda la petición sin `ubicacion`. `ServerFailure` ahora trae `code` y 
 Al vincular un energizador el backend lo registra en **Mantenimiento** con su preventivo anual;
 al cerrar manda la **encuesta** al cliente. Ninguno de los dos bloquea el paso de la app.
 
+## 2f. Dinero (fase 5, 2026-09-25)
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/v1/instalador/pagos` | `{pagos:[{id, referencia, concepto, ordenId, fecha, monto, pendiente, moneda, estado}], totales:{pagado, porPagar, pendienteValidacion, moneda}}`. Cada pago es una factura de proveedor en Odoo (Compras) que nace en borrador al cerrar la intervención. `estado` ∈ `pendiente_validacion \| por_pagar \| pagado \| cancelado` |
+| GET | `/v1/instalador/catalogo` | productos con la etiqueta «App instalador», vendibles y con precio: `[{id, codigo, nombre, descripcion, precio, categoria, esServicio}]` |
+| POST | `/v1/instalador/cotizaciones` | `{cliente:{nombre, email, telefono?, direccion?, ciudad?, cp?}, lineas:[{productoId, cantidad}], nota?, enviar?}` → orden de venta en Odoo atribuida al instalador (UTM «App instalador / Venta en campo» + código de venta en `origin`), enviada al cliente con la plantilla nativa. Respuesta `{id, referencia, cliente, fecha, total, moneda, estado, urlPortal}`. Error `PRODUCTO_NO_VENDIBLE` (400) si algún producto no está en el catálogo |
+| GET | `/v1/instalador/cotizaciones` | mis cotizaciones, misma forma; `estado` ∈ `borrador \| enviada \| confirmada \| cancelada` |
+
+Al cerrar una intervención el backend también crea la **factura al cliente** en borrador desde la
+orden de venta; no bloquea el paso. Importes de pago al instalador: `standard_price` de los
+productos `PAGO-*` en Odoo (hoy 0 hasta que Carlos los fije).
+
 ## 3. Órdenes de servicio (dominio nuevo `field-service`)
 | Método | Ruta | Notas |
 |---|---|---|

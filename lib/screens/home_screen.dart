@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
 import 'incidencias_screen.dart';
+import 'cotizaciones_screen.dart';
 // import 'reparaciones_screen.dart'; // oculto en el MVP, ver tiles comentados abajo
 import 'profile_main_screen.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -247,6 +248,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const IncidenciasScreen()),
+                        ),
+                      ),
+                      // Fase 5 (2026-09-25): el instalador cotiza en campo; la venta
+                      // nace en Odoo atribuida a él y el cliente paga en el portal.
+                      MenuItemTile(
+                        label: "Cotizar venta",
+                        count: 0,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CotizacionesScreen()),
                         ),
                       ),
                       const SizedBox(height: 100), // Extra space to scroll above the bottom nav
