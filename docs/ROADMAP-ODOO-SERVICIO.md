@@ -232,3 +232,23 @@ Lo que se corrigió sobre la marcha (queda en el código y en `docs/field-servic
 programar, el aviso es «asignada» con la fecha; «agendado» aparte sólo si la fecha llega
 después. La app de hoy ya lee intervenciones sin cambios; la fase 3 la adapta a la hoja de
 trabajo y retira pdfkit/S3/`x_`.
+
+## Fase 3 — HECHA y verificada (2026-09-25, app `626f850`+, backend `Back-` fase 3a, build 11)
+
+La app ya opera intervenciones con sus particularidades:
+- **Orden**: `origen`, `ordenVenta` y `hojaTrabajo` (aditivos). El detalle muestra la orden de
+  venta y, en cuanto se registra algo en sitio, la hoja de trabajo tal como está en Odoo.
+- **Geolocalización real (pendiente 2, cerrado):** la llegada manda la posición del teléfono
+  (referencia); el cierre manda la suya y el backend compara: a más de **300 m** responde
+  `409 FUERA_DE_SITIO {distanciaM}` y la app muestra «Estás lejos del sitio» con la
+  distancia; confirmar reenvía con `confirmarUbicacion` y deja nota en el chatter. Se
+  retiró la geolocalización falsa del cierre (posiciones inventadas de CDMX y referencia
+  fija): la app **nunca inventa una posición**; sin GPS manda la petición sin ubicación.
+- `ServerFailure` trae `code` y `details`, así la app puede reaccionar a códigos del backend.
+- E2E por HTTP sobre S00155 / intervención 8: rechazo a 1,112 m, cierre confirmado →
+  completada + reporte 3063 enviado.
+
+**Lo que NO se retiró todavía (a propósito):** pdfkit, la evidencia en S3 y los campos
+`x_` siguen sirviendo a las 29 tareas viejas hasta que se cierren; se retiran en la fase
+6 al archivar el proyecto. Los módulos ocultos del home y «Reportar incidencias» siguen
+como estaban: los cubre la fase 4 (Helpdesk, Mantenimiento, Encuestas, Citas).
