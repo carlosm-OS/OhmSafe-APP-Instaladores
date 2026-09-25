@@ -14,10 +14,15 @@ import '../core/utils/fechas_odoo.dart';
 class InstalacionesScreen extends StatefulWidget {
   final String? cancelledTicketTitle;
   final String? completedTicketTitle;
+  /// Tipo de servicio que lista: instalacion (por defecto), mantenimiento, reparacion, reemplazo.
+  final String tipo;
+  final String titulo;
   const InstalacionesScreen({
     super.key,
     this.cancelledTicketTitle,
     this.completedTicketTitle,
+    this.tipo = 'instalacion',
+    this.titulo = 'Instalaciones',
   });
 
   @override
@@ -134,7 +139,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       if (!silencioso) _loading = true;
       _error = null;
     });
-    final result = await _repo.getOrdenes(tipo: 'instalacion');
+    final result = await _repo.getOrdenes(tipo: widget.tipo);
     if (!mounted) return;
     result.fold(
       (ordenes) => setState(() {
@@ -221,7 +226,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                           width: double.infinity,
                           alignment: Alignment.center,
                           child: Text(
-                            "Instalaciones",
+                            widget.titulo,
                             textAlign: TextAlign.center,
                             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.textTheme.titleLarge?.color),
                           ),

@@ -35,6 +35,11 @@ class AppState extends ChangeNotifier {
   // Código de venta / descuento (Odoo x_codigo_venta) para el bono por referidos.
   String _codigoVenta = '';
   String get codigoVenta => _codigoVenta;
+  double? _calificacion;
+  int _respuestasEncuesta = 0;
+  /// Calificación real (encuestas de satisfacción); null hasta la primera respuesta.
+  double? get calificacion => _calificacion;
+  int get respuestasEncuesta => _respuestasEncuesta;
   final String installerAvatar = "avatar.png";
 
   // Foto de perfil real (Odoo image_256, base64). Se carga con refreshBadges();
@@ -205,6 +210,8 @@ class AppState extends ChangeNotifier {
     _codigoVenta = p.codigoVenta;
     if (p.nombre.isNotEmpty) _installerName = p.nombre;
     _fotoBase64 = p.fotoBase64;
+    _calificacion = p.calificacion;
+    _respuestasEncuesta = p.respuestasEncuesta;
   }
 
   /// Siembra el estado justo tras el login con lo que ya trae la sesión

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
+import 'incidencias_screen.dart';
 // import 'reparaciones_screen.dart'; // oculto en el MVP, ver tiles comentados abajo
 import 'profile_main_screen.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -225,11 +226,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       //     MaterialPageRoute(builder: (_) => const ReparacionesScreen()),
                       //   ),
                       // ),
-                      // MenuItemTile(
-                      //   label: "Mantenimientos",
-                      //   count: state.mantenimientosCount,
-                      //   onTap: () => _showComingSoon(context, "Mantenimientos"),
-                      // ),
+                      // Fase 4 (2026-09-25): los mantenimientos son intervenciones de
+                      // Planificación con producto de mantenimiento; misma lista, otro filtro.
+                      MenuItemTile(
+                        label: "Mantenimientos",
+                        count: state.mantenimientosCount,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const InstalacionesScreen(tipo: 'mantenimiento', titulo: 'Mantenimientos')),
+                        ),
+                      ),
                       // MenuItemTile(
                       //   label: "Reemplazo de equipo",
                       //   count: state.reemplazoCount,
@@ -238,7 +244,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       MenuItemTile(
                         label: "Reportar incidencias",
                         count: state.incidenciasCount,
-                        onTap: () => _showComingSoon(context, "Reportar incidencias"),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const IncidenciasScreen()),
+                        ),
                       ),
                       const SizedBox(height: 100), // Extra space to scroll above the bottom nav
                     ],

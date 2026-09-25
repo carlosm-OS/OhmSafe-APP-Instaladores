@@ -15,6 +15,8 @@ class PerfilModel extends Perfil {
     super.numeroInstalador,
     super.codigoVenta,
     super.fotoBase64,
+    super.calificacion,
+    super.respuestasEncuesta,
   });
 
   factory PerfilModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,8 @@ class PerfilModel extends Perfil {
       numeroInstalador: s(json['numeroInstalador']),
       codigoVenta: s(json['codigoVenta']),
       fotoBase64: s(json['fotoBase64']),
+      calificacion: (json['calificacion'] as num?)?.toDouble(),
+      respuestasEncuesta: (json['respuestasEncuesta'] as num?)?.toInt() ?? 0,
     );
   }
 }

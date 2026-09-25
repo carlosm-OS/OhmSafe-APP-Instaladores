@@ -23,6 +23,7 @@ import '../../features/notificaciones/data/notificaciones_repository.dart';
 import '../auth/biometria.dart';
 import '../auth/session_manager.dart';
 import '../auth/session_store.dart';
+import '../../features/incidencias/data/incidencias_repository.dart';
 
 class sl {
   static final Map<Type, dynamic> _instances = {};
@@ -54,6 +55,8 @@ class sl {
     registerLazySingleton<DioClient>(() => DioClient(envConfig: get<EnvConfig>()));
     registerLazySingleton<NotificacionesRepository>(
         () => NotificacionesRepository(dioClient: get<DioClient>()));
+    registerLazySingleton<IncidenciasRepository>(
+        () => IncidenciasRepository(dioClient: get<DioClient>()));
 
     // Features dependencies
     registerLazySingleton<HomeRemoteDataSource>(

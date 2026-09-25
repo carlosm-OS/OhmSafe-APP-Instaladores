@@ -148,6 +148,29 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
 
   /// Pide confirmación, cierra la sesión (limpia sesión + token) y vuelve al
   /// login borrando el stack de navegación.
+  Widget _calificacionRow(double? calificacion, int respuestas, ColorScheme cs) {
+    if (calificacion == null) {
+      return Text('Sin calificaciones aún', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w500));
+    }
+    final llenas = calificacion.floor();
+    final media = calificacion - llenas >= 0.5;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < 5; i++)
+          Icon(
+            i < llenas ? Icons.star_rounded : (i == llenas && media ? Icons.star_half_rounded : Icons.star_outline_rounded),
+            color: cs.secondary,
+            size: 24,
+          ),
+        const SizedBox(width: 8),
+        Text(calificacion.toStringAsFixed(1), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(width: 4),
+        Text('($respuestas)', style: TextStyle(color: cs.onSurfaceVariant)),
+      ],
+    );
+  }
+
   Future<void> _cerrarSesion(BuildContext context) async {
     final cs = Theme.of(context).colorScheme;
     final confirmar = await showDialog<bool>(
@@ -357,27 +380,9 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Star Rating Row
-                        Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
-                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
-                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
-                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
-                              Icon(Icons.star_half_rounded, color: cs.secondary, size: 24),
-                              const SizedBox(width: 8),
-                              const Text(
-                                "4.7",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        // Calificación real: promedio de las encuestas de satisfacción
+                        // que contestan los clientes al cerrar cada servicio.
+                        Center(child: _calificacionRow(state.calificacion, state.respuestasEncuesta, cs)),
                         const SizedBox(height: 20),
 
                         // Código de venta real (Odoo x_codigo_venta). Se oculta
