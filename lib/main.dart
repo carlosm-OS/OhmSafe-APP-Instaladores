@@ -7,7 +7,9 @@ import 'core/di/injection_container.dart';
 import 'core/push/push_service.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/instalaciones_screen.dart';
-import 'screens/login_screen.dart';
+import 'screens/arranque_screen.dart';
+import 'screens/bloqueo_screen.dart';
+import 'core/auth/session_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,18 +83,56 @@ class OhmSafeApp extends StatefulWidget {
   State<OhmSafeApp> createState() => _OhmSafeAppState();
 }
 
-class _OhmSafeAppState extends State<OhmSafeApp> {
+class _OhmSafeAppState extends State<OhmSafeApp> with WidgetsBindingObserver {
   ThemeMode _themeMode = ThemeMode.light;
+  bool _bloqueoVisible = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Al tocar la notificación de "instalación asignada", abre la lista.
     PushService.instance.onOpenInstalacion = (_) {
       appNavigatorKey.currentState?.push(
         MaterialPageRoute(builder: (_) => const InstalacionesScreen()),
       );
     };
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Bloqueo biométrico al volver del fondo (nivel A): si la biometría está
+  /// activada, hay sesión y pasaron 15 minutos, se pide Face ID otra vez.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final manager = sl.get<SessionManager>();
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (manager.actual != null) manager.marcarActivo();
+      return;
+    }
+    if (state != AppLifecycleState.resumed || _bloqueoVisible) return;
+    () async {
+      if (manager.actual == null) return; // aún no ha entrado (login/arranque)
+      if (!await manager.biometriaActivada()) return;
+      if (!await manager.necesitaBloqueo()) return;
+      final nav = appNavigatorKey.currentState;
+      if (nav == null || _bloqueoVisible) return;
+      _bloqueoVisible = true;
+      await nav.push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => BloqueoScreen(
+            onToggleTheme: _toggleTheme,
+            alDesbloquear: () => appNavigatorKey.currentState?.pop(),
+          ),
+        ),
+      );
+      _bloqueoVisible = false;
+    }();
   }
 
   void _toggleTheme() {
@@ -112,7 +152,7 @@ class _OhmSafeAppState extends State<OhmSafeApp> {
       themeMode: _themeMode,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      home: LoginScreen(onToggleTheme: _toggleTheme),
+      home: ArranqueScreen(onToggleTheme: _toggleTheme),
     );
   }
 }

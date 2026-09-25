@@ -1,5 +1,6 @@
 package com.ohmsafe.instalador
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity: lo exige local_auth (BiometricPrompt) en Android.
+class MainActivity : FlutterFragmentActivity()

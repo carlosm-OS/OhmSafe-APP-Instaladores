@@ -17,6 +17,7 @@ import 'datos_bancarios_screen.dart';
 import 'contrasenas_screen.dart';
 import 'facturacion_screen.dart';
 import 'login_screen.dart';
+import 'seguridad_screen.dart';
 
 /// Formatea la imagen para que Odoo siempre la acepte: decodifica, redimensiona
 /// a máx 1024px y re-codifica como JPEG. Corre en un isolate (compute) para no
@@ -414,6 +415,12 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                           label: "Contraseñas",
                           icon: Icons.settings,
                           targetScreen: const ContrasenasScreen(),
+                        ),
+                        _buildMenuItem(
+                          context,
+                          label: "Seguridad",
+                          icon: Icons.fingerprint,
+                          targetScreen: const SeguridadScreen(),
                         ),
                         _buildMenuItem(
                           context,

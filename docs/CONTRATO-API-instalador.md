@@ -16,9 +16,11 @@
 ## 1. Auth
 | Método | Ruta | Cuerpo | Respuesta |
 |---|---|---|---|
-| POST | `/v1/instalador/auth/login` | `{email, password}` | `{accessToken, refreshToken, instalador:{id, nombre, numeroInstalador, rol}}` |
-| POST | `/v1/instalador/auth/refresh` | `{refreshToken}` | `{accessToken, refreshToken}` |
-| POST | `/v1/instalador/auth/logout` | — | `204` |
+| POST | `/v1/instalador/auth/login` | `{email, password, deviceId?, deviceName?}` | `{accessToken, refreshToken, expiresIn?, sesionPersistente, debeCambiarPassword, instalador:{id, nombre, numeroInstalador, rol}}`. Con `deviceId` el refresh es persistente (30 d deslizantes, tope 180, ligado al dispositivo) |
+| POST | `/v1/instalador/auth/refresh` | `{refreshToken, deviceId}` | `{accessToken, refreshToken, expiresIn}` — rota; 401 = sesión muerta (revocada, vencida u otro dispositivo) |
+| POST | `/v1/instalador/auth/logout` | `{refreshToken}` | `{ok:true}` — público e idempotente |
+
+**Sesión en la app (nivel A):** el refresh vive en Keychain/Keystore (`SecureSessionStore`), el access sólo en memoria; `DioClient` reintenta UNA vez tras un 401 usando `SessionManager.refrescar()` (single-flight). Face ID/Touch ID no habla con el servidor: sólo desbloquea el uso del refresh guardado; se invita una vez tras el primer inicio, se pide al arrancar y al volver del fondo pasados 15 min, y se administra en Perfil › Seguridad. Ver `docs/sesiones-instalador.md` del backend.
 
 ## 2. Perfil (bidireccional con Odoo)
 | Método | Ruta | Notas |

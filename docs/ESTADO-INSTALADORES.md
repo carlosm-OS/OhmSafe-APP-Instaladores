@@ -158,6 +158,7 @@ Odoo sin tocar Stripe/checkout:
    - **Mantenimientos** (sin pantalla; solo "próximamente").
    - **Reemplazo de equipo** (sin pantalla; solo "próximamente").
    - *Reportar incidencias* sigue visible pero aún es "próximamente": es el siguiente a construir.
+1. ✅ **Sesión persistente y biometría nivel A (2026-09-27)** — refresh rotado en Keychain/Keystore, refresco automático ante 401, Face ID al arrancar y tras 15 min en segundo plano, invitación tras el primer inicio, Perfil › Seguridad. Nivel B (secreto protegido por el SO) y «Dispositivos con sesión» quedan para la siguiente versión.
 1. 🟡 **Probar el push en un teléfono** (Android primero) — cierra el ciclo.
 2. 🟡 **HubSpot**: pegar la acción de webhook en el workflow (tiempo real).
 3. ⬜ **iOS**: APNs Auth Key en Firebase.

@@ -7,7 +7,7 @@ import 'auth_data_source.dart';
 /// login sin backend.
 class AuthMockDataSource implements AuthDataSource {
   @override
-  Future<SesionModel> login({required String email, required String password}) async {
+  Future<SesionModel> login({required String email, required String password, String? deviceId, String? deviceName}) async {
     await Future.delayed(const Duration(milliseconds: 500));
     if (email.trim().isEmpty || password.trim().isEmpty) {
       throw const ServerException('Ingresa correo y contraseña');

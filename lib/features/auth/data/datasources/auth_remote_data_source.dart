@@ -11,10 +11,18 @@ class AuthRemoteDataSource implements AuthDataSource {
   AuthRemoteDataSource({required this.dioClient});
 
   @override
-  Future<SesionModel> login({required String email, required String password}) async {
+  Future<SesionModel> login({required String email, required String password, String? deviceId, String? deviceName}) async {
     final response = await dioClient.post(
       '/instalador/auth/login',
-      body: {'email': email, 'password': password},
+      body: {
+        'email': email,
+        'password': password,
+        // Con deviceId el backend abre una sesión persistente (refresh rotado
+        // ligado a este dispositivo); sin él, la de 15 minutos de antes.
+        if (deviceId != null) 'deviceId': deviceId,
+        if (deviceName != null) 'deviceName': deviceName,
+      },
+      sinReintento: true,
     );
     if (response.isEmpty) throw const ServerException('Respuesta de login vacía');
     // El backend responde { success, data: { accessToken, refreshToken, instalador } }.

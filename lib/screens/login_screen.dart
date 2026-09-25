@@ -6,14 +6,17 @@ import '../core/theme/app_theme_extension.dart';
 import '../core/push/push_service.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
-import 'home_screen.dart';
+import '../core/auth/flujo_sesion.dart';
 import 'contrasenas_screen.dart';
 
 /// Pantalla de inicio de sesión del instalador (credenciales de Odoo vía API).
 /// En modo mock acepta cualquier correo/contraseña no vacíos.
 class LoginScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
-  const LoginScreen({super.key, required this.onToggleTheme});
+
+  /// Mensaje de contexto al llegar aquí desde una sesión vencida o sin red.
+  final String? aviso;
+  const LoginScreen({super.key, required this.onToggleTheme, this.aviso});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -33,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _auth = sl.get<AuthRepository>();
+    _error = widget.aviso;
   }
 
   @override
@@ -68,32 +72,20 @@ class _LoginScreenState extends State<LoginScreen> {
         // Onboarding: si entró con contraseña temporal, primero crea la suya
         // (pantalla forzada, sin poder saltarla) y de ahí al home.
         if (sesion.debeCambiarPassword) {
+          // Primero la contraseña definitiva; la invitación a Face ID va después.
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (_) => ContrasenasScreen(
                 onboarding: true,
                 currentPassword: _passwordController.text,
-                onCompleted: (ctx) => Navigator.pushReplacement(
-                  ctx,
-                  MaterialPageRoute(
-                    builder: (_) => HomeScreen(
-                      onToggleTheme: widget.onToggleTheme,
-                      promptFoto: true,
-                    ),
-                  ),
-                ),
+                onCompleted: (ctx) => irAlHomeTrasEntrar(ctx, onToggleTheme: widget.onToggleTheme, promptFoto: true),
               ),
             ),
           );
           return;
         }
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme),
-          ),
-        );
+        irAlHomeTrasEntrar(context, onToggleTheme: widget.onToggleTheme);
       },
       (failure) => setState(() {
         _error = failure.message;
