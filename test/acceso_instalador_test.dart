@@ -4,7 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ohmsafe_app/controllers/app_state.dart';
 import 'package:ohmsafe_app/controllers/app_state_provider.dart';
+import 'package:ohmsafe_app/core/auth/session_manager.dart';
+import 'package:ohmsafe_app/core/auth/session_store.dart';
+import 'package:ohmsafe_app/core/config/env_config.dart';
 import 'package:ohmsafe_app/core/di/injection_container.dart';
+import 'package:ohmsafe_app/core/network/dio_client.dart';
 import 'package:ohmsafe_app/core/error/failures.dart';
 import 'package:ohmsafe_app/core/network/result.dart';
 import 'package:ohmsafe_app/core/theme/app_theme.dart';
@@ -61,6 +65,28 @@ void main() {
     expect(find.text('Contraseña'), findsOneWidget);
     expect(find.text('¿Olvidaste tu contraseña?'), findsOneWidget);
     expect(find.text('Iniciar sesión'), findsOneWidget);
+  });
+
+  testWidgets('si en el teléfono ya entró alguien, abre directo en la contraseña y sin el aviso de primera vez', (t) async {
+    final store = MemorySessionStore();
+    await store.escribir(ClavesSesion.ultimoCorreo, 'cuadrilla1@ohmsafe.com');
+    const env = EnvConfig(environment: Environment.development, apiBaseUrl: 'http://x', hubspotApiKey: '', useMock: false);
+    sl.registerSingleton<SessionManager>(SessionManager(dio: DioClient(envConfig: env), store: store));
+    // Las demás pruebas son de un teléfono donde nadie ha entrado.
+    addTearDown(() => sl.registerSingleton<SessionManager>(SessionManager(dio: DioClient(envConfig: env), store: MemorySessionStore())));
+
+    await t.pumpWidget(_app(LoginScreen(onToggleTheme: () {})));
+    await t.pumpAndSettle();
+    expect(find.text('cuadrilla1@ohmsafe.com'), findsOneWidget);
+    expect(find.text('Contraseña'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.textContaining('¿Primera vez?'), findsNothing);
+    expect(auth.llamadas, isEmpty, reason: 'no debe pedir código ni consultar el correo');
+
+    await t.tap(find.text('Cambiar'));
+    await t.pumpAndSettle();
+    expect(find.text('Continuar'), findsOneWidget);
+    expect(find.textContaining('¿Primera vez?'), findsOneWidget);
   });
 
   testWidgets('primer ingreso: código → bienvenida de instalador certificado → crear contraseña', (t) async {

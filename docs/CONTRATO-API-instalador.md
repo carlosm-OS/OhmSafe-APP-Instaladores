@@ -60,6 +60,8 @@ El instalador ya no recibe una contraseña temporal. La app pide primero el **co
 | POST | `/v1/instalador/auth/codigo` | `{email, codigo}` (6 dígitos) → `{activacion, primeraVez, instalador:{nombre, numeroInstalador, fotoBase64}}`. Errores: `CODIGO_INCORRECTO` (details.intentosRestantes), `CODIGO_VENCIDO`, `DEMASIADOS_INTENTOS` |
 | POST | `/v1/instalador/auth/activar` | `{activacion, password, deviceId, deviceName}` → misma respuesta que `/auth/login`. Contraseña ≥ 8 con letras y números (`WEAK_PASSWORD`); token de un solo uso (`ACTIVACION_VENCIDA`) |
 
+> **App (2026-09-26):** el teléfono recuerda el último correo que entró (`dispositivo.ultimo_correo`, fuera de las claves de sesión: sobrevive al cierre y a la revocación). Si existe, el login abre directo en la contraseña con «Cambiar» y **no llama** a `/auth/correo`; el aviso «¿Primera vez?» sólo se muestra en un teléfono donde nadie ha entrado.
+
 Pantallas: correo → (contraseña) o (código → **bienvenida «Instalador certificado OhmSafe»** sólo si
 `primeraVez` → crear contraseña) → Face ID → inicio. El login de un instalador suspendido responde
 `403 CUENTA_SUSPENDIDA`. La constancia fiscal también la carga OhmSafe: `POST|DELETE /perfil/constancia`

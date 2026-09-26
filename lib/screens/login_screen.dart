@@ -7,6 +7,7 @@ import '../core/push/push_service.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import '../core/auth/flujo_sesion.dart';
+import '../core/auth/session_manager.dart';
 import 'contrasenas_screen.dart';
 import 'acceso_instalador_screens.dart';
 
@@ -14,7 +15,9 @@ import 'acceso_instalador_screens.dart';
 /// 1) correo → el backend dice si ya tiene contraseña;
 /// 2a) sí: pide la contraseña (y ofrece «¿Olvidaste tu contraseña?»);
 /// 2b) no: primer ingreso → código al correo → bienvenida → crea su contraseña.
-/// En modo mock acepta cualquier correo/contraseña no vacíos.
+/// Si en este teléfono ya entró alguien, abre directo en la contraseña con su
+/// correo (y «Cambiar» para otra persona): quien ya tiene cuenta no ve el paso
+/// de primera vez. En modo mock acepta cualquier correo/contraseña no vacíos.
 class LoginScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
 
@@ -35,6 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
   /// Paso 2: el correo ya tiene contraseña y se muestra el campo.
   bool _pidePassword = false;
+  /// Mientras se lee el último correo del teléfono no se pinta el paso 1.
+  bool _leyendoCorreo = true;
 
   late final AuthRepository _auth;
 
@@ -43,6 +48,22 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _auth = sl.get<AuthRepository>();
     _error = widget.aviso;
+    _recordarCorreo();
+  }
+
+  Future<void> _recordarCorreo() async {
+    String? correo;
+    try {
+      correo = await sl.get<SessionManager>().ultimoCorreo();
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _leyendoCorreo = false;
+      if (correo != null && correo.isNotEmpty) {
+        _emailController.text = correo;
+        _pidePassword = true;
+      }
+    });
   }
 
   @override
@@ -291,7 +312,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       loading: _loading,
                       onPressed: _pidePassword ? _login : _continuar,
                     ),
-                    if (!_pidePassword) ...[
+                    if (!_pidePassword && !_leyendoCorreo) ...[
                       const SizedBox(height: 14),
                       Text(
                         '¿Primera vez? Escribe el correo que registró OhmSafe y te enviaremos un código para activar tu cuenta.',

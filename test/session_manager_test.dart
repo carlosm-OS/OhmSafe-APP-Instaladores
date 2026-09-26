@@ -119,4 +119,12 @@ void main() {
     await store.limpiarSesion();
     expect(await m.biometriaActivada(), isTrue, reason: 'cerrar sesión no apaga la preferencia');
   });
+
+  test('el último correo sobrevive al cierre de sesión (el login abre en la contraseña)', () async {
+    dio.respuesta = (_, __) async => {'data': {}};
+    await m.guardarLogin(_sesion(), email: 'cuadrilla1@ohmsafe.com');
+    await m.cerrar();
+    expect(await m.emailGuardado(), isNull);
+    expect(await m.ultimoCorreo(), 'cuadrilla1@ohmsafe.com');
+  });
 }

@@ -34,6 +34,10 @@ class ClavesSesion {
   static const invitacionBiometriaMostrada = 'sesion.invitacion_biometria_mostrada';
   static const ultimoActivoMs = 'sesion.ultimo_activo_ms';
 
+  /// Último correo que entró en este teléfono. NO es de sesión: sobrevive al
+  /// cierre o a la revocación para que el login abra directo en la contraseña.
+  static const ultimoCorreo = 'dispositivo.ultimo_correo';
+
   static const deSesion = [refreshToken, instaladorId, nombre, numeroInstalador, rol, email, ultimoActivoMs];
 }
 

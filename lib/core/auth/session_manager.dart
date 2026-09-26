@@ -57,6 +57,7 @@ class SessionManager {
     await _store.escribir(ClavesSesion.numeroInstalador, s.numeroInstalador);
     await _store.escribir(ClavesSesion.rol, s.rol);
     await _store.escribir(ClavesSesion.email, email);
+    await _store.escribir(ClavesSesion.ultimoCorreo, email);
     await marcarActivo();
   }
 
@@ -136,4 +137,7 @@ class SessionManager {
   }
 
   Future<String?> emailGuardado() => _store.leer(ClavesSesion.email);
+
+  /// Correo del último ingreso en este teléfono (aunque la sesión ya no exista).
+  Future<String?> ultimoCorreo() => _store.leer(ClavesSesion.ultimoCorreo);
 }
