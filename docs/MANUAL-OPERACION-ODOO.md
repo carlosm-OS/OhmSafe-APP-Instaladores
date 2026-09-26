@@ -1,7 +1,61 @@
-# Manual de operación — Ruta del ticket (App ↔ Odoo)
+# Manual de operación — Ruta de la instalación (App ↔ Odoo)
 
-Qué escribe cada paso de la app de instaladores en Odoo y **dónde verlo**.
-Versión visual/compartible: artifact "Ruta del Ticket en Odoo".
+> **Vigente desde 2026-09-26.** La instalación vive en **Planificación** (Field
+> Service) como una *intervención*. El proyecto «Instalaciones OhmSafe» quedó
+> **archivado**; todo lo que dice «tarea», «Kanban del proyecto» o campos `x_…`
+> más abajo es el flujo anterior y se conserva sólo como histórico.
+
+## Flujo vigente: de la venta a la app del instalador
+
+1. **La venta se paga en Stripe.** El cobro avisa a la vez a HubSpot (negocio +
+   suscripción) y a Odoo. En Odoo nacen solos el **cliente**, su **casa** y el
+   **contrato** (Ventas › Pedidos, referencia `stripe:…`) con la línea
+   «Instalación de cerca eléctrica» incluida a $0.
+2. **Nace la intervención «por planificar».** Odoo la crea sola al confirmar el
+   contrato: sin fecha y sin instalador, con la hoja de trabajo «Instalación
+   OhmSafe» y la dirección de la casa. Se ve en
+   `Planificación › Programación › panel «Por planificar»` (o en el contrato,
+   botón *Planificación*).
+3. **Operaciones recibe una actividad «Agendar intervención»** (vence a 2 días
+   hábiles). Aparece en su bandeja de actividades y en el chatter de la
+   intervención. Responsable: Santiago (santiago.gea@ohmsafe.com); mientras dura
+   la prueba, Carlos.
+4. **Agendar (esto es lo único manual).** En `Planificación › Programación`,
+   vista **Gantt por recurso**: mira el calendario del instalador (Juan Mora) y,
+   si tiene hueco, **arrastra la intervención del panel «Por planificar» al
+   día y hora** en su fila. Ajusta la duración (una instalación son ~8 h). Si no
+   cabe, la actividad sigue abierta como pendiente.
+5. **Publicar.** Botón **Publicar** (o *Publicar y enviar*). En ese instante:
+   - el instalador recibe el **push** «Servicio agendado — <cliente>, <día y
+     hora>» y la instalación aparece en su app con fecha, lista para *Iniciar
+     ruta*;
+   - el cliente recibe el correo «Intervención programada»;
+   - la actividad «Agendar intervención» **se cierra sola** con la constancia
+     «Asignada a <instalador>».
+6. **Reagendar** = mover la intervención en el Gantt. El instalador recibe el push
+   «Servicio reagendado» con la fecha nueva. Cancelar = cancelar el contrato o
+   borrar la intervención (push «Servicio cancelado»).
+
+Qué NO hay que hacer: crear tickets a mano, asignar instalador desde el
+contrato, ni tocar HubSpot. Instalaciones migradas del flujo viejo (contratos
+`migracion:task…`, S00162–S00164) están en «Por planificar» esperando agenda.
+
+## Dónde ver cada paso de la app (flujo vigente)
+
+Todo queda en la **intervención** (`Planificación`), no en una tarea:
+
+| Paso en la app | Dónde queda en la intervención |
+|---|---|
+| Iniciar ruta / Marcar llegada | propiedades `op_hora_salida`, `op_hora_llegada`, `op_llegada_lat/lng`; estado *En curso* |
+| Inspección y registro de instalación | pestaña **Hoja de trabajo** («Instalación OhmSafe») |
+| Vincular energizador | `op_serie`, `op_mac`; material del contrato con número de serie; equipo en **Mantenimiento** |
+| Evidencias | fotos adjuntas a la intervención |
+| Cierre y firma | firma en la hoja de trabajo; estado *Completada*; PDF «Reporte de servicio» enviado al cliente; encuesta; factura al cliente y pago al instalador en borrador (**Contabilidad / Compras**) |
+| Incidencias | **Servicio de asistencia** › «Incidencias de campo» |
+
+---
+
+# Flujo anterior (proyecto archivado el 2026-09-26) — sólo histórico
 
 ## Dónde vive todo
 Cada orden es una **tarea** del proyecto **“[TEST] Servicios Instalador”**

@@ -288,3 +288,22 @@ OHMS-JUAN19, correo enviado (estado `enviada`) y enlace de portal.
 Decisiones que quedan para Carlos: (1) costo de los productos `PAGO-*`; (2) precio de los SRV-*
 si se quieren cotizar desde la app; (3) qué más etiquetar como «App instalador»; (4) comisión del
 instalador por cotización vendida (hoy sólo atribución). Nada de esto va a HubSpot.
+
+## Fase 6 — HECHA (2026-09-26, backend `ad37681`; sin build de app)
+
+| Pendiente original | Cómo quedó |
+|---|---|
+| Origen de la instalación | **La venta pagada en Stripe** (aviso del cobro → `/v1/ventas/webhooks/venta-confirmada`): cliente + casa + contrato con la línea SRV-INSTALACION a $0 → Odoo crea sola la intervención «por planificar» (sin instalador) → actividad «Agendar intervención» (tipo 16) al usuario de operaciones (`VENTAS_OPERACIONES_LOGIN`). Operaciones la arrastra al calendario del instalador en Planificación y publica → push «Servicio agendado» → app. Al asignar, la actividad se cierra sola |
+| Odoo de producción | `setup-odoo-sitios.mjs --apply --yes-production` aplicado en **ohmsafe2** (campos Stripe/HubSpot, catálogo de planes con precio de Stripe, planes a 36 meses, diario Stripe, RFC). La copia `ohmsafe2-test` ya no se usa |
+| Flujo viejo | Timer del espejo HubSpot→tareas apagado; automatizaciones 4/5/9 inactivas; tareas reales 38/39/40 migradas a contratos S00162–S00164 (intervenciones 16–18 por planificar con actividad); proyecto «Instalaciones OhmSafe» **archivado**. Los 60 campos `x_` se borran ~2026-10-26 |
+| Seguridad | Token de webhooks rotado (estaba en claro en logs del 7-11 sep); `ohmsafe-test-device` apagado; HubSpot en dev bloqueado a lectura por código |
+| Foto del instalador | Va también a la ficha de empleado (Planificación la muestra) |
+
+E2E: venta simulada → S00161 → i14 por planificar + actividad a Carlos (vence 29 sep) → agendada
+a Juan Mora 27 sep 10:00 → i15 publicada → push «Servicio agendado» + app con fecha y paso
+*Iniciar ruta*. Manual para operaciones: `MANUAL-OPERACION-ODOO.md` › «Flujo vigente».
+
+Quedan: sesión nivel B y «Dispositivos con sesión», push en Android real, retirar del backend el
+código de `project.task` (sin emisor), poner a Santiago en `VENTAS_OPERACIONES_LOGIN` al salir de
+pruebas, y que Carlos pruebe el arrastre real en el Gantt (mi emulación por RPC borró el slot «por
+planificar» sobrante y eso mandó un push «Servicio cancelado»; la interfaz lo consume sola).

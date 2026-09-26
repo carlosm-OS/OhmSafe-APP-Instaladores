@@ -163,7 +163,7 @@ Odoo sin tocar Stripe/checkout:
 1. 🟡 **Probar el push en un teléfono** (Android primero) — cierra el ciclo.
 2. 🟡 **HubSpot**: pegar la acción de webhook en el workflow (tiempo real).
 3. ⬜ **iOS**: APNs Auth Key en Firebase.
-4. ✅ **Fase 4** (postventa) y **Fase 5** (dinero) — ver `ROADMAP-ODOO-SERVICIO.md`.
+4. ✅ **Fases 4, 5 y 6** (postventa, dinero, venta→intervención + retiro del flujo viejo) — ver `ROADMAP-ODOO-SERVICIO.md`.
 5. 🟡 **Bono Capa B**: atribución hecha (cotizaciones desde la app); falta la comisión.
 6. ⬜ **Publicación**: TestFlight/Play con el bundle `com.ohmsafe.instalador`.
 
