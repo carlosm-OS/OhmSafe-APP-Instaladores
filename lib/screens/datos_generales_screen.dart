@@ -6,7 +6,6 @@ import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
-import '../widgets/ohm_gradient_button.dart';
 
 class DatosGeneralesScreen extends StatefulWidget {
   const DatosGeneralesScreen({super.key});
@@ -35,7 +34,7 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
       // Split installerName into Name and Apellidos
       final nameParts = state.installerName.split(' ');
       final nombre = nameParts.isNotEmpty ? nameParts.first : "";
-      final apellidos = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : "Mora Gutierrez";
+      final apellidos = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
 
       _nombreController = TextEditingController(text: nombre);
       _apellidosController = TextEditingController(text: apellidos);
@@ -83,7 +82,6 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
     final cs = theme.colorScheme;
     final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
-    final state = AppStateProvider.of(context);
 
     // Styling constants matching the screenshot
     final labelColor = cs.onSurfaceVariant;
@@ -232,7 +230,8 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                         _buildIdentidadCard(context),
                         const SizedBox(height: 24),
 
-                        // Form fields
+                        // Datos de identidad: SÓLO LECTURA por seguridad. Sólo el equipo de
+                        // OhmSafe los corrige en Odoo (el backend rechaza cualquier cambio).
                         _buildField(
                           label: "NOMBRE(S)",
                           controller: _nombreController,
@@ -253,7 +252,6 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                           labelStyle: labelStyle,
                           inputStyle: inputStyle,
                           fillColor: fillColor,
-                          keyboardType: TextInputType.phone,
                         ),
                         _buildField(
                           label: "CORREO ELECTRÓNICO",
@@ -261,7 +259,6 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                           labelStyle: labelStyle,
                           inputStyle: inputStyle,
                           fillColor: fillColor,
-                          keyboardType: TextInputType.emailAddress,
                         ),
                         _buildField(
                           label: "CURP",
@@ -269,61 +266,9 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
                           labelStyle: labelStyle,
                           inputStyle: inputStyle,
                           fillColor: fillColor,
-                          textCapitalization: TextCapitalization.characters,
                         ),
-                        const SizedBox(height: 16),
-
-                        // Save Button
-                        OhmGradientButton(
-                          label: "Guardar",
-                          onPressed: () async {
-                            final name = "${_nombreController.text.trim()} ${_apellidosController.text.trim()}".trim();
-                            final phone = _telefonoController.text.trim();
-                            final email = _correoController.text.trim();
-                            final curp = _curpController.text.trim();
-
-                            if (name.isEmpty || phone.isEmpty || email.isEmpty || curp.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Por favor, llena todos los campos"),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              );
-                              return;
-                            }
-
-                            // Estado local (UI) + persistencia en el backend (Odoo).
-                            state.updateInstallerInfo(
-                              name: name,
-                              phone: phone,
-                              email: email,
-                              curp: curp,
-                            );
-                            final result = await sl.get<PerfilRepository>().updatePerfil(
-                                  nombre: name,
-                                  telefono: phone,
-                                  curp: curp,
-                                );
-                            if (!mounted) return;
-                            result.fold(
-                              (_) => ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                    "Datos guardados correctamente",
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  backgroundColor: cs.primary,
-                                ),
-                              ),
-                              (failure) => ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("No se pudieron guardar: ${failure.message}"),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                        const SizedBox(height: 4),
+                        _avisoSoloLectura(context),
                       ],
                     ),
                   ),
@@ -427,14 +372,39 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
     );
   }
 
+  /// Nota bajo los datos: por qué no se pueden editar y a quién pedir un cambio.
+  Widget _avisoSoloLectura(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lock_outline_rounded, size: 20, color: cs.onSurfaceVariant),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Por seguridad, tu nombre, teléfono, correo y CURP sólo los puede corregir el equipo de OhmSafe. '
+              'Si algún dato está mal, escríbenos desde Ayuda.',
+              style: TextStyle(fontSize: 13, height: 1.4, color: cs.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Campo de sólo lectura (se puede seleccionar y copiar, no editar).
   Widget _buildField({
     required String label,
     required TextEditingController controller,
     required TextStyle labelStyle,
     required TextStyle inputStyle,
     required Color fillColor,
-    TextInputType keyboardType = TextInputType.text,
-    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,12 +416,14 @@ class _DatosGeneralesScreenState extends State<DatosGeneralesScreen> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          style: inputStyle,
-          keyboardType: keyboardType,
-          textCapitalization: textCapitalization,
+          style: inputStyle.copyWith(color: inputStyle.color?.withValues(alpha: 0.75)),
+          readOnly: true,
+          canRequestFocus: false,
+          enableInteractiveSelection: true,
           decoration: InputDecoration(
             filled: true,
             fillColor: fillColor,
+            suffixIcon: Icon(Icons.lock_outline_rounded, size: 18, color: labelStyle.color),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,

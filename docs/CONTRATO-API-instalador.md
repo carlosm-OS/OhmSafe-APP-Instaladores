@@ -40,6 +40,13 @@
 como lo guarda Odoo. La app lo convierte siempre a la hora del dispositivo con
 `FechasOdoo` (`lib/core/utils/fechas_odoo.dart`); nunca parsear el texto crudo.
 
+## 2g. Perfil: datos de identidad bloqueados (2026-09-26)
+Por seguridad, **nombre, apellidos, teléfono, correo y CURP** del instalador sólo los cambia el equipo
+de OhmSafe en Odoo. En la app son de sólo lectura (Perfil › Datos generales, sin botón Guardar).
+`PUT /v1/instalador/perfil` sólo acepta `{ rfc }` (Facturación); si trae `nombre`, `apellidos`,
+`telefono`, `email`, `correo` o `curp` responde `403 { error: 'DATO_NO_EDITABLE', message, details: { campos } }`
+sin escribir nada (los builds ≤14 los mandaban al pulsar Guardar y ahora ven ese mensaje).
+
 ## 2c. Órdenes con dos orígenes (fase 2, 2026-09-25) — **desde la fase 6 (2026-09-26) sólo hay un origen**
 > El flujo de tareas de Proyecto se retiró: toda orden es una intervención de Planificación con id `i<n>`.
 > Un id sin ese formato responde `400 VALIDATION_ERROR`. Los webhooks `/webhooks/instalacion`,
