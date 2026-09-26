@@ -88,7 +88,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   List<DateTime> get _calendarDays {
     DateTime last = _today.add(const Duration(days: 6));
     for (final o in _ordenes) {
-      final d = _agendadaDate(o);
+      final d = FechasOdoo.soloDia(o.fechaFin) ?? _agendadaDate(o);
       if (d != null && d.isAfter(last)) last = d;
     }
     final count = last.difference(_today).inDays + 1;
@@ -121,13 +121,10 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     return o.estado != 'completo' && o.estado != 'cancelado';
   }
 
-  int _countForDay(DateTime day) => _ordenes
-      .where(_esTrabajoVivo)
-      .where((o) {
-        final d = _agendadaDate(o);
-        return d != null && DateUtils.isSameDay(d, day);
-      })
-      .length;
+  /// ¿La orden ocupa [day]? Una instalación de varios días ocupa cada día de su rango.
+  bool _ocupaDia(Orden o, DateTime day) => o.agendado && FechasOdoo.cubreDia(o.fechaAgendada, o.fechaFin, day);
+
+  int _countForDay(DateTime day) => _ordenes.where(_esTrabajoVivo).where((o) => _ocupaDia(o, day)).length;
 
   /// Trae las instalaciones del backend.
   ///
@@ -272,10 +269,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     // cerrado (y esa acción vuelve a avisarle al cliente).
     final activas = _ordenes.where(_esTrabajoVivo).toList();
 
-    final agendadasDia = activas.where((o) {
-      final d = _agendadaDate(o);
-      return d != null && DateUtils.isSameDay(d, _selectedDate);
-    }).toList();
+    final agendadasDia = activas.where((o) => _ocupaDia(o, _selectedDate)).toList();
     // Pendientes de agendar (sin fecha): sección aparte, siempre visible.
     final pendientes = activas.where((o) => _agendadaDate(o) == null).toList();
 
@@ -733,7 +727,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 ],
                 if (orden.agendado && (orden.fechaAgendada?.isNotEmpty ?? false)) ...[
                   const SizedBox(height: 6),
-                  _detailRow(theme, "Agendada: ", _formatFechaAgendada(orden.fechaAgendada!)),
+                  _detailRow(theme, "Agendada: ", FechasOdoo.rango(orden.fechaAgendada, orden.fechaFin)),
                 ],
                 if (orden.fechaPagoConfirmado?.isNotEmpty ?? false) ...[
                   const SizedBox(height: 6),

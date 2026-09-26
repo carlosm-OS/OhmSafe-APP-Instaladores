@@ -38,6 +38,26 @@ class FechasOdoo {
     return DateTime(d.year, d.month, d.day);
   }
 
+  /// ¿El día [dia] (local) cae dentro del rango [inicio]–[fin]? Una instalación puede
+  /// seguir al día siguiente: aparece en cada día que cubre. Sin fin = sólo el día de inicio.
+  static bool cubreDia(String? inicio, String? fin, DateTime dia) {
+    final a = soloDia(inicio);
+    if (a == null) return false;
+    final b = soloDia(fin) ?? a;
+    final d = DateTime(dia.year, dia.month, dia.day);
+    return !d.isBefore(a) && !d.isAfter(b.isBefore(a) ? a : b);
+  }
+
+  /// Rango legible: «26/09/2026 09:00 – 17:00» o «26/09/2026 09:00 – 27/09/2026 17:00».
+  static String rango(String? inicio, String? fin) {
+    final a = aLocal(inicio);
+    if (a == null) return inicio ?? '';
+    final b = aLocal(fin);
+    if (b == null) return fechaHora(inicio);
+    final mismoDia = a.year == b.year && a.month == b.month && a.day == b.day;
+    return mismoDia ? '${fechaHora(inicio)} – ${hora(fin)}' : '${fechaHora(inicio)} – ${fechaHora(fin)}';
+  }
+
   /// `"18/09/2026 10:00"` en hora local. Si no parsea devuelve el texto original.
   static String fechaHora(String? raw) {
     final d = aLocal(raw);

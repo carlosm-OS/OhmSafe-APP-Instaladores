@@ -43,4 +43,21 @@ void main() {
     expect([d.year, d.month, d.day, d.hour], [2026, 9, 20, 0]);
     expect(FechasOdoo.soloDia('2026-01-01'), DateTime(2026, 1, 1));
   });
+
+  test('cubreDia: una instalación de dos días aparece en ambos días y no en el siguiente', () {
+    // 26 sep 15:00 UTC → 27 sep 23:00 UTC; en cualquier zona de América cubre 26 y 27.
+    expect(FechasOdoo.cubreDia('2026-09-26 15:00:00', '2026-09-27 23:00:00', DateTime(2026, 9, 26)), isTrue);
+    expect(FechasOdoo.cubreDia('2026-09-26 15:00:00', '2026-09-27 23:00:00', DateTime(2026, 9, 27)), isTrue);
+    expect(FechasOdoo.cubreDia('2026-09-26 15:00:00', '2026-09-27 23:00:00', DateTime(2026, 9, 28)), isFalse);
+    expect(FechasOdoo.cubreDia('2026-09-26 15:00:00', null, DateTime(2026, 9, 26)), isTrue);
+    expect(FechasOdoo.cubreDia(null, null, DateTime(2026, 9, 26)), isFalse);
+  });
+
+  test('rango: mismo día muestra sólo la hora de fin; varios días muestra ambas fechas', () {
+    final uno = FechasOdoo.rango('2026-09-26 15:00:00', '2026-09-26 23:00:00');
+    expect(uno.split('–').length, 2);
+    expect(uno.split('–')[1].trim().length, 5); // «HH:MM»
+    final dos = FechasOdoo.rango('2026-09-26 15:00:00', '2026-09-27 23:00:00');
+    expect(dos.split('–')[1].trim().contains('/2026'), isTrue);
+  });
 }

@@ -19,6 +19,7 @@ class Orden {
   final double monto; // monto pagado
   final String stripePaymentId; // referencia de pago Stripe
   final String? fechaAgendada; // ISO "2026-09-15 10:00:00" o null si no agendada
+  final String? fechaFin; // fin programado (UTC de Odoo); una instalación puede abarcar varios días
   final bool agendado; // true cuando el equipo de servicio ya agendó día/hora
   // Capturado por operaciones en la llamada de agendamiento.
   final String? fechaPagoConfirmado;
@@ -53,6 +54,7 @@ class Orden {
     this.monto = 0,
     this.stripePaymentId = '',
     this.fechaAgendada,
+    this.fechaFin,
     this.agendado = false,
     this.fechaPagoConfirmado,
     this.contratoFirmado = false,

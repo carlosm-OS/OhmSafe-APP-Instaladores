@@ -32,17 +32,28 @@
    - También puedes abrir la intervención desde la actividad del reloj y asignar el
      instalador ahí; la fecha sigue siendo desde el calendario.
    - Si no hay hueco, la actividad sigue abierta como pendiente.
+   - **Instalación de varios días:** es UNA sola intervención cuyo fin cae otro día.
+     Estira la tarjeta en el Gantt hasta el día siguiente o pon la fecha de fin
+     (p. ej. sáb 9:00 → dom 17:00). No la partas en dos intervenciones.
+   - Mientras esté en **Borrador** puedes asignar, mover y corregir cuantas veces
+     quieras: **el instalador no recibe nada ni la ve en su app**.
 5. **Publicar.** Botón **Publicar** (o *Publicar y enviar*). En ese instante:
-   - el instalador recibe el **push** «Servicio agendado — <cliente>, <día y
-     hora>» y la instalación aparece en su app con fecha, lista para *Iniciar
-     ruta*;
+   - el instalador recibe **un solo push** «Nueva instalación asignada —
+     <cliente> · <rango de días y horas>» y la instalación aparece en su app, en
+     cada día que abarca, lista para *Iniciar ruta*;
    - el cliente recibe el correo «Intervención programada»;
    - la actividad «Agendar intervención» **se cierra sola** con la constancia
      «Asignada a <instalador>» en cuanto la intervención tiene instalador **y**
      fecha (asignar sin fecha avisa al instalador pero deja la actividad abierta).
-6. **Reagendar** = mover la intervención en el Gantt. El instalador recibe el push
-   «Servicio reagendado» con la fecha nueva. Cancelar = cancelar el contrato o
-   borrar la intervención (push «Servicio cancelado»).
+6. **Reagendar** (ya publicada) = mover la intervención en el Gantt: push
+   «Servicio reagendado» con el rango nuevo. **Retirarla** = *Anular programación*
+   o regresarla a borrador: push «Servicio cancelado».
+7. **Pago al instalador: a destajo.** Se paga una vez por instalación completada,
+   con el importe fijo del producto «Pago a instalador — Instalación»; las horas,
+   los días y las horas extra no cuentan. Los instaladores son externos: su
+   horario en Odoo es «Instalador externo · lunes a domingo (sin jornada fija)» y
+   su tipo de empleado «Instalador externo (independiente, pago por instalación)».
+   Al dar de alta a un instalador nuevo como empleado, asígnale ambos.
 
 Qué NO hay que hacer: crear tickets a mano, asignar instalador desde el
 contrato, ni tocar HubSpot. Instalaciones migradas del flujo viejo (contratos
