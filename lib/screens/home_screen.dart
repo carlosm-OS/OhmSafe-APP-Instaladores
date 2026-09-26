@@ -154,10 +154,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       MenuItemTile(
                         label: "Instalaciones",
                         count: state.instalacionesCount,
+                        // Al volver (p. ej. tras cerrar una instalación) se recuentan los badges.
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const InstalacionesScreen()),
-                        ),
+                        ).then((_) {
+                          if (context.mounted) AppStateProvider.of(context).refreshBadges();
+                        }),
                       ),
                       // MVP (2026-09-18): solo Instalaciones y Reportar incidencias.
                       // Reparaciones, Mantenimientos y Reemplazo de equipo quedan

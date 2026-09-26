@@ -1,3 +1,4 @@
+import '../features/ordenes/domain/entities/orden.dart';
 import 'dart:async';
 import '../features/notificaciones/data/notificaciones_repository.dart';
 import 'package:flutter/material.dart';
@@ -156,11 +157,13 @@ class AppState extends ChangeNotifier {
       }, (_) {});
     });
 
+    // El badge cuenta sólo lo pendiente: una instalación terminada o cancelada
+    // ya no está por hacer (antes contaba todas y el «1» se quedaba tras cerrar).
     final instFuture = repo.getOrdenes(tipo: 'instalacion').then(
-          (inst) => inst.fold((list) => _instalacionesCount = list.length, (_) {}),
+          (inst) => inst.fold((list) => _instalacionesCount = contarPendientes(list), (_) {}),
         );
     final repFuture = repo.getOrdenes(tipo: 'reparacion').then(
-          (rep) => rep.fold((list) => _reparacionesCount = list.length, (_) {}),
+          (rep) => rep.fold((list) => _reparacionesCount = contarPendientes(list), (_) {}),
         );
 
     // El badge de la campana viaja con los demás: una sola espera.
@@ -304,3 +307,7 @@ class AppState extends ChangeNotifier {
     }
   }
 }
+
+/// Órdenes que siguen por hacer (ni completadas ni canceladas): lo que muestra el badge.
+int contarPendientes(List<Orden> ordenes) =>
+    ordenes.where((o) => o.estado != 'completo' && o.estado != 'cancelado').length;
