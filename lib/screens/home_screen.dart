@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
@@ -25,19 +24,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _fotoHint = false;
-  Timer? _hintTimer;
 
   @override
   void initState() {
     super.initState();
-    if (widget.promptFoto) {
-      // Aviso flotante junto a la foto (tras el onboarding). Se auto-oculta.
-      _fotoHint = true;
-      _hintTimer = Timer(const Duration(seconds: 8), () {
-        if (mounted) setState(() => _fotoHint = false);
-      });
-    }
+    // (La invitación «Sube tu foto de perfil» se retiró: la foto la sube OhmSafe en Odoo.)
     // Sincroniza los badges con las asignaciones reales del backend.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) AppStateProvider.of(context).refreshBadges();
@@ -46,51 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _hintTimer?.cancel();
     super.dispose();
-  }
-
-  /// Toast flotante que "vuela" arriba de la foto invitando a subirla.
-  Widget _buildFotoHint(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeOutBack,
-      builder: (context, t, child) => Opacity(
-        opacity: t.clamp(0.0, 1.0),
-        child: Transform.translate(offset: Offset(0, (1 - t) * -12), child: child),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: GestureDetector(
-          onTap: () {
-            setState(() => _fotoHint = false);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileMainScreen(onToggleTheme: widget.onToggleTheme)));
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              color: cs.primary,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(color: cs.primary.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 6)),
-              ],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.photo_camera_rounded, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text("Sube tu foto de perfil", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                SizedBox(width: 8),
-                Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -167,7 +114,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      if (_fotoHint) _buildFotoHint(context),
                       GestureDetector(
                         onTap: () => Navigator.push(
                           context,

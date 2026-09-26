@@ -38,9 +38,6 @@ class PerfilRepositoryImpl implements PerfilRepository {
   @override
   Future<Result<Perfil>> eliminarConstancia() => _run(() => dataSource.eliminarConstancia());
 
-  @override
-  Future<Result<Perfil>> subirAvatar({required String contenidoBase64}) =>
-      _run(() => dataSource.subirAvatar(contenidoBase64: contenidoBase64));
 
   @override
   Future<Result<bool>> cambiarPassword({required String passwordActual, required String passwordNueva}) =>

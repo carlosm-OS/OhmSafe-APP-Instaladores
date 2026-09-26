@@ -206,3 +206,10 @@ categoría **“Tarifas Instalador”**.
 > Todo ocurre en el proyecto **[TEST] Servicios Instalador** de `ohmsafe2`. La app
 > escribe vía el backend `/v1/instalador`; Odoo es la fuente de verdad. Los `x_…`
 > son los nombres técnicos; la etiqueta es lo que ves en la ficha.
+
+## Datos y foto del instalador: sólo los cambia OhmSafe (desde 2026-09-26)
+Por seguridad, el instalador **no puede** cambiar desde la app su nombre, apellidos,
+teléfono, correo, CURP ni su foto; sólo el RFC (Facturación). Si pide una corrección:
+- **Nombre, teléfono, correo, CURP:** en `Contactos`, ficha del instalador.
+- **Foto:** en `Empleados`, ficha del instalador → clic en la foto → subir. Es la que ve
+  la app y la que muestra Planificación. Se refleja en la app la próxima vez que la abra.

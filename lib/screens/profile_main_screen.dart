@@ -1,11 +1,6 @@
-import 'dart:convert';
 import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as img;
-import 'package:image_picker/image_picker.dart';
 import '../controllers/app_state_provider.dart';
-import '../core/error/failures.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -20,22 +15,6 @@ import 'login_screen.dart';
 import 'seguridad_screen.dart';
 import 'pagos_screen.dart';
 
-/// Formatea la imagen para que Odoo siempre la acepte: decodifica, redimensiona
-/// a máx 1024px y re-codifica como JPEG. Corre en un isolate (compute) para no
-/// congelar la UI. Devuelve null si la imagen no se pudo leer.
-Uint8List? _formatearAvatar(Uint8List input) {
-  final decoded = img.decodeImage(input);
-  if (decoded == null) return null;
-  final resized = (decoded.width > 1024 || decoded.height > 1024)
-      ? img.copyResize(
-          decoded,
-          width: decoded.width >= decoded.height ? 1024 : null,
-          height: decoded.height > decoded.width ? 1024 : null,
-        )
-      : decoded;
-  return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
-}
-
 class ProfileMainScreen extends StatefulWidget {
   /// Se propaga a [LoginScreen] al cerrar sesión (para conservar el toggle de
   /// tema). Opcional: el bottom nav abre esta pantalla sin el callback.
@@ -47,7 +26,6 @@ class ProfileMainScreen extends StatefulWidget {
 }
 
 class _ProfileMainScreenState extends State<ProfileMainScreen> {
-  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -66,85 +44,6 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
       (p) => AppStateProvider.of(context).aplicarPerfil(p),
       (_) {},
     );
-  }
-
-  Future<void> _pickImage(BuildContext context) async {
-    final state = AppStateProvider.of(context);
-    final cs = Theme.of(context).colorScheme;
-    try {
-      final XFile? selected = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1024, // comprime en móvil (en macOS lo maneja el límite del backend)
-        maxHeight: 1024,
-      );
-      if (selected != null) {
-        state.updateAvatarPath(selected.path); // preview local inmediato
-        // Formatea la imagen (redimensiona + JPEG) para que Odoo la acepte en
-        // cualquier plataforma (macOS no comprime con image_picker).
-        final raw = await selected.readAsBytes();
-        final formateada = await compute(_formatearAvatar, raw);
-        if (!mounted) return;
-        if (formateada == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("No pudimos leer esa imagen. Usa una foto JPG o PNG."),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-          return;
-        }
-        final result = await sl
-            .get<PerfilRepository>()
-            .subirAvatar(contenidoBase64: base64Encode(formateada));
-        if (!mounted) return;
-        result.fold(
-          (perfilActualizado) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text("Foto de perfil guardada", style: TextStyle(fontWeight: FontWeight.bold)),
-                backgroundColor: cs.primary,
-              ),
-            );
-            // subirAvatar ya devuelve el perfil con la foto persistida en Odoo:
-            // se propaga al estado global (home + Mi cuenta + cache) sin volver
-            // a pedir /perfil. Y se suelta el preview local para que mande la
-            // foto real de Odoo, que es la que sobrevive al reinicio.
-            state.aplicarPerfil(perfilActualizado);
-            if (perfilActualizado.fotoBase64.isNotEmpty) state.clearAvatarPath();
-          },
-          (failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(_mensajeErrorFoto(failure)), backgroundColor: Colors.redAccent),
-            );
-          },
-        );
-      }
-    } catch (e) {
-      debugPrint("Error picking image: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error al acceder a la galería: $e"),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Traduce el fallo de subida a un mensaje claro para el instalador.
-  String _mensajeErrorFoto(Failure f) {
-    if (f is NetworkFailure) return "Sin conexión. Revisa tu internet e intenta de nuevo.";
-    if (f is AuthFailure) return "Tu sesión expiró. Vuelve a iniciar sesión.";
-    final m = f.message.toLowerCase();
-    if (m.contains("large") || m.contains("payload") || m.contains("entity")) {
-      return "La imagen es muy grande. Intenta con otra.";
-    }
-    if (m.contains("procesar") || m.contains("truncat") || m.contains("jpg") || m.contains("png") || m.contains("imagen")) {
-      return "No se pudo procesar la imagen. Usa una foto JPG o PNG.";
-    }
-    return "No se pudo guardar la foto: ${f.message}";
   }
 
   /// Pide confirmación, cierra la sesión (limpia sesión + token) y vuelve al
@@ -323,7 +222,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Editable circular avatar
+                        // Foto de perfil: sólo lectura. La sube el equipo de OhmSafe en Odoo.
                         Center(
                           child: Stack(
                             children: [
@@ -336,32 +235,6 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                                 imagePath: state.customAvatarPath,
                                 imageBase64: state.fotoBase64,
                                 placeholderIcon: Icons.engineering_rounded,
-                              ),
-                              Positioned(
-                                bottom: 12,
-                                right: 12,
-                                child: GestureDetector(
-                                  onTap: () => _pickImage(context),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: cs.primary,
-                                      shape: BoxShape.circle,
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black12,
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      Icons.edit_rounded,
-                                      color: cs.onPrimary,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ),
                               ),
                             ],
                           ),

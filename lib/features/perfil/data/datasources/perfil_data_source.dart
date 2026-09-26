@@ -9,6 +9,5 @@ abstract class PerfilDataSource {
 
   /// Elimina la constancia en Odoo (borra el adjunto y limpia el campo).
   Future<PerfilModel> eliminarConstancia();
-  Future<PerfilModel> subirAvatar({required String contenidoBase64});
   Future<void> cambiarPassword({required String passwordActual, required String passwordNueva});
 }

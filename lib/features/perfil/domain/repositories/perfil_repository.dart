@@ -16,9 +16,6 @@ abstract class PerfilRepository {
   /// Elimina la constancia de situación fiscal (adjunto en Odoo).
   Future<Result<Perfil>> eliminarConstancia();
 
-  /// Sube la foto de perfil (base64) → imagen del contacto en Odoo.
-  Future<Result<Perfil>> subirAvatar({required String contenidoBase64});
-
   /// Cambia la contraseña (primer ingreso con temporal, o posterior).
   Future<Result<bool>> cambiarPassword({required String passwordActual, required String passwordNueva});
 }

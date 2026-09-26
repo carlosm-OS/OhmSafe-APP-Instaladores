@@ -47,6 +47,10 @@ de OhmSafe en Odoo. En la app son de sólo lectura (Perfil › Datos generales, 
 `telefono`, `email`, `correo` o `curp` responde `403 { error: 'DATO_NO_EDITABLE', message, details: { campos } }`
 sin escribir nada (los builds ≤14 los mandaban al pulsar Guardar y ahora ven ese mensaje).
 
+**La foto de perfil** tampoco se sube desde la app: `POST /v1/instalador/perfil/avatar` responde siempre
+`403 DATO_NO_EDITABLE` (`details.campos = ['foto']`). La sube el equipo de OhmSafe en Odoo, en la ficha de
+empleado del instalador; `GET /perfil` devuelve esa foto en `fotoBase64` (respaldo: la del contacto).
+
 ## 2c. Órdenes con dos orígenes (fase 2, 2026-09-25) — **desde la fase 6 (2026-09-26) sólo hay un origen**
 > El flujo de tareas de Proyecto se retiró: toda orden es una intervención de Planificación con id `i<n>`.
 > Un id sin ese formato responde `400 VALIDATION_ERROR`. Los webhooks `/webhooks/instalacion`,
