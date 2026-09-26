@@ -47,7 +47,7 @@ Todo queda en la **intervención** (`Planificación`), no en una tarea:
 | Paso en la app | Dónde queda en la intervención |
 |---|---|
 | Iniciar ruta / Marcar llegada | propiedades `op_hora_salida`, `op_hora_llegada`, `op_llegada_lat/lng`; estado *En curso* |
-| Inspección y registro de instalación | pestaña **Hoja de trabajo** («Instalación OhmSafe») |
+| Inspección y registro de instalación | pestaña **Hoja de trabajo** («Instalación de cerca eléctrica») |
 | Vincular energizador | `op_serie`, `op_mac`; material del contrato con número de serie; equipo en **Mantenimiento** |
 | Evidencias | fotos adjuntas a la intervención |
 | Cierre y firma | firma en la hoja de trabajo; estado *Completada*; PDF «Reporte de servicio» enviado al cliente; encuesta; factura al cliente y pago al instalador en borrador (**Contabilidad / Compras**) |

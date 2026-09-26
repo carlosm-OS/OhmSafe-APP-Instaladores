@@ -161,8 +161,8 @@ Todo aditivo e idempotente, ejecutado por RPC (guiones en la sesión). Lo que qu
 | Productos que crean intervención | `product.template` 48 SRV-INSTALACION, 49 SRV-REPARACION, 50 SRV-REEMPLAZO; 32 Mantenimiento preventivo anual y 23 Visita/diagnóstico habilitados |
 | Ubicación van | `stock.location` 27 «WH/Stock/Van Juan Mora Test» |
 | Módulo instalado | **Field Service Reports** (`planning_field_service_worksheet` + `worksheet` + `planning_field_service_sale_worksheet`) |
-| Hoja de trabajo | `worksheet.template` 2 «Instalación OhmSafe» (16 campos, 3 separadores); por defecto en los 5 productos de servicio y en las 4 plantillas de turno |
-| Plantillas de turno | `planning.slot.template` 1 «9 - 17» (instalación, jornada de 8 h). Las de reparación, mantenimiento y reemplazo (2-4) se borraron el 2026-09-26: el chip de Odoo sólo muestra horario + rol + hoja y se veían iguales. Se crean de nuevo, cada una con su propia hoja de trabajo, al construir el proceso de cada módulo |
+| Hoja de trabajo | `worksheet.template` 2 «Instalación de cerca eléctrica» (16 campos, 3 separadores); por defecto en los 5 productos de servicio y en las 4 plantillas de turno |
+| Plantillas de turno | `planning.slot.template` 1 «9 - 17» (instalación, jornada de 8 h); su chip dice «9 - 17 Instalador OhmSafe Externo [Instalación de cerca eléctrica]» porque Odoo lo arma con horario + rol + hoja de trabajo (el nombre de la plantilla no se muestra), por eso la hoja 2 se renombró el 2026-09-26 de «Instalación OhmSafe» a «Instalación de cerca eléctrica». Las de reparación, mantenimiento y reemplazo (2-4) se borraron el 2026-09-26: el chip de Odoo sólo muestra horario + rol + hoja y se veían iguales. Se crean de nuevo, cada una con su propia hoja de trabajo, al construir el proceso de cada módulo |
 | Automatizaciones (APAGADAS) | `base.automation` 10/11/12 → acciones webhook 1306/1307/1308 (`/v1/instalador/webhooks/intervencion/asignacion|agenda|estado`) |
 | Prueba E2E | venta S00152 → intervención 2: asignada, programada, sign in, hoja llena, 4 fotos, firma, completada, **reporte PDF enviado al cliente** (adjunto 3045, notificación `sent`) |
 
@@ -219,7 +219,7 @@ Lo que se corrigió sobre la marcha (queda en el código y en `docs/field-servic
 - `planning.slot` **no tiene `active`** (no se archiva): la cancelación desde la app es el
   marcador `op_cancelada` + motivo en el chatter.
 - Un turno creado a mano nace con la «Default Worksheet» vacía: el backend cambia a la
-  hoja «Instalación OhmSafe» si la actual no tiene campos.
+  hoja «Instalación de cerca eléctrica» si la actual no tiene campos.
 - `sign in`/`complete` reescriben `start_datetime` con la hora real ⇒ la automatización de
   agenda dispararía un falso «reagendado»; se ignora en `in_progress`/`completed`.
 - Completar exige la serie en la entrega **y `picked=true`** en la línea de movimiento.
