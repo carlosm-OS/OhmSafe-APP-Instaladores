@@ -107,7 +107,7 @@ class sl {
       () => AuthRepositoryImpl(dataSource: get<AuthDataSource>(), sessionManager: get<SessionManager>()),
     );
 
-    // Perfil del instalador (onboarding: datos, constancia, contraseña).
+    // Perfil del instalador (datos que carga OhmSafe, RFC, contraseña).
     registerLazySingleton<PerfilDataSource>(
       () => envConfig.useMock
           ? PerfilMockDataSource()

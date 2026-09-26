@@ -98,17 +98,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  String? _taxCertificatePath;
-  String? get taxCertificatePath => _taxCertificatePath;
-
-  String? _taxCertificateName;
-  String? get taxCertificateName => _taxCertificateName;
-
-  void updateTaxCertificate(String? path, String? name) {
-    _taxCertificatePath = path;
-    _taxCertificateName = name;
-    notifyListeners();
-  }
 
   // Los badges reflejan las asignaciones reales del backend (Odoo passthrough
   // vía OrdenesRepository), no un valor fijo. Arrancan en 0 y se actualizan con
