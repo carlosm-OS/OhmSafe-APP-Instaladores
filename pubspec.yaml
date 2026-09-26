@@ -49,6 +49,7 @@ dependencies:
   flutter_timezone: ^5.1.0
   flutter_secure_storage: ^10.3.4
   local_auth: ^3.0.2
+  mobile_scanner: ^7.4.2
 
 dev_dependencies:
   flutter_test:

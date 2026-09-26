@@ -1,3 +1,5 @@
+import 'escanear_serie_screen.dart';
+import '../core/error/failures.dart';
 import 'dart:async';
 import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +11,7 @@ import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/utils/fechas_odoo.dart';
 
-enum LinkState { input, scanning, validating }
+enum LinkState { input, validating }
 
 class LinkEnergizerScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -39,12 +41,9 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   bool _bannerIsSuccess = false;
   String _bannerText = '';
 
-  Timer? _simulationTimer;
-
   @override
   void dispose() {
     _macController.dispose();
-    _simulationTimer?.cancel();
     super.dispose();
   }
 
@@ -55,23 +54,25 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// firmware, último reporte). null hasta que se encuentre el equipo.
   Map<String, dynamic>? _diag;
 
-  void _startScanning() {
-    setState(() {
-      _currentState = LinkState.scanning;
-    });
-    // Simula el enfoque de cámara; al "leer el QR" valida el número de serie que
-    // el instalador escribió/escaneó. El QR del equipo codifica la serie.
-    _simulationTimer = Timer(const Duration(milliseconds: 1500), () {
-      if (mounted && _currentState == LinkState.scanning) {
-        _startValidation(_macController.text.trim());
-      }
-    });
+  /// Cámara real: lee el QR del energizador, pone la serie en el campo y
+  /// arranca el diagnóstico con ella.
+  Future<void> _startScanning() async {
+    final serie = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const EscanearSerieScreen()),
+    );
+    if (!mounted || serie == null || serie.isEmpty) return;
+    _macController.text = serie;
+    await _startValidation(serie);
   }
+
+  /// Mensaje del backend tal cual cuando es sobre la serie (ya instalada o
+  /// apartada en otra instalación); si no, con contexto.
+  String _mensajeError(Failure f, String contexto) =>
+      f is ServerFailure && f.code.startsWith('SERIE_') ? f.message : '$contexto: ${f.message}';
 
   /// Diagnóstico REAL por número de serie: lee la telemetría del equipo y pinta
   /// cada prueba. La tierra física no tiene telemetría → la confirma el instalador.
   Future<void> _startValidation(String serie) async {
-    _simulationTimer?.cancel();
     final s = serie.trim();
     if (s.isEmpty) {
       setState(() => _currentState = LinkState.input);
@@ -87,7 +88,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       _retornoStatus = 'Gris'; // conexión a línea
     });
 
-    final result = await sl.get<OrdenesRepository>().diagnosticoEnergizador(s);
+    final ordenId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    // Con la orden, el backend también revisa la serie contra el inventario de
+    // Odoo (ya instalada con otro cliente o apartada en otra instalación).
+    final result = await sl.get<OrdenesRepository>().diagnosticoEnergizador(s, ordenId: ordenId);
     if (!mounted) return;
     result.fold((d) {
       setState(() {
@@ -119,7 +123,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       setState(() {
         _isLoading = false;
         _currentState = LinkState.input;
-        _triggerBanner(false, "No se pudo leer el equipo: ${f.message}");
+        _triggerBanner(false, _mensajeError(f, "No se pudo leer el equipo"));
       });
     });
   }
@@ -157,7 +161,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       (failure) {
         setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("No se pudo vincular el energizador: ${failure.message}")),
+          SnackBar(content: Text(_mensajeError(failure, "No se pudo vincular el energizador"))),
         );
       },
     );
@@ -185,7 +189,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Header (Logo centrado, iconos derecha)
-                if (_currentState != LinkState.scanning)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     child: Stack(
@@ -224,7 +227,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                   ),
 
                 // Back chevron and Centered Title Row
-                if (_currentState != LinkState.scanning)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: SizedBox(
@@ -282,10 +284,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           ),
 
           // Banner notification at the top (under SafeArea)
-          if (_currentState != LinkState.scanning) _buildNotificationBanner(),
+          _buildNotificationBanner(),
 
           // Shared bottom navigation bar
-          if (_currentState != LinkState.scanning) const AppBottomNav(),
+          const AppBottomNav(),
         ],
       ),
     );
@@ -304,7 +306,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           children: [
             const SizedBox(height: 12),
             Text(
-              "Escanear QR",
+              "Identifica el energizador",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 17,
@@ -314,7 +316,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              "Escanea el QR que se encuentra en el energizador ohmsafe",
+              "Escribe el número de serie del energizador OhmSafe o escanea su código QR",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -373,6 +375,9 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             // Input número de serie del equipo
             TextField(
               controller: _macController,
+              textCapitalization: TextCapitalization.characters,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (v) => _startValidation(v),
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
                 labelText: "Número de serie del equipo",
@@ -391,10 +396,26 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Actions: Scan QR or Cancel
+            // Vincular con la serie escrita; o escanear el QR con la cámara.
             OhmGradientButton(
-              label: "Escanear QR",
-              onPressed: _startScanning,
+              label: "Vincular",
+              icon: Icons.link_rounded,
+              onPressed: () => _startValidation(_macController.text),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _startScanning,
+                icon: const Icon(Icons.qr_code_scanner_rounded),
+                label: const Text("Escanear QR", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: cs.primary,
+                  side: BorderSide(color: cs.primary, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -413,193 +434,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 child: const Text(
                   "Cancelar instalación",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        );
-
-      case LinkState.scanning:
-        // Simulated viewfinder camera interface
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            // Dark camera background representing viewfinder
-            Container(
-              color: Colors.black,
-              child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Mock physical energizer image outline
-                    Icon(
-                      Icons.settings_input_component_rounded,
-                      size: 200,
-                      color: Colors.white.withValues(alpha: 0.15),
-                    ),
-                    Container(
-                      width: 250,
-                      height: 250,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white54, width: 2),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    // Tap to scan text
-                    Positioned(
-                      bottom: 40,
-                      child: Text(
-                        "Pulsar pantalla para simular escaneo",
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Camera Viewfinder Controls
-            Positioned(
-              top: 20,
-              left: 20,
-              right: 20,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.black38,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.flash_off_rounded, color: Colors.white),
-                      onPressed: () {},
-                    ),
-                  ),
-                  const Text(
-                    "Cámara",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.black38,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white),
-                      onPressed: () {
-                        setState(() {
-                          _currentState = LinkState.input;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Zoom indicator
-            Positioned(
-              bottom: 120,
-              left: 30,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  "2x",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-
-            // Flash bottom trigger
-            Positioned(
-              bottom: 110,
-              right: 30,
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.flash_on_rounded, color: Colors.white),
-                  onPressed: () {},
-                ),
-              ),
-            ),
-
-            // Circular shutter button
-            Positioned(
-              bottom: 40,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: () => _startValidation("MAC-99:A1:B2:C3:FF"),
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 58,
-                        height: 58,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Simulated Dialog Overlay: Camera Permissions
-            Positioned(
-              top: 100,
-              left: 40,
-              right: 40,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Permisos de cámara",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Se han concedido los permisos correctamente.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),

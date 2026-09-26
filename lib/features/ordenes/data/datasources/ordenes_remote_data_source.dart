@@ -80,8 +80,8 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> diagnosticoEnergizador(String serie) async {
-    final res = await dioClient.post('/instalador/energizador/diagnostico', body: {'serie': serie});
+  Future<Map<String, dynamic>> diagnosticoEnergizador(String serie, {String ordenId = ''}) async {
+    final res = await dioClient.post('/instalador/energizador/diagnostico', body: {'serie': serie, if (ordenId.isNotEmpty) 'ordenId': ordenId});
     return (res['data'] as Map<String, dynamic>?) ?? const {};
   }
 

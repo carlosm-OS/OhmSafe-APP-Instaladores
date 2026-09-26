@@ -132,7 +132,8 @@ productos `PAGO-*` en Odoo (hoy 0 hasta que Carlos los fije).
 ## 5. Energizador / dispositivo (reusa `domains/devices`)
 | Método | Ruta | Notas |
 |---|---|---|
-| POST | `/v1/instalador/ordenes/{id}/vincular-energizador` | `{qr}` o `{serial}` → liga el device → `{deviceId}` |
+| POST | `/v1/instalador/energizador/diagnostico` | `{serie, ordenId?}` → telemetría del equipo. Con `ordenId` revisa antes la serie contra el inventario de Odoo: **409 `SERIE_YA_INSTALADA`** (ya entregada a un cliente) o **409 `SERIE_APARTADA`** (en la entrega pendiente de otra orden). La app muestra el mensaje tal cual, al capturar la serie |
+| POST | `/v1/instalador/ordenes/{id}/vincular-energizador` | `{qr}` o `{serial}` → liga el device → `{deviceId}` | · repite la misma revisión de serie antes de tocar nada (antes el error salía hasta el cierre, cuando Odoo valida la entrega). En la app: «Vincular» valida la serie escrita; «Escanear QR» abre la cámara real (`mobile_scanner`, `EscanearSerieScreen`) |
 
 ## 6. Cierre
 | Método | Ruta | Notas |

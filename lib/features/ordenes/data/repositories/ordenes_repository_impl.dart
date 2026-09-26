@@ -104,9 +104,9 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       _accion(() => dataSource.vincularEnergizador(id, codigo: codigo, serie: serie, tierraConfirmada: tierraConfirmada));
 
   @override
-  Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie) async {
+  Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie, {String ordenId = ''}) async {
     try {
-      return Success(await dataSource.diagnosticoEnergizador(serie));
+      return Success(await dataSource.diagnosticoEnergizador(serie, ordenId: ordenId));
     } on UnauthorizedException {
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {

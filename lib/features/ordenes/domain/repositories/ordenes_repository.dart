@@ -36,7 +36,7 @@ abstract class OrdenesRepository {
   Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
 
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
-  Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie);
+  Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie, {String ordenId = ''});
 
   /// Sube UNA foto de evidencia al ticket y devuelve su fileKey.
   ///
