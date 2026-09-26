@@ -20,18 +20,26 @@
    hábiles). Aparece en su bandeja de actividades y en el chatter de la
    intervención. Responsable: Santiago (santiago.gea@ohmsafe.com); mientras dura
    la prueba, Carlos.
-4. **Agendar (esto es lo único manual).** En `Planificación › Programación`,
-   vista **Gantt por recurso**: mira el calendario del instalador (Juan Mora) y,
-   si tiene hueco, **arrastra la intervención del panel «Por planificar» al
-   día y hora** en su fila. Ajusta la duración (una instalación son ~8 h). Si no
-   cabe, la actividad sigue abierta como pendiente.
+4. **Agendar (esto es lo único manual).** Una intervención que viene de una venta
+   y aún no tiene fecha tiene la *Fecha* **bloqueada** en su formulario: Odoo exige
+   planificarla desde el calendario.
+   - `Planeación › Horario` (Gantt por recurso). Ve a la semana deseada con **→**.
+   - Mira el calendario del instalador. Pasa el mouse sobre la celda del día en su
+     fila (o en **Turnos abiertos** si su fila no aparece esa semana) y haz clic en
+     la **lupa** («Planificar existente»). Elige la intervención del cliente.
+   - Abre la tarjeta: ya se puede editar la *Fecha*. Déjala de **9:00 a 17:00**
+     (instalación de 8 h) y confirma **Recursos = el instalador**.
+   - También puedes abrir la intervención desde la actividad del reloj y asignar el
+     instalador ahí; la fecha sigue siendo desde el calendario.
+   - Si no hay hueco, la actividad sigue abierta como pendiente.
 5. **Publicar.** Botón **Publicar** (o *Publicar y enviar*). En ese instante:
    - el instalador recibe el **push** «Servicio agendado — <cliente>, <día y
      hora>» y la instalación aparece en su app con fecha, lista para *Iniciar
      ruta*;
    - el cliente recibe el correo «Intervención programada»;
    - la actividad «Agendar intervención» **se cierra sola** con la constancia
-     «Asignada a <instalador>».
+     «Asignada a <instalador>» en cuanto la intervención tiene instalador **y**
+     fecha (asignar sin fecha avisa al instalador pero deja la actividad abierta).
 6. **Reagendar** = mover la intervención en el Gantt. El instalador recibe el push
    «Servicio reagendado» con la fecha nueva. Cancelar = cancelar el contrato o
    borrar la intervención (push «Servicio cancelado»).
