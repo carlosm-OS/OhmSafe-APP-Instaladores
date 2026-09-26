@@ -4,6 +4,7 @@ import '../../../../core/auth/session_manager.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/result.dart';
+import '../../domain/entities/acceso.dart';
 import '../../domain/entities/sesion.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_data_source.dart';
@@ -35,7 +36,43 @@ class AuthRepositoryImpl implements AuthRepository {
       // 401 del backend = credenciales inválidas (mensaje claro para el login).
       return const FailureResult(AuthFailure());
     } on ServerException catch (e) {
-      return FailureResult(ServerFailure(e.message));
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<AccesoSiguiente>> solicitarAcceso({required String email, bool olvide = false}) =>
+      _run(() => dataSource.solicitarAcceso(email: email, olvide: olvide));
+
+  @override
+  Future<Result<CodigoVerificado>> verificarCodigo({required String email, required String codigo}) =>
+      _run(() => dataSource.verificarCodigo(email: email, codigo: codigo));
+
+  @override
+  Future<Result<Sesion>> activar({required String email, required String activacion, required String password}) => _run(() async {
+        final sesion = await dataSource.activar(
+          activacion: activacion,
+          password: password,
+          deviceId: await sessionManager.deviceId(),
+          deviceName: nombreDispositivo(),
+        );
+        _sesion = sesion;
+        await sessionManager.guardarLogin(sesion, email: email.trim().toLowerCase());
+        return sesion;
+      });
+
+  /// Traduce errores de transporte a fallos con el código del backend (p. ej. CODIGO_INCORRECTO).
+  Future<Result<T>> _run<T>(Future<T> Function() fn) async {
+    try {
+      return Success(await fn());
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure());
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {

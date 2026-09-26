@@ -10,11 +10,7 @@ abstract class PerfilRepository {
   /// Actualiza datos generales/fiscales. Recalcula el estado (activo si completo).
   Future<Result<Perfil>> updatePerfil({String? nombre, String? telefono, String? rfc, String? curp});
 
-  /// Sube la constancia de situación fiscal (archivo en base64).
-  Future<Result<Perfil>> subirConstancia({required String nombreArchivo, required String contenidoBase64, String mimetype});
 
-  /// Elimina la constancia de situación fiscal (adjunto en Odoo).
-  Future<Result<Perfil>> eliminarConstancia();
 
   /// Cambia la contraseña (primer ingreso con temporal, o posterior).
   Future<Result<bool>> cambiarPassword({required String passwordActual, required String passwordNueva});

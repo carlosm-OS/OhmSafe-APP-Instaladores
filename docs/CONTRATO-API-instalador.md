@@ -51,6 +51,21 @@ sin escribir nada (los builds ≤14 los mandaban al pulsar Guardar y ahora ven e
 `403 DATO_NO_EDITABLE` (`details.campos = ['foto']`). La sube el equipo de OhmSafe en Odoo, en la ficha de
 empleado del instalador; `GET /perfil` devuelve esa foto en `fotoBase64` (respaldo: la del contacto).
 
+## 2h. Primer ingreso con código por correo (2026-09-26)
+El instalador ya no recibe una contraseña temporal. La app pide primero el **correo**:
+
+| Método | Ruta | Notas |
+|---|---|---|
+| POST | `/v1/instalador/auth/correo` | `{email, olvide?}` → `{siguiente: 'password' \| 'codigo', esperaSegundos?}`. «password» si ya creó su contraseña. Cualquier otro caso responde «codigo» (no revela quién es instalador) y, si procede, manda el código al correo. `olvide: true` fuerza el código |
+| POST | `/v1/instalador/auth/codigo` | `{email, codigo}` (6 dígitos) → `{activacion, primeraVez, instalador:{nombre, numeroInstalador, fotoBase64}}`. Errores: `CODIGO_INCORRECTO` (details.intentosRestantes), `CODIGO_VENCIDO`, `DEMASIADOS_INTENTOS` |
+| POST | `/v1/instalador/auth/activar` | `{activacion, password, deviceId, deviceName}` → misma respuesta que `/auth/login`. Contraseña ≥ 8 con letras y números (`WEAK_PASSWORD`); token de un solo uso (`ACTIVACION_VENCIDA`) |
+
+Pantallas: correo → (contraseña) o (código → **bienvenida «Instalador certificado OhmSafe»** sólo si
+`primeraVez` → crear contraseña) → Face ID → inicio. El login de un instalador suspendido responde
+`403 CUENTA_SUSPENDIDA`. La constancia fiscal también la carga OhmSafe: `POST|DELETE /perfil/constancia`
+→ `403 DATO_NO_EDITABLE`; `GET /perfil` trae `constancia` (nombre del archivo), `estado`
+(activo / no_disponible / suspendido / '') y `alta` (pendiente_datos / pendiente_activacion / completa).
+
 ## 2c. Órdenes con dos orígenes (fase 2, 2026-09-25) — **desde la fase 6 (2026-09-26) sólo hay un origen**
 > El flujo de tareas de Proyecto se retiró: toda orden es una intervención de Planificación con id `i<n>`.
 > Un id sin ese formato responde `400 VALIDATION_ERROR`. Los webhooks `/webhooks/instalacion`,

@@ -213,3 +213,22 @@ teléfono, correo, CURP ni su foto; sólo el RFC (Facturación). Si pide una cor
 - **Nombre, teléfono, correo, CURP:** en `Contactos`, ficha del instalador.
 - **Foto:** en `Empleados`, ficha del instalador → clic en la foto → subir. Es la que ve
   la app y la que muestra Planificación. Se refleja en la app la próxima vez que la abra.
+
+## Dar de alta a un instalador externo (desde 2026-09-26)
+Todo se hace en Odoo; el instalador sólo descarga la app y entra con su correo.
+1. `Contactos › Instaladores externos › Nuevo` (formulario «Instalador externo»). Carga **todo**:
+   nombre y apellidos, teléfono, **correo** (con él entrará a la app), CURP, RFC, **foto** y la
+   **constancia fiscal** (PDF, en «Documentación»).
+2. Ponle la etiqueta **Instalador Externo-OS** (campo *Roles*). Odoo prepara solo: número de
+   instalador, código de venta, su ficha de empleado (horario lunes a domingo, pago por instalación) y
+   su acceso a la app. La barra de arriba (*Avance de alta*) dice qué falta.
+3. **Estado (lo decide OhmSafe)** — la lista desplegable del perfil es el check:
+   - **Activo**: aparece en Planificación y se le puede asignar trabajo.
+   - **Temporalmente no disponible**: sigue entrando a la app, pero no se le puede asignar.
+   - **Suspendido**: no se le asigna y tampoco puede entrar a la app.
+   Si lo activas antes de que complete su alta, Odoo lo avisa: no recibirá notificaciones hasta que
+   active la app.
+4. Dile que descargue la app y escriba su correo: le llega un código, ve su bienvenida como
+   instalador certificado y crea su contraseña. En el chatter queda «Activó su cuenta en la app» y la
+   barra pasa a *Alta completa*.
+5. Si olvida su contraseña, él mismo la cambia desde «¿Olvidaste tu contraseña?» con un código.

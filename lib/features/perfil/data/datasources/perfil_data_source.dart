@@ -5,9 +5,6 @@ import '../models/perfil_model.dart';
 abstract class PerfilDataSource {
   Future<PerfilModel> getPerfil();
   Future<PerfilModel> updatePerfil({String? nombre, String? telefono, String? rfc, String? curp});
-  Future<PerfilModel> subirConstancia({required String nombreArchivo, required String contenidoBase64, String mimetype});
 
-  /// Elimina la constancia en Odoo (borra el adjunto y limpia el campo).
-  Future<PerfilModel> eliminarConstancia();
   Future<void> cambiarPassword({required String passwordActual, required String passwordNueva});
 }

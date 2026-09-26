@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/notification_bell.dart';
-import 'package:file_picker/file_picker.dart';
 import 'dart:ui';
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import '../controllers/app_state.dart';
-import '../controllers/app_state_provider.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
@@ -19,11 +14,9 @@ class FacturacionScreen extends StatefulWidget {
 }
 
 class _FacturacionScreenState extends State<FacturacionScreen> {
-  bool _isUploading = false;
-  bool _isDeleting = false;
-  String? _selectedFileName;
-  String? _selectedFilePath;
-  String? _errorMessage;
+  /// Nombre de la constancia que cargó OhmSafe ('' si aún no hay). Sólo lectura.
+  String _constancia = '';
+  bool _cargada = false;
   bool _stateLoaded = false;
 
   final TextEditingController _rfcController = TextEditingController();
@@ -33,11 +26,6 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_stateLoaded) {
-      final state = AppStateProvider.of(context);
-      if (state.taxCertificatePath != null) {
-        _selectedFilePath = state.taxCertificatePath;
-        _selectedFileName = state.taxCertificateName;
-      }
       _stateLoaded = true;
       _cargarPerfil(); // espejo Odoo→app: RFC y constancia actuales de Odoo
     }
@@ -56,9 +44,8 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
     result.fold((perfil) {
       setState(() {
         _rfcController.text = perfil.rfc;
-        if (perfil.tieneConstancia && _selectedFileName == null) {
-          _selectedFileName = "Constancia registrada";
-        }
+        _constancia = perfil.constancia.isNotEmpty ? perfil.constancia : (perfil.tieneConstancia ? 'Constancia registrada' : '');
+        _cargada = true;
       });
     }, (_) {});
   }
@@ -80,207 +67,15 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
     );
   }
 
-  /// Tope del archivo, alineado con el que valida el backend.
-  static const int _maxConstanciaBytes = 10 * 1024 * 1024;
-
-  /// Un PDF siempre empieza por "%PDF-". Comprobar la cabecera es más fiable
-  /// que la extensión, que en iOS puede llegar vacía y además se puede falsear.
-  static bool _esPdf(List<int> bytes) {
-    if (bytes.length < 5) return false;
-    const firma = [0x25, 0x50, 0x44, 0x46, 0x2D]; // %PDF-
-    for (var i = 0; i < firma.length; i++) {
-      if (bytes[i] != firma[i]) return false;
-    }
-    return true;
-  }
-
-  Future<void> _pickFile(AppState state) async {
-    setState(() {
-      _errorMessage = null;
-    });
-
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-        withData: true, // necesitamos los bytes para subir la constancia en base64
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final file = result.files.first;
-
-        // Lo que necesitamos para subir son los BYTES (van en base64), no la
-        // ruta: en iOS un archivo de iCloud/Files puede llegar sin `path` y
-        // antes eso lo rechazaba aunque el contenido estuviera disponible.
-        final bytes = file.bytes;
-        if (bytes == null || bytes.isEmpty) {
-          setState(() {
-            _errorMessage = "No se pudo leer el archivo. Intenta de nuevo.";
-          });
-          return;
-        }
-
-        if (bytes.length > _maxConstanciaBytes) {
-          final mb = (bytes.length / (1024 * 1024)).toStringAsFixed(1);
-          setState(() {
-            _errorMessage = "El archivo pesa $mb MB. El máximo son 10 MB.";
-          });
-          return;
-        }
-
-        // Se valida el CONTENIDO, no la extensión: en iOS `file.extension`
-        // puede venir vacío, y un archivo renombrado a .pdf no es un PDF.
-        // Todo PDF empieza por los bytes "%PDF-".
-        if (!_esPdf(bytes)) {
-          setState(() {
-            _errorMessage = "Ese archivo no es un PDF válido. Sube tu constancia en .PDF";
-          });
-          return;
-        }
-
-        setState(() {
-          _selectedFileName = file.name;
-          _selectedFilePath = kIsWeb ? 'web_upload/${file.name}' : file.path;
-          _isUploading = true;
-        });
-
-        await _subirConstancia(state, file);
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = "Error al seleccionar el archivo: ${e.toString()}";
-      });
-    }
-  }
-
-  /// Sube la constancia (PDF) al backend en base64; se guarda como adjunto en el
-  /// contacto de Odoo. Solo si tiene éxito se refleja en el estado local.
-  Future<void> _subirConstancia(AppState state, PlatformFile file) async {
-    final bytes = file.bytes;
-    if (bytes == null) {
-      setState(() {
-        _isUploading = false;
-        _errorMessage = "No se pudo leer el archivo. Intenta de nuevo.";
-      });
-      return;
-    }
-    final result = await sl.get<PerfilRepository>().subirConstancia(
-          nombreArchivo: file.name,
-          contenidoBase64: base64Encode(bytes),
-          mimetype: 'application/pdf',
-        );
-    if (!mounted) return;
-    setState(() {
-      _isUploading = false;
-    });
-    result.fold(
-      (_) {
-        state.updateTaxCertificate(_selectedFilePath, _selectedFileName);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              "Constancia fiscal subida correctamente",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-        );
-      },
-      (failure) {
-        setState(() {
-          _errorMessage = "No se pudo subir la constancia: ${failure.message}";
-        });
-      },
-    );
-  }
-
-  /// Borra la constancia DE VERDAD: se lo pide al backend, que elimina el
-  /// adjunto en Odoo. Antes esto sólo limpiaba el estado local — decía
-  /// "eliminada" mientras el archivo seguía en Odoo y reaparecía al recargar.
-  /// El estado local sólo se limpia si el servidor confirma.
-  Future<void> _eliminarConstancia(AppState state) async {
-    setState(() {
-      _isDeleting = true;
-      _errorMessage = null;
-    });
-    final result = await sl.get<PerfilRepository>().eliminarConstancia();
-    if (!mounted) return;
-    setState(() => _isDeleting = false);
-    result.fold(
-      (_) {
-        setState(() {
-          _selectedFileName = null;
-          _selectedFilePath = null;
-          _isUploading = false;
-        });
-        state.updateTaxCertificate(null, null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Constancia fiscal eliminada"),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      },
-      (failure) => setState(() {
-        _errorMessage = "No se pudo eliminar la constancia: ${failure.message}";
-      }),
-    );
-  }
-
-  void _deleteFile(AppState state) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          title: const Text(
-            "Eliminar archivo",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            "¿Estás seguro de que deseas eliminar la constancia de situación fiscal subida?",
-            style: TextStyle(fontSize: 15),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                "Cancelar",
-                style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _eliminarConstancia(state);
-              },
-              child: const Text(
-                "Eliminar",
-                style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
-    final state = AppStateProvider.of(context);
-
     // Color system
     final labelColor = cs.onSurfaceVariant;
     final fillColor = ohm.surfaceContainer;
-    final dashedBorderColor = isDark ? cs.onSurfaceVariant : cs.outline;
 
     final labelStyle = TextStyle(
       fontSize: 12,
@@ -464,196 +259,45 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Dashed Box Container
-                        CustomPaint(
-                          painter: DashedRectPainter(
-                            color: dashedBorderColor,
-                            borderRadius: 20.0,
-                            strokeWidth: 1.5,
-                            dashWidth: 6.0,
-                            dashSpace: 5.0,
-                          ),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: _isUploading
-                                ? Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      SizedBox(
-                                        height: 48,
-                                        width: 48,
-                                        child: CircularProgressIndicator(
-                                          color: cs.primary,
-                                          strokeWidth: 4,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 24),
-                                      Text(
-                                        "Subiendo archivo...",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: theme.textTheme.bodyLarge?.color,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        _selectedFileName ?? "",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      // Styled document icon
-                                      const PdfDocumentIcon(width: 54, height: 72),
-                                      const SizedBox(height: 24),
-
-                                      // Primary title text
-                                      Text(
-                                        "Selecciona un archivo o documento.",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: theme.textTheme.bodyLarge?.color,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-
-                                      // Allowed format subtext
-                                      Text(
-                                        "El archivo debe ser .PDF",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 24),
-
-                                      // Buscar archivo outline button
-                                      SizedBox(
-                                        height: 48,
-                                        child: OutlinedButton(
-                                          onPressed: () => _pickFile(state),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: cs.primary,
-                                            side: BorderSide(color: cs.primary, width: 1.5),
-                                            padding: const EdgeInsets.symmetric(horizontal: 40),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(24),
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            "Buscar archivo",
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-
-                        // Error message display if any
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        // Constancia: la carga el equipo de OhmSafe en Odoo (2026-09-26). Sólo lectura.
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(color: fillColor, borderRadius: BorderRadius.circular(16)),
+                          child: Row(
                             children: [
-                              const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
-                              const SizedBox(width: 8),
+                              const PdfDocumentIcon(width: 28, height: 36),
+                              const SizedBox(width: 16),
                               Expanded(
-                                child: Text(
-                                  _errorMessage!,
-                                  style: const TextStyle(
-                                    color: Colors.redAccent,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      !_cargada ? 'Consultando…' : (_constancia.isNotEmpty ? _constancia : 'Aún no cargada'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      _constancia.isNotEmpty ? 'Cargada por OhmSafe' : 'La carga el equipo de OhmSafe',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: _constancia.isNotEmpty ? Colors.green.shade600 : cs.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              Icon(Icons.lock_outline_rounded, size: 18, color: cs.onSurfaceVariant),
                             ],
                           ),
-                        ],
-
-                        // Uploaded file section
-                        if (_selectedFileName != null && !_isUploading) ...[
-                          const SizedBox(height: 32),
-                          Text(
-                            "ARCHIVO SUBIDO",
-                            style: labelStyle,
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: fillColor,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              children: [
-                                // Small PDF icon
-                                const PdfDocumentIcon(width: 28, height: 36),
-                                const SizedBox(width: 16),
-
-                                // Name & upload state
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _selectedFileName ?? "",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: theme.textTheme.bodyLarge?.color,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        "Subido",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.green.shade600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-
-                                // Trash action button
-                                IconButton(
-                                  onPressed: _isDeleting ? null : () => _deleteFile(state),
-                                  icon: Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: isDark ? Colors.white70 : Colors.black87,
-                                    size: 22,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Tu constancia de situación fiscal la carga el equipo de OhmSafe. Si hay que actualizarla, escríbenos desde Ayuda.',
+                          style: TextStyle(fontSize: 12.5, height: 1.4, color: cs.onSurfaceVariant),
+                        ),
                       ],
                     ),
                   ),

@@ -1,6 +1,7 @@
-/// Perfil del instalador (proveedor en Odoo). RFC y CURP son campos fiscales
-/// nativos; la constancia se sube como adjunto en Odoo. `perfilCompleto` = true
-/// cuando hay RFC + CURP + constancia, y entonces `estado` pasa a "activo".
+/// Perfil del instalador (proveedor en Odoo). Todos sus datos, incluida la
+/// constancia fiscal, los carga el equipo de OhmSafe en Odoo (2026-09-26); en la
+/// app sólo el RFC es editable. `estado` lo decide OhmSafe (activo /
+/// no_disponible / suspendido; vacío = sin decidir).
 class Perfil {
   final String id;
   final String nombre;
@@ -9,7 +10,8 @@ class Perfil {
   final String rfc;
   final String curp;
   final String constanciaUrl;
-  final String estado; // pendiente_perfil | activo | suspendido
+  final String constancia; // nombre del archivo que cargó OhmSafe ('' si aún no hay)
+  final String estado; // activo | no_disponible | suspendido | '' (lo decide OhmSafe)
   final bool perfilCompleto;
   final String numeroInstalador; // ID visible (aleatorio, único) — vacío si no asignado
   final String codigoVenta; // código de descuento/bono (OHMS-…)
@@ -25,6 +27,7 @@ class Perfil {
     required this.rfc,
     required this.curp,
     required this.constanciaUrl,
+    this.constancia = '',
     required this.estado,
     required this.perfilCompleto,
     this.numeroInstalador = '',
@@ -34,5 +37,5 @@ class Perfil {
     this.respuestasEncuesta = 0,
   });
 
-  bool get tieneConstancia => constanciaUrl.isNotEmpty;
+  bool get tieneConstancia => constancia.isNotEmpty || constanciaUrl.isNotEmpty;
 }

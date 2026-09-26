@@ -1,4 +1,5 @@
 import '../../../../core/error/exceptions.dart';
+import '../../domain/entities/acceso.dart';
 import '../models/sesion_model.dart';
 import 'auth_data_source.dart';
 
@@ -24,4 +25,16 @@ class AuthMockDataSource implements AuthDataSource {
 
   @override
   Future<void> logout() async {} // mock: nada que limpiar
+
+  @override
+  Future<AccesoSiguiente> solicitarAcceso({required String email, bool olvide = false}) async =>
+      AccesoSiguiente(siguiente: olvide ? 'codigo' : 'password', esperaSegundos: 60);
+
+  @override
+  Future<CodigoVerificado> verificarCodigo({required String email, required String codigo}) async =>
+      const CodigoVerificado(activacion: 'mock', primeraVez: true, nombre: 'Juan Mora', numeroInstalador: '65243');
+
+  @override
+  Future<SesionModel> activar({required String activacion, required String password, String? deviceId, String? deviceName}) =>
+      login(email: 'juan@mock', password: password);
 }

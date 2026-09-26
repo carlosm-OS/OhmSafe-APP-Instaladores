@@ -8,8 +8,12 @@ import '../widgets/ohm_gradient_button.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import '../core/auth/flujo_sesion.dart';
 import 'contrasenas_screen.dart';
+import 'acceso_instalador_screens.dart';
 
-/// Pantalla de inicio de sesión del instalador (credenciales de Odoo vía API).
+/// Inicio de sesión del instalador en dos pasos (2026-09-26):
+/// 1) correo → el backend dice si ya tiene contraseña;
+/// 2a) sí: pide la contraseña (y ofrece «¿Olvidaste tu contraseña?»);
+/// 2b) no: primer ingreso → código al correo → bienvenida → crea su contraseña.
 /// En modo mock acepta cualquier correo/contraseña no vacíos.
 class LoginScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -29,6 +33,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
   bool _loading = false;
   String? _error;
+  /// Paso 2: el correo ya tiene contraseña y se muestra el campo.
+  bool _pidePassword = false;
 
   late final AuthRepository _auth;
 
@@ -45,6 +51,40 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     _passwordFocus.dispose();
     super.dispose();
+  }
+
+  bool _correoValido(String e) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(e.trim());
+
+  /// Paso 1: con el correo, el backend dice si sigue contraseña o código (primer ingreso).
+  Future<void> _continuar({bool olvide = false}) async {
+    final email = _emailController.text.trim();
+    if (!_correoValido(email)) {
+      setState(() => _error = 'Escribe tu correo completo.');
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final r = await _auth.solicitarAcceso(email: email, olvide: olvide);
+    if (!mounted) return;
+    r.fold(
+      (a) {
+        setState(() => _loading = false);
+        if (a.pidePassword && !olvide) {
+          setState(() => _pidePassword = true);
+          _passwordFocus.requestFocus();
+          return;
+        }
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => CodigoAccesoScreen(email: email, esperaInicial: a.esperaSegundos, olvide: olvide, onToggleTheme: widget.onToggleTheme),
+        ));
+      },
+      (f) => setState(() {
+        _loading = false;
+        _error = mensajeAcceso(f);
+      }),
+    );
   }
 
   Future<void> _login() async {
@@ -160,6 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 6),
                     TextField(
                       controller: _emailController,
+                      readOnly: _pidePassword,
                       keyboardType: TextInputType.emailAddress,
                       // Sugerencias de correo del historial del teléfono (QuickType
                       // en iOS / autofill en Android).
@@ -167,16 +208,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         AutofillHints.username,
                         AutofillHints.email,
                       ],
-                      textInputAction: TextInputAction.next,
-                      onSubmitted: (_) => _passwordFocus.requestFocus(),
+                      textInputAction: _pidePassword ? TextInputAction.next : TextInputAction.done,
+                      onSubmitted: (_) => _pidePassword ? _passwordFocus.requestFocus() : (_loading ? null : _continuar()),
                       style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                       decoration: _fieldDecoration(
                         theme,
                         isDark,
                         "tucorreo@ohmsafe.com",
                         Icons.mail_outline_rounded,
+                      ).copyWith(
+                        suffixIcon: _pidePassword
+                            ? TextButton(
+                                onPressed: () => setState(() {
+                                  _pidePassword = false;
+                                  _passwordController.clear();
+                                  _error = null;
+                                }),
+                                child: const Text('Cambiar'),
+                              )
+                            : null,
                       ),
                     ),
+                    if (_pidePassword) ...[
                     const SizedBox(height: 16),
 
                     Text("Contraseña", style: _labelStyle(theme, isDark)),
@@ -209,6 +262,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                     ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _loading ? null : () => _continuar(olvide: true),
+                        child: const Text('¿Olvidaste tu contraseña?'),
+                      ),
+                    ),
+                    ],
 
                     if (_error != null) ...[
                       const SizedBox(height: 16),
@@ -225,11 +286,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 28),
                     OhmGradientButton(
-                      label: "Iniciar sesión",
-                      icon: Icons.login_rounded,
+                      label: _pidePassword ? "Iniciar sesión" : "Continuar",
+                      icon: _pidePassword ? Icons.login_rounded : Icons.arrow_forward_rounded,
                       loading: _loading,
-                      onPressed: _login,
+                      onPressed: _pidePassword ? _login : _continuar,
                     ),
+                    if (!_pidePassword) ...[
+                      const SizedBox(height: 14),
+                      Text(
+                        '¿Primera vez? Escribe el correo que registró OhmSafe y te enviaremos un código para activar tu cuenta.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12.5, height: 1.4, color: cs.onSurfaceVariant),
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -42,30 +42,7 @@ class PerfilMockDataSource implements PerfilDataSource {
     return _perfil;
   }
 
-  @override
-  Future<PerfilModel> subirConstancia({required String nombreArchivo, required String contenidoBase64, String mimetype = 'application/pdf'}) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _perfil = PerfilModel(
-      id: _perfil.id, nombre: _perfil.nombre, email: _perfil.email, telefono: _perfil.telefono,
-      rfc: _perfil.rfc, curp: _perfil.curp, constanciaUrl: 'mock://constancia.pdf',
-      estado: _perfil.estado, perfilCompleto: _perfil.perfilCompleto,
-      numeroInstalador: _perfil.numeroInstalador, codigoVenta: _perfil.codigoVenta,
-    );
-    return _perfil;
-  }
 
-  @override
-  Future<PerfilModel> eliminarConstancia() async {
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    _perfil = PerfilModel(
-      id: _perfil.id, nombre: _perfil.nombre, email: _perfil.email,
-      telefono: _perfil.telefono, rfc: _perfil.rfc, curp: _perfil.curp,
-      constanciaUrl: '', estado: 'pendiente_perfil', perfilCompleto: false,
-      numeroInstalador: _perfil.numeroInstalador, codigoVenta: _perfil.codigoVenta,
-      fotoBase64: _perfil.fotoBase64,
-    );
-    return _perfil;
-  }
 
 
   @override

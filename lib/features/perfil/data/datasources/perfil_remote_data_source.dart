@@ -27,19 +27,7 @@ class PerfilRemoteDataSource implements PerfilDataSource {
     return _parse(await dioClient.put('/instalador/perfil', body: body));
   }
 
-  @override
-  Future<PerfilModel> subirConstancia({required String nombreArchivo, required String contenidoBase64, String mimetype = 'application/pdf'}) async {
-    return _parse(await dioClient.post('/instalador/perfil/constancia', body: {
-      'nombreArchivo': nombreArchivo,
-      'contenidoBase64': contenidoBase64,
-      'mimetype': mimetype,
-    }));
-  }
 
-  @override
-  Future<PerfilModel> eliminarConstancia() async {
-    return _parse(await dioClient.delete('/instalador/perfil/constancia'));
-  }
 
 
   @override
