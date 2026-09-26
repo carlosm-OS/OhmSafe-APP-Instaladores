@@ -1,4 +1,6 @@
+import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../screens/instalaciones_screen.dart';
 
 /// Displays a modal bottom sheet allowing the technician to input the
@@ -6,7 +8,7 @@ import '../screens/instalaciones_screen.dart';
 /// with the ticket marked as cancelled.
 void showCancellationFlow(BuildContext context, Map<String, dynamic> ticket) {
   final theme = Theme.of(context);
-  final isDark = theme.brightness == Brightness.dark;
+  final ohm = context.ohm;
   final reasonController = TextEditingController();
 
   showModalBottomSheet(
@@ -54,10 +56,10 @@ void showCancellationFlow(BuildContext context, Map<String, dynamic> ticket) {
               decoration: InputDecoration(
                 hintText: "Escribe aquí el motivo...",
                 hintStyle: TextStyle(
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                 ),
                 filled: true,
-                fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                fillColor: ohm.surfaceContainer,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -73,15 +75,7 @@ void showCancellationFlow(BuildContext context, Map<String, dynamic> ticket) {
                   final reason = reasonController.text.trim();
                   print("Instalación cancelada. Motivo: $reason");
                   Navigator.pop(context); // Cerrar bottom sheet
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => InstalacionesScreen(
-                        cancelledTicketTitle: ticket["title"],
-                      ),
-                    ),
-                    (route) => false,
-                  );
+                  volverAListado(context, InstalacionesScreen(cancelledTicketTitle: ticket["title"]));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,

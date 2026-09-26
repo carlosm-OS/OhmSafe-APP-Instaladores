@@ -1,9 +1,17 @@
+import 'escanear_serie_screen.dart';
+import '../core/error/failures.dart';
 import 'dart:async';
+import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
+import '../widgets/ohm_gradient_button.dart';
+import '../core/di/injection_container.dart';
+import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/utils/fechas_odoo.dart';
 
-enum LinkState { input, scanning, validating }
+enum LinkState { input, validating }
 
 class LinkEnergizerScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -17,10 +25,13 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   LinkState _currentState = LinkState.input;
   final TextEditingController _macController = TextEditingController();
   bool _isLoading = false;
-  bool _hasFailedOnce = false;
 
   // Validation indicators state
-  String _tierraStatus = 'Gris'; // Gris, Verde, Rojo
+  /// Declaración explícita del técnico de que hizo la tierra física conforme
+  /// al procedimiento. NO es una prueba: no hay telemetría que la valide, por
+  /// eso dejó de pintarse como "Pendiente" junto a las que sí se miden — eso
+  /// daba a entender que el sistema la comprobaría.
+  bool _tierraConfirmada = false;
   String _bateriaStatus = 'Gris';
   String _redLteStatus = 'Gris';
   String _retornoStatus = 'Gris';
@@ -30,74 +41,95 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   bool _bannerIsSuccess = false;
   String _bannerText = '';
 
-  Timer? _simulationTimer;
-
   @override
   void dispose() {
     _macController.dispose();
-    _simulationTimer?.cancel();
     super.dispose();
   }
 
-  void _startScanning() {
-    setState(() {
-      _currentState = LinkState.scanning;
-    });
-    // Auto-scan after 2.5 seconds to simulate camera focusing and reading QR
-    _simulationTimer = Timer(const Duration(milliseconds: 2500), () {
-      if (mounted && _currentState == LinkState.scanning) {
-        _startValidation("MAC-99:A1:B2:C3:FF");
-      }
-    });
+  // MAC real del equipo, detectada por el diagnóstico (se guarda en Odoo).
+  String _macDetectada = '';
+
+  /// Diagnóstico real devuelto por el backend (serie, MAC, en línea, cerca,
+  /// firmware, último reporte). null hasta que se encuentre el equipo.
+  Map<String, dynamic>? _diag;
+
+  /// Cámara real: lee el QR del energizador, pone la serie en el campo y
+  /// arranca el diagnóstico con ella.
+  Future<void> _startScanning() async {
+    final serie = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const EscanearSerieScreen()),
+    );
+    if (!mounted || serie == null || serie.isEmpty) return;
+    _macController.text = serie;
+    await _startValidation(serie);
   }
 
-  void _startValidation(String macAddress) {
-    _simulationTimer?.cancel();
+  /// Mensaje del backend tal cual cuando es sobre la serie (ya instalada o
+  /// apartada en otra instalación); si no, con contexto.
+  String _mensajeError(Failure f, String contexto) =>
+      f is ServerFailure && f.code.startsWith('SERIE_') ? f.message : '$contexto: ${f.message}';
+
+  /// Diagnóstico REAL por número de serie: lee la telemetría del equipo y pinta
+  /// cada prueba. La tierra física no tiene telemetría → la confirma el instalador.
+  Future<void> _startValidation(String serie) async {
+    final s = serie.trim();
+    if (s.isEmpty) {
+      setState(() => _currentState = LinkState.input);
+      _triggerBanner(false, "Ingresa o escanea el número de serie del equipo");
+      return;
+    }
     setState(() {
-      _macController.text = macAddress;
       _currentState = LinkState.validating;
       _isLoading = true;
       _showBanner = false;
-
-      // Reset indicators to pending
-      _tierraStatus = 'Gris';
-      _bateriaStatus = 'Gris';
-      _redLteStatus = 'Gris';
-      _retornoStatus = 'Gris';
+      _bateriaStatus = 'Gris'; // alto voltaje / cerca
+      _redLteStatus = 'Gris'; // batería auxiliar
+      _retornoStatus = 'Gris'; // conexión a línea
     });
 
-    // Simulate IoT polling / WebSockets status changes from Backend
-    int step = 0;
-    _simulationTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
+    final ordenId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    // Con la orden, el backend también revisa la serie contra el inventario de
+    // Odoo (ya instalada con otro cliente o apartada en otra instalación).
+    final result = await sl.get<OrdenesRepository>().diagnosticoEnergizador(s, ordenId: ordenId);
+    if (!mounted) return;
+    result.fold((d) {
       setState(() {
-        step++;
-        if (step == 1) {
-          _tierraStatus = 'Verde';
-        } else if (step == 2) {
-          _bateriaStatus = 'Verde';
-        } else if (step == 3) {
-          _redLteStatus = 'Verde';
-        } else if (step == 4) {
-          timer.cancel();
-          _isLoading = false;
-          if (!_hasFailedOnce) {
-            // First time fails
-            _retornoStatus = 'Rojo';
-            _hasFailedOnce = true;
-            _triggerBanner(false, "Error en retorno");
-          } else {
-            // Second time (retry) succeeds
-            _retornoStatus = 'Verde';
-            _triggerBanner(true, "Red de Wi-Fi guardada con éxito");
-          }
+        _isLoading = false;
+        if (d['encontrado'] != true) {
+          // De vuelta al input: sin equipo no hay nada que diagnosticar. Antes
+          // el estado se quedaba en `validating` y el panel de pruebas (con su
+          // título de éxito) seguía en pantalla junto al banner de error.
+          _diag = null;
+          _macDetectada = '';
+          _currentState = LinkState.input;
+          _triggerBanner(false, "No se encontró un equipo con la serie \"$s\"");
+          return;
         }
+        _diag = Map<String, dynamic>.from(d);
+        _macDetectada = (d['mac'] ?? '').toString();
+        // Telemetría real -> estado de cada prueba.
+        _retornoStatus = d['conexionLinea'] == true ? 'Verde' : 'Rojo'; // energía de la calle
+        _redLteStatus = d['bateria'] == 'ok'
+            ? 'Verde'
+            : (d['bateria'] == 'baja' ? 'Rojo' : 'Gris');
+        _bateriaStatus = d['cercaActiva'] == true ? 'Verde' : 'Rojo'; // cerca energizada
+        final ok = _retornoStatus == 'Verde' &&
+            _redLteStatus == 'Verde' &&
+            _bateriaStatus == 'Verde';
+        _triggerBanner(ok, ok ? "Diagnóstico del equipo exitoso" : "Hay pruebas en rojo, revisa el equipo");
+      });
+    }, (f) {
+      setState(() {
+        _isLoading = false;
+        _currentState = LinkState.input;
+        _triggerBanner(false, _mensajeError(f, "No se pudo leer el equipo"));
       });
     });
+  }
+
+  void _toggleTierra() {
+    setState(() => _tierraConfirmada = !_tierraConfirmada);
   }
 
   void _triggerBanner(bool isSuccess, String text) {
@@ -108,8 +140,35 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     });
   }
 
+  bool _isSending = false;
+
+  /// Vincula el energizador a la orden en el backend (marca `x_estado_vinculacion`
+  /// y guarda la MAC en Odoo) y, solo si tiene éxito, regresa 'device_linked'.
+  Future<void> _vincularEnergizador() async {
+    if (_isSending) return;
+    setState(() => _isSending = true);
+    final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    final serie = _macController.text.trim();
+    final result = await sl.get<OrdenesRepository>().vincularEnergizador(
+          id,
+          codigo: _macDetectada.isNotEmpty ? _macDetectada : serie,
+          serie: serie,
+          tierraConfirmada: _tierraConfirmada,
+        );
+    if (!mounted) return;
+    result.fold(
+      (_) => Navigator.pop(context, 'device_linked'),
+      (failure) {
+        setState(() => _isSending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_mensajeError(failure, "No se pudo vincular el energizador"))),
+        );
+      },
+    );
+  }
+
   bool get _allCompleted =>
-      _tierraStatus == 'Verde' &&
+      _tierraConfirmada &&
       _bateriaStatus == 'Verde' &&
       _redLteStatus == 'Verde' &&
       _retornoStatus == 'Verde';
@@ -117,6 +176,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
@@ -129,7 +189,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Header (Logo centrado, iconos derecha)
-                if (_currentState != LinkState.scanning)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     child: Stack(
@@ -149,11 +208,11 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                                   color: theme.textTheme.bodyLarge?.color,
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 "SAFE",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
-                                  color: Color(0xFFFF5A00),
+                                  color: cs.primary,
                                 ),
                               ),
                             ],
@@ -161,20 +220,13 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                         ),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: IconButton(
-                            onPressed: () {},
-                            icon: Icon(
-                              Icons.notifications_none_rounded,
-                              color: theme.iconTheme.color?.withOpacity(0.7),
-                            ),
-                          ),
+                          child: const NotificationBell(),
                         ),
                       ],
                     ),
                   ),
 
                 // Back chevron and Centered Title Row
-                if (_currentState != LinkState.scanning)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: SizedBox(
@@ -232,10 +284,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           ),
 
           // Banner notification at the top (under SafeArea)
-          if (_currentState != LinkState.scanning) _buildNotificationBanner(),
+          _buildNotificationBanner(),
 
           // Shared bottom navigation bar
-          if (_currentState != LinkState.scanning) const AppBottomNav(),
+          const AppBottomNav(),
         ],
       ),
     );
@@ -243,7 +295,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
 
   Widget _buildStateContent(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
 
     switch (_currentState) {
       case LinkState.input:
@@ -253,7 +306,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           children: [
             const SizedBox(height: 12),
             Text(
-              "Escanear QR",
+              "Identifica el energizador",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 17,
@@ -263,11 +316,11 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              "Escanea el QR que se encuentra en el energizador ohmsafe",
+              "Escribe el número de serie del energizador OhmSafe o escanea su código QR",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 32),
@@ -278,10 +331,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 width: 200,
                 height: 200,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                  color: cs.surface,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: theme.dividerColor.withOpacity(0.3),
+                    color: theme.dividerColor.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Stack(
@@ -291,7 +344,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                     Icon(
                       Icons.qr_code_2_rounded,
                       size: 130,
-                      color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8),
+                      color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                     ),
                     // Red/Orange Scan Line moving vertically or static
                     Positioned(
@@ -299,7 +352,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                       right: 15,
                       child: Container(
                         height: 2,
-                        color: const Color(0xFFFF5A00),
+                        color: cs.primary,
                       ),
                     ),
                   ],
@@ -313,24 +366,27 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 height: 1.4,
               ),
             ),
             const SizedBox(height: 40),
 
-            // Input MAC Address
+            // Input número de serie del equipo
             TextField(
               controller: _macController,
+              textCapitalization: TextCapitalization.characters,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (v) => _startValidation(v),
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
-                labelText: "MAC Address / No. Serie",
+                labelText: "Número de serie del equipo",
                 labelStyle: TextStyle(
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 ),
-                hintText: "Ej: MAC-99:A1:B2:C3:FF",
+                hintText: "Ej: OHM-XXXX-XXXX (o escanéalo del QR)",
                 filled: true,
-                fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                fillColor: ohm.surfaceContainer,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -340,30 +396,24 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Actions: Scan QR or Cancel
+            // Vincular con la serie escrita; o escanear el QR con la cámara.
+            OhmGradientButton(
+              label: "Vincular",
+              icon: Icons.link_rounded,
+              onPressed: () => _startValidation(_macController.text),
+            ),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: OutlinedButton.icon(
                 onPressed: _startScanning,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5A00),
-                  foregroundColor: Colors.white,
+                icon: const Icon(Icons.qr_code_scanner_rounded),
+                label: const Text("Escanear QR", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: cs.primary,
+                  side: BorderSide(color: cs.primary, width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
-                      "Escanear QR",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 18),
-                  ],
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
             ),
@@ -375,7 +425,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 onPressed: () => showCancellationFlow(context, widget.ticket),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: theme.textTheme.bodyLarge?.color,
-                  side: BorderSide(color: theme.dividerColor.withOpacity(0.5), width: 1.5),
+                  side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -390,193 +440,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           ],
         );
 
-      case LinkState.scanning:
-        // Simulated viewfinder camera interface
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            // Dark camera background representing viewfinder
-            Container(
-              color: Colors.black,
-              child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Mock physical energizer image outline
-                    Icon(
-                      Icons.settings_input_component_rounded,
-                      size: 200,
-                      color: Colors.white.withOpacity(0.15),
-                    ),
-                    Container(
-                      width: 250,
-                      height: 250,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white54, width: 2),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    // Tap to scan text
-                    Positioned(
-                      bottom: 40,
-                      child: Text(
-                        "Pulsar pantalla para simular escaneo",
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Camera Viewfinder Controls
-            Positioned(
-              top: 20,
-              left: 20,
-              right: 20,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.black38,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.flash_off_rounded, color: Colors.white),
-                      onPressed: () {},
-                    ),
-                  ),
-                  const Text(
-                    "Cámara",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.black38,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white),
-                      onPressed: () {
-                        setState(() {
-                          _currentState = LinkState.input;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Zoom indicator
-            Positioned(
-              bottom: 120,
-              left: 30,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  "2x",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-
-            // Flash bottom trigger
-            Positioned(
-              bottom: 110,
-              right: 30,
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.flash_on_rounded, color: Colors.white),
-                  onPressed: () {},
-                ),
-              ),
-            ),
-
-            // Circular shutter button
-            Positioned(
-              bottom: 40,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: () => _startValidation("MAC-99:A1:B2:C3:FF"),
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 58,
-                        height: 58,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Simulated Dialog Overlay: Camera Permissions
-            Positioned(
-              top: 100,
-              left: 40,
-              right: 40,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Permisos de cámara",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Se han concedido los permisos correctamente.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-
       case LinkState.validating:
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
@@ -584,7 +447,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           children: [
             const SizedBox(height: 12),
             Text(
-              "¡Vinculación exitosa!",
+              _allCompleted ? "Equipo listo para vincular" : "Diagnóstico del equipo",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
@@ -594,11 +457,13 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              "El Sistema OhmSafe ha sido vinculado",
+              _allCompleted
+                  ? "Todas las pruebas en verde. Continúa con el cierre."
+                  : "Revisa las pruebas y confirma la tierra física antes de continuar",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 24),
@@ -609,20 +474,24 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.4),
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
                 letterSpacing: 0.5,
               ),
             ),
             const SizedBox(height: 12),
 
             // 4 Indicators
-            _buildTestIndicatorRow("Instalación de tierra física", _tierraStatus),
+            // Tierra física: sin telemetría en esta versión → check manual
+            // obligatorio del instalador; control de calidad lo valida después.
+            _buildTierraCheckbox(),
             _buildTestIndicatorRow("Prueba de alto voltaje exitosa", _bateriaStatus),
             _buildTestIndicatorRow("Conexión de batería auxiliar", _redLteStatus),
             _buildTestIndicatorRow(
-              "Prueba de retorno del equipo",
+              "Verificación de conexión a línea",
               _retornoStatus,
-              errorSubtitle: _retornoStatus == 'Rojo' ? "El regreso no se ha detectado" : null,
+              errorSubtitle: _retornoStatus == 'Rojo'
+                  ? "El equipo no recibe energía de la línea eléctrica"
+                  : null,
             ),
             const SizedBox(height: 16),
 
@@ -630,19 +499,25 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                color: cs.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: theme.dividerColor.withOpacity(0.3),
+                  color: theme.dividerColor.withValues(alpha: 0.3),
                 ),
               ),
               child: Column(
                 children: [
-                  _buildDetailRow("Estado de la cerca", "Activa"),
+                  _buildDetailRow("Número de serie", _diag?['serie']?.toString() ?? '—'),
                   const SizedBox(height: 8),
-                  _buildDetailRow("Conexión Wi-Fi", "En línea"),
+                  _buildDetailRow("MAC", _diag?['mac']?.toString() ?? '—'),
                   const SizedBox(height: 8),
-                  _buildDetailRow("Red de soporte SIM", "Activa"),
+                  _buildDetailRow("Estado de la cerca", _diag?['cercaActiva'] == true ? "Activa" : "Desarmada"),
+                  const SizedBox(height: 8),
+                  _buildDetailRow("Equipo en línea", _diag?['enLinea'] == true ? "Sí" : "Sin reporte reciente"),
+                  const SizedBox(height: 8),
+                  _buildDetailRow("Firmware", _diag?['firmware']?.toString() ?? '—'),
+                  const SizedBox(height: 8),
+                  _buildDetailRow("Último reporte", _formatUltimoReporte(_diag?['ultimoReporte'])),
                 ],
               ),
             ),
@@ -650,52 +525,18 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
 
             // Main CTA Button
             if (_isLoading)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(8.0),
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF5A00)),
+                    valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
                   ),
                 ),
               )
             else ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _allCompleted
-                      ? () {
-                          Navigator.pop(context, 'device_linked');
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5A00),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                    disabledForegroundColor: isDark ? Colors.white30 : Colors.white70,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Continuar con cierre de instalación",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.arrow_forward,
-                        size: 18,
-                        color: _allCompleted
-                            ? Colors.white
-                            : (isDark ? Colors.white30 : Colors.white70),
-                      ),
-                    ],
-                  ),
-                ),
+              OhmGradientButton(
+                label: "Continuar con cierre de instalación",
+                onPressed: (_allCompleted && !_isSending) ? _vincularEnergizador : null,
               ),
               const SizedBox(height: 12),
 
@@ -707,8 +548,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                     onPressed: () => _startValidation(_macController.text),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
-                      foregroundColor: const Color(0xFFFF5A00),
-                      side: const BorderSide(color: Color(0xFFFF5A00), width: 1.5),
+                      foregroundColor: cs.primary,
+                      side: BorderSide(color: cs.primary, width: 1.5),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -731,7 +572,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                   onPressed: () => showCancellationFlow(context, widget.ticket),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: theme.textTheme.bodyLarge?.color,
-                    side: BorderSide(color: theme.dividerColor.withOpacity(0.5), width: 1.5),
+                    side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -749,8 +590,74 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     }
   }
 
+  /// Casilla explícita de la tierra física. Va aparte de las pruebas del
+  /// sistema justamente porque no se mide: es una declaración del técnico, con
+  /// su responsabilidad, que control de calidad verifica después.
+  Widget _buildTierraCheckbox() {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: _tierraConfirmada ? cs.primary.withValues(alpha: 0.08) : theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _tierraConfirmada ? cs.primary : theme.dividerColor.withValues(alpha: 0.6),
+          width: _tierraConfirmada ? 1.5 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: _toggleTierra,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _tierraConfirmada,
+                onChanged: (_) => _toggleTierra(),
+                activeColor: cs.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
+                    Text(
+                      "Confirmo que instalé la tierra física conforme al procedimiento",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 1.35,
+                        color: theme.textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Obligatorio para cerrar. Queda registrado a tu nombre y control de calidad lo verifica en sitio.",
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.65),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTestIndicatorRow(String title, String status, {String? errorSubtitle}) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
     final isDark = theme.brightness == Brightness.dark;
 
     Color cardBg;
@@ -760,22 +667,22 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
 
     switch (status) {
       case 'Verde':
-        cardBg = isDark ? const Color(0x22166534) : const Color(0xFFDCFCE7);
-        badgeBg = isDark ? const Color(0x33166534) : const Color(0xFFBBF7D0);
-        badgeTextColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534);
+        cardBg = ohm.successContainer;
+        badgeBg = ohm.success.withValues(alpha: 0.20);
+        badgeTextColor = ohm.success;
         badgeText = 'Completa';
         break;
       case 'Rojo':
-        cardBg = isDark ? const Color(0x22EF4444) : const Color(0xFFFEE2E2);
-        badgeBg = isDark ? const Color(0x33EF4444) : const Color(0xFFFECACA);
-        badgeTextColor = isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C);
+        cardBg = cs.errorContainer;
+        badgeBg = cs.error.withValues(alpha: 0.20);
+        badgeTextColor = isDark ? cs.error : cs.onErrorContainer;
         badgeText = 'Error';
         break;
       case 'Gris':
       default:
-        cardBg = isDark ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFFF8FAFC);
-        badgeBg = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-        badgeTextColor = isDark ? Colors.white70 : const Color(0xFF64748B);
+        cardBg = isDark ? cs.surface.withValues(alpha: 0.5) : cs.surface;
+        badgeBg = isDark ? cs.outline : cs.outlineVariant;
+        badgeTextColor = isDark ? Colors.white70 : cs.onSurfaceVariant;
         badgeText = 'Pendiente';
         break;
     }
@@ -791,8 +698,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
               color: status == 'Rojo'
-                  ? Colors.red.withOpacity(0.4)
-                  : theme.dividerColor.withOpacity(0.3),
+                  ? cs.error.withValues(alpha: 0.4)
+                  : theme.dividerColor.withValues(alpha: 0.3),
             ),
           ),
           child: Padding(
@@ -846,6 +753,12 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     );
   }
 
+  /// "dd/MM/yyyy HH:mm" a partir del ISO del backend; "Nunca" si no hay reporte.
+  String _formatUltimoReporte(dynamic iso) {
+    if (iso == null || iso.toString().isEmpty) return "Nunca";
+    return FechasOdoo.fechaHora(iso.toString());
+  }
+
   Widget _buildDetailRow(String key, String value) {
     final theme = Theme.of(context);
     return Row(
@@ -863,7 +776,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           value,
           style: TextStyle(
             fontSize: 14,
-            color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8),
+            color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -874,16 +787,19 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   Widget _buildNotificationBanner() {
     if (!_showBanner) return const SizedBox.shrink();
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
+    final isDark = theme.brightness == Brightness.dark;
     final bannerBg = _bannerIsSuccess
-        ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFC2E7C0))
-        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFFEE2E2));
+        ? (isDark ? cs.surface : ohm.successContainer)
+        : (isDark ? cs.surface : cs.errorContainer);
     final bannerBorder = _bannerIsSuccess
-        ? (isDark ? const Color(0xFF15803D) : const Color(0xFF86EFAC))
-        : (isDark ? const Color(0xFFB91C1C) : const Color(0xFFFCA5A5));
+        ? ohm.success
+        : (isDark ? cs.onErrorContainer : cs.error);
     final bannerTextColor = _bannerIsSuccess
-        ? (isDark ? Colors.white : const Color(0xFF14532D))
-        : (isDark ? Colors.white : const Color(0xFF7F1D1D));
+        ? (isDark ? Colors.white : ohm.onSuccessContainer)
+        : (isDark ? Colors.white : cs.onErrorContainer);
 
     return Positioned(
       top: 64,
@@ -897,7 +813,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           border: Border.all(color: bannerBorder, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             )
@@ -908,7 +824,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: _bannerIsSuccess ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                color: _bannerIsSuccess ? ohm.success : cs.error,
                 shape: BoxShape.circle,
               ),
               child: Icon(

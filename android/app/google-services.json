@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "495339874346",
+    "project_id": "ohmsafe-instaladores",
+    "storage_bucket": "ohmsafe-instaladores.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:495339874346:android:c35d6ba8e392d61ffa7b53",
+        "android_client_info": {
+          "package_name": "com.ohmsafe.instalador"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaIXRCafehvCQL-wyeg1Fiiwa3dJ7Tk_Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

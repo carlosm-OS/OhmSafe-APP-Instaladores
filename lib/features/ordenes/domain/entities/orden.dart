@@ -1,0 +1,116 @@
+/// Orden de servicio del instalador (instalación / reparación / mantenimiento).
+/// Forma alineada con el contrato del backend (`/v1/instalador/ordenes`).
+class Orden {
+  final String id;
+  final String tipo; // instalacion | reparacion | mantenimiento
+  final String titulo;
+  final String estado; // por_hacer | en_curso | completo | cancelado
+  final bool urgente;
+  final String cliente;
+  final String direccion;
+  final String ciudad;
+  final String cp;
+  final String telefono;
+  /// Dirección completa para «Cómo llegar» (calle, colonia, CP, ciudad, estado, país).
+  final String direccionCompleta;
+  /// Coordenadas del contacto en Odoo si está geolocalizado; null si no.
+  final double? lat;
+  final double? lng;
+  final String metraje;
+  final String fechaCreacion;
+  final String diasAbierto;
+  // Agendamiento / pago (contrato `/v1/instalador/ordenes`).
+  final String plan; // plan contratado, p.ej. "Hogar Seguro - Mensual"
+  final double monto; // monto pagado
+  final String stripePaymentId; // referencia de pago Stripe
+  final String? fechaAgendada; // ISO "2026-09-15 10:00:00" o null si no agendada
+  final String? fechaFin; // fin programado (UTC de Odoo); una instalación puede abarcar varios días
+  final bool agendado; // true cuando el equipo de servicio ya agendó día/hora
+  // Capturado por operaciones en la llamada de agendamiento.
+  final String? fechaPagoConfirmado;
+  final bool contratoFirmado;
+  final List<String> condicionesTerreno; // malla, vegetación, mascotas, acceso...
+  /// Paso del flujo en el que está la orden, calculado por el backend a
+  /// partir de lo ya guardado en Odoo: iniciar_ruta | marcar_llegada |
+  /// inspeccion | instalacion | vinculacion | cierre | completo | ...
+  final String pasoActual;
+  /// 'intervencion' (Planificación de Odoo) o '' (tarea de Proyecto, las viejas).
+  final String origen;
+  /// Orden de venta que originó el servicio (p. ej. S00154); vacío en tareas viejas.
+  final String ordenVenta;
+  /// Hoja de trabajo de Odoo: `[{nombre, etiqueta, tipo, valor}]`, vacía hasta que se llena.
+  final List<Map<String, dynamic>> hojaTrabajo;
+
+  const Orden({
+    required this.id,
+    required this.tipo,
+    required this.titulo,
+    required this.estado,
+    required this.urgente,
+    required this.cliente,
+    required this.direccion,
+    required this.ciudad,
+    required this.cp,
+    required this.telefono,
+    this.direccionCompleta = '',
+    this.lat,
+    this.lng,
+    required this.metraje,
+    required this.fechaCreacion,
+    required this.diasAbierto,
+    this.plan = '',
+    this.monto = 0,
+    this.stripePaymentId = '',
+    this.fechaAgendada,
+    this.fechaFin,
+    this.agendado = false,
+    this.fechaPagoConfirmado,
+    this.contratoFirmado = false,
+    this.condicionesTerreno = const [],
+    this.pasoActual = 'iniciar_ruta',
+    this.origen = '',
+    this.ordenVenta = '',
+    this.hojaTrabajo = const [],
+  });
+
+  bool get esIntervencion => origen == 'intervencion';
+
+  /// true cuando el servicio ya arrancó: la acción de la tarjeta debe
+  /// retomar el paso pendiente, no volver a "iniciar ruta".
+  bool get enCurso => const {
+        'marcar_llegada', 'inspeccion', 'instalacion', 'vinculacion', 'cierre',
+      }.contains(pasoActual);
+
+  bool get esReparacion {
+    final t = tipo.toLowerCase();
+    return t.contains('reparacion') || t.contains('reparación');
+  }
+
+  /// Adaptador de compatibilidad: los flujos actuales (service_steps, cierre,
+  /// route_details, etc.) consumen un `Map<String,dynamic> ticket`. Mientras
+  /// migramos esas pantallas, la Orden se entrega con esa misma forma.
+  Map<String, dynamic> toTicketMap() => {
+        'id': id,
+        'title': titulo,
+        'type': tipo,
+        'status': estado,
+        'isUrgent': urgente,
+        'user': cliente,
+        'details': {
+          'openDays': diasAbierto,
+          'createdDate': fechaCreacion,
+          'metraje': metraje,
+          'direccion': direccion,
+          'ciudad': ciudad,
+          'cp': cp,
+          'telefono': telefono,
+          'direccionCompleta': direccionCompleta,
+          // Texto: route_details y service_steps leen `details` como Map<String, String>.
+          'lat': lat?.toString() ?? '',
+          'lng': lng?.toString() ?? '',
+          'condicionesTerreno': condicionesTerreno.join(', '),
+          'ordenVenta': ordenVenta,
+          'origen': origen,
+        },
+      };
+}
