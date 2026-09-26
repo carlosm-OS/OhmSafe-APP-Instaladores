@@ -40,7 +40,11 @@
 como lo guarda Odoo. La app lo convierte siempre a la hora del dispositivo con
 `FechasOdoo` (`lib/core/utils/fechas_odoo.dart`); nunca parsear el texto crudo.
 
-## 2c. Órdenes con dos orígenes (fase 2, 2026-09-25)
+## 2c. Órdenes con dos orígenes (fase 2, 2026-09-25) — **desde la fase 6 (2026-09-26) sólo hay un origen**
+> El flujo de tareas de Proyecto se retiró: toda orden es una intervención de Planificación con id `i<n>`.
+> Un id sin ese formato responde `400 VALIDATION_ERROR`. Los webhooks `/webhooks/instalacion`,
+> `/webhooks/asignacion` y `/webhooks/reagenda` ya no existen. Lo que sigue en esta sección es histórico.
+
 Una orden con id `i<n>` (p. ej. `i2`) es una **intervención de Planificación** de Odoo;
 un id numérico es una tarea de Proyecto (las viejas, hasta cerrarse). Todos los
 endpoints de `/ordenes/:id/...` aceptan ambos y devuelven la misma forma. Campos aditivos
