@@ -1,3 +1,4 @@
+import '../core/utils/como_llegar.dart';
 import 'package:flutter/material.dart';
 import 'service_steps_screen.dart';
 import '../core/theme/app_theme_extension.dart';
@@ -712,6 +713,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 ),
                 const SizedBox(height: 6),
                 _detailRow(theme, "Teléfono: ", orden.telefono),
+                BotonComoLlegar(destino: DestinoServicio.deDetalles(orden.toTicketMap()['details'] as Map)),
                 if (orden.plan.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   _detailRow(theme, "Plan: ", orden.plan),

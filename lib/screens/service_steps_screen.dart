@@ -1,3 +1,4 @@
+import '../core/utils/como_llegar.dart';
 import '../core/navigation/volver_a_listado.dart';
 import 'dart:async';
 import '../widgets/notification_bell.dart';
@@ -567,6 +568,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 ),
                               ),
                               
+                              BotonComoLlegar(destino: DestinoServicio.deDetalles(details)),
                               const SizedBox(height: 12),
                               Divider(height: 1, color: theme.dividerColor),
                               const SizedBox(height: 12),

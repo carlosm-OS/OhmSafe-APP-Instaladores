@@ -11,6 +11,11 @@ class Orden {
   final String ciudad;
   final String cp;
   final String telefono;
+  /// Dirección completa para «Cómo llegar» (calle, colonia, CP, ciudad, estado, país).
+  final String direccionCompleta;
+  /// Coordenadas del contacto en Odoo si está geolocalizado; null si no.
+  final double? lat;
+  final double? lng;
   final String metraje;
   final String fechaCreacion;
   final String diasAbierto;
@@ -47,6 +52,9 @@ class Orden {
     required this.ciudad,
     required this.cp,
     required this.telefono,
+    this.direccionCompleta = '',
+    this.lat,
+    this.lng,
     required this.metraje,
     required this.fechaCreacion,
     required this.diasAbierto,
@@ -96,6 +104,10 @@ class Orden {
           'ciudad': ciudad,
           'cp': cp,
           'telefono': telefono,
+          'direccionCompleta': direccionCompleta,
+          // Texto: route_details y service_steps leen `details` como Map<String, String>.
+          'lat': lat?.toString() ?? '',
+          'lng': lng?.toString() ?? '',
           'condicionesTerreno': condicionesTerreno.join(', '),
           'ordenVenta': ordenVenta,
           'origen': origen,

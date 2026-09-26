@@ -116,7 +116,7 @@ productos `PAGO-*` en Odoo (hoy 0 hasta que Carlos los fije).
 ## 3. Órdenes de servicio (dominio nuevo `field-service`)
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/v1/instalador/ordenes?tipo=&estado=&dia=` | `tipo=instalacion\|reparacion\|mantenimiento`; `estado=por_hacer\|en_curso\|completo\|cancelado`. Lista: `[{id, tipo, titulo, estado, urgente, cliente, direccion, ciudad, cp, telefono, metraje, fechaCreacion, diasAbierto}]` |
+| GET | `/v1/instalador/ordenes?tipo=&estado=&dia=` | `tipo=instalacion\|reparacion\|mantenimiento`; `estado=por_hacer\|en_curso\|completo\|cancelado`. Lista: `[{id, tipo, titulo, estado, urgente, cliente, direccion, ciudad, cp, telefono, direccionCompleta, coordenadas, metraje, fechaCreacion, diasAbierto}]`. `direccionCompleta` (calle, colonia, CP ciudad, estado, país) y `coordenadas:{lat,lng}\|null` (geolocalización del contacto en Odoo; null si Odoo tiene 0,0) alimentan el botón **«Cómo llegar»** (Google Maps / Waze / Apple Maps / copiar dirección; ver `lib/core/utils/como_llegar.dart`) |
 | GET | `/v1/instalador/ordenes/{id}` | detalle + `registroInstalacion:{perimetroMetros, lineasInstaladas, postesEsquinaInstalados, postesPasoInstalados, abanicosInstalados, edadCercaAnios}` + `pasosCompletados:[...]` |
 | POST | `/v1/instalador/ordenes/{id}/iniciar-ruta` | pasa a `en_curso`; notifica al cliente |
 | POST | `/v1/instalador/ordenes/{id}/marcar-llegada` | completa paso 1 |

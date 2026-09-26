@@ -1,3 +1,4 @@
+import '../core/utils/como_llegar.dart';
 import 'package:flutter/material.dart';
 import '../widgets/notification_bell.dart';
 import 'service_steps_screen.dart';
@@ -261,6 +262,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                 ),
                 const SizedBox(height: 6),
                 _detailRow(theme, "Teléfono: ", orden.telefono),
+                BotonComoLlegar(destino: DestinoServicio.deDetalles(orden.toTicketMap()['details'] as Map)),
               ],
               const SizedBox(height: 12),
               Divider(height: 1, color: theme.dividerColor),
