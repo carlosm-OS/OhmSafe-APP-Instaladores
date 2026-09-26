@@ -1,3 +1,4 @@
+import 'core/teclado/teclado.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -158,6 +159,9 @@ class _OhmSafeAppState extends State<OhmSafeApp> with WidgetsBindingObserver {
       locale: const Locale('es', 'MX'),
       supportedLocales: const [Locale('es', 'MX'), Locale('es'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      // Teclado: barra «Listo» en iOS, tocar fuera lo cierra y se cierra al navegar.
+      builder: (context, child) => TecladoGlobal(child: child ?? const SizedBox.shrink()),
+      navigatorObservers: [CerrarTecladoAlNavegar()],
       home: ArranqueScreen(onToggleTheme: _toggleTheme),
     );
   }

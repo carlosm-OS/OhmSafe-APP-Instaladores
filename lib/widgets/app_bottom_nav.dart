@@ -1,3 +1,4 @@
+import '../core/teclado/teclado.dart';
 import 'package:flutter/material.dart';
 import '../screens/help_screen.dart';
 import '../screens/profile_main_screen.dart';
@@ -12,8 +13,9 @@ class AppBottomNav extends StatelessWidget {
     // Con el teclado abierto el Scaffold encoge el body y esta barra, que es
     // un Positioned sobre el borde inferior, sube hasta tapar el campo que
     // se esta escribiendo. Se oculta mientras haya teclado: no se navega a
-    // media captura y el campo queda a la vista.
-    if (MediaQuery.viewInsetsOf(context).bottom > 0) {
+    // media captura y el campo queda a la vista. Ojo: dentro del Scaffold
+    // `MediaQuery.viewInsets` llega en 0; por eso se pregunta a TecladoScope.
+    if (TecladoScope.abiertoEn(context)) {
       return const SizedBox.shrink();
     }
     return Positioned(
