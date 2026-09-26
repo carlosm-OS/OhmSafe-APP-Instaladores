@@ -1,3 +1,4 @@
+import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
 import '../widgets/notification_bell.dart';
 import '../core/theme/app_theme_extension.dart';
@@ -367,15 +368,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                   onPressed: () {
                                     final reason = _reasonController.text.trim();
                                     print("Instalación cancelada. Motivo: $reason");
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => InstalacionesScreen(
-                                          cancelledTicketTitle: widget.ticket["title"],
-                                        ),
-                                      ),
-                                      (route) => false,
-                                    );
+                                    volverAListado(context, InstalacionesScreen(cancelledTicketTitle: widget.ticket["title"]));
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,

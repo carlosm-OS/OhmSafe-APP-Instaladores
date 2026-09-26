@@ -134,7 +134,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () => Navigator.maybePop(context),
                             style: IconButton.styleFrom(
                               padding: const EdgeInsets.all(6),
                               shape: const CircleBorder(),

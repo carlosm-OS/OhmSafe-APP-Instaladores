@@ -1,3 +1,4 @@
+import '../core/navigation/volver_a_listado.dart';
 import 'dart:async';
 import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
@@ -966,17 +967,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                     label: isRep ? "Volver a Reparaciones" : "Volver a Instalaciones",
                     onPressed: () {
                       Navigator.pop(context); // Close dialog
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => isRep
-                              ? const ReparacionesScreen()
-                              : InstalacionesScreen(
-                                  completedTicketTitle: widget.ticket["title"],
-                                ),
-                        ),
-                        (route) => false,
-                      );
+                      volverAListado(context, isRep ? const ReparacionesScreen() : InstalacionesScreen(completedTicketTitle: widget.ticket["title"]));
                     },
                   ),
                 ],

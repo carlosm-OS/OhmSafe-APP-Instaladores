@@ -231,7 +231,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () => Navigator.maybePop(context),
                             style: IconButton.styleFrom(padding: const EdgeInsets.all(6), shape: const CircleBorder()),
                             icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.iconTheme.color),
                           ),
