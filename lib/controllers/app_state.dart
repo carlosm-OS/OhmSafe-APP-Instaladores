@@ -47,27 +47,15 @@ class AppState extends ChangeNotifier {
   String _fotoBase64 = '';
   String get fotoBase64 => _fotoBase64;
 
-  String _installerPhone = "55 5266 7879";
+  // Datos generales: sólo los que vienen de Odoo (los carga OhmSafe; en la app son de sólo lectura).
+  String _installerPhone = '';
   String get installerPhone => _installerPhone;
 
-  String _installerEmail = "juan@ohmsafe.com";
+  String _installerEmail = '';
   String get installerEmail => _installerEmail;
 
-  String _installerCurp = "JMY790428HDFM01";
+  String _installerCurp = '';
   String get installerCurp => _installerCurp;
-
-  void updateInstallerInfo({
-    required String name,
-    required String phone,
-    required String email,
-    required String curp,
-  }) {
-    _installerName = name;
-    _installerPhone = phone;
-    _installerEmail = email;
-    _installerCurp = curp;
-    notifyListeners();
-  }
 
   String _bankHolder = "Juan Mora";
   String get bankHolder => _bankHolder;
@@ -209,6 +197,9 @@ class AppState extends ChangeNotifier {
     _numeroInstalador = p.numeroInstalador;
     _codigoVenta = p.codigoVenta;
     if (p.nombre.isNotEmpty) _installerName = p.nombre;
+    _installerPhone = p.telefono;
+    _installerEmail = p.email;
+    _installerCurp = p.curp;
     _fotoBase64 = p.fotoBase64;
     _calificacion = p.calificacion;
     _respuestasEncuesta = p.respuestasEncuesta;
@@ -246,6 +237,9 @@ class AppState extends ChangeNotifier {
     _numeroInstalador = '';
     _codigoVenta = '';
     _fotoBase64 = '';
+    _installerPhone = '';
+    _installerEmail = '';
+    _installerCurp = '';
     notifyListeners();
   }
   int get mantenimientosCount => _mantenimientosCount;

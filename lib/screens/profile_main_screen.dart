@@ -7,7 +7,6 @@ import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
-import 'datos_generales_screen.dart';
 import 'datos_bancarios_screen.dart';
 import 'contrasenas_screen.dart';
 import 'facturacion_screen.dart';
@@ -43,6 +42,61 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
     result.fold(
       (p) => AppStateProvider.of(context).aplicarPerfil(p),
       (_) {},
+    );
+  }
+
+  /// Datos generales del instalador como texto de sólo lectura (sin campos de captura).
+  /// Por seguridad sólo el equipo de OhmSafe los corrige en Odoo.
+  Widget _datosGenerales(BuildContext context) {
+    final state = AppStateProvider.of(context);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final partes = state.installerName.trim().split(RegExp(r'\s+'));
+    final nombres = partes.isNotEmpty ? partes.first : '';
+    final apellidos = partes.length > 1 ? partes.sublist(1).join(' ') : '';
+    Widget fila(String etiqueta, String valor, {bool ultima = false}) => Padding(
+          padding: EdgeInsets.only(bottom: ultima ? 0 : 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 96,
+                child: Text(etiqueta, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
+              ),
+              Expanded(
+                child: SelectableText(
+                  valor.isNotEmpty ? valor : '—',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
+                ),
+              ),
+            ],
+          ),
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('DATOS GENERALES', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.6, color: cs.onSurfaceVariant)),
+        const SizedBox(height: 12),
+        fila('Nombre(s)', nombres),
+        fila('Apellidos', apellidos),
+        fila('Teléfono', state.installerPhone),
+        fila('Correo', state.installerEmail),
+        fila('CURP', state.installerCurp, ultima: true),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline_rounded, size: 14, color: cs.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Si algún dato está mal, escríbenos desde Ayuda: sólo el equipo de OhmSafe puede corregirlo.',
+                style: TextStyle(fontSize: 11.5, height: 1.35, color: cs.onSurfaceVariant),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -276,13 +330,11 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         ] else
                           const SizedBox(height: 12),
 
+                        // Datos generales: sólo lectura, como texto (los carga OhmSafe en Odoo).
+                        _datosGenerales(context),
+                        const SizedBox(height: 24),
+
                         // Styled ListTile Menu Buttons
-                        _buildMenuItem(
-                          context,
-                          label: "Datos Generales",
-                          icon: Icons.person,
-                          targetScreen: const DatosGeneralesScreen(),
-                        ),
                         _buildMenuItem(
                           context,
                           label: "Datos bancarios",

@@ -161,6 +161,21 @@ class _CodigoAccesoScreenState extends State<CodigoAccesoScreen> {
     );
   }
 
+  /// Pega el código desde el portapapeles: toma el primer número de 6 dígitos de lo copiado
+  /// (sirve aunque se haya copiado la frase completa del correo).
+  Future<void> _pegar() async {
+    final texto = (await Clipboard.getData(Clipboard.kTextPlain))?.text ?? '';
+    final m = RegExp(r'(?<!\d)(\d{6})(?!\d)').firstMatch(texto) ?? RegExp(r'^(\d{6})$').firstMatch(texto.replaceAll(RegExp(r'\D'), ''));
+    if (!mounted) return;
+    if (m == null) {
+      setState(() => _error = 'No encontramos un código de 6 dígitos en lo que copiaste.');
+      return;
+    }
+    _codigo.text = m.group(1)!;
+    _codigo.selection = TextSelection.collapsed(offset: 6);
+    _verificar();
+  }
+
   Future<void> _reenviar() async {
     setState(() => _error = null);
     final r = await sl.get<AuthRepository>().solicitarAcceso(email: widget.email, olvide: true);
@@ -202,7 +217,15 @@ class _CodigoAccesoScreenState extends State<CodigoAccesoScreen> {
         const SizedBox(height: 14),
         Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: cs.error, fontWeight: FontWeight.w600, fontSize: 13)),
       ],
-      const SizedBox(height: 24),
+      Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: _cargando ? null : _pegar,
+          icon: const Icon(Icons.content_paste_rounded, size: 18),
+          label: const Text('Pegar código'),
+        ),
+      ),
+      const SizedBox(height: 12),
       OhmGradientButton(label: 'Verificar código', icon: Icons.verified_user_outlined, loading: _cargando, onPressed: _verificar),
       const SizedBox(height: 12),
       TextButton(

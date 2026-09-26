@@ -31,4 +31,25 @@ void main() {
     expect(find.byIcon(Icons.edit_rounded), findsNothing);
     expect(find.textContaining('Sube tu foto'), findsNothing);
   });
+
+  testWidgets('los datos generales están en Perfil como texto de sólo lectura, encima de Datos bancarios', (tester) async {
+    final estado = AppState();
+    await tester.pumpWidget(AppStateProvider(
+      notifier: estado,
+      child: MaterialApp(theme: AppTheme.light, home: const ProfileMainScreen()),
+    ));
+    await tester.pump();
+    for (final etiqueta in ['DATOS GENERALES', 'Nombre(s)', 'Apellidos', 'Teléfono', 'Correo', 'CURP']) {
+      expect(find.text(etiqueta), findsOneWidget, reason: etiqueta);
+    }
+    expect(find.byType(TextField), findsNothing); // sin campos de captura
+    expect(find.text('Datos Generales'), findsNothing); // ya no es una pantalla aparte
+    expect(find.textContaining('sólo el equipo de OhmSafe puede corregirlo'), findsOneWidget);
+    // Sin datos de ejemplo: lo que no llegó de Odoo se muestra como «—».
+    expect(find.text('juan@ohmsafe.com'), findsNothing);
+    expect(find.text('55 5266 7879'), findsNothing);
+    final yDatos = tester.getTopLeft(find.text('DATOS GENERALES')).dy;
+    final yBanco = tester.getTopLeft(find.text('Datos bancarios')).dy;
+    expect(yDatos, lessThan(yBanco));
+  });
 }

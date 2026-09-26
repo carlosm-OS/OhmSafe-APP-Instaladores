@@ -1,5 +1,6 @@
 // Primer ingreso del instalador: correo → (contraseña | código) → bienvenida → crear contraseña.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ohmsafe_app/controllers/app_state.dart';
 import 'package:ohmsafe_app/controllers/app_state_provider.dart';
@@ -140,5 +141,31 @@ void main() {
     // Sin la pista de «contraseña nueva» que dispara la sugerencia de iOS.
     expect(t.widget<TextField>(campo).autofillHints, isNot(contains(AutofillHints.newPassword)));
     expect(t.widget<TextField>(find.byKey(const ValueKey('password-confirmar'))).autofillHints ?? const <String>[], isEmpty);
+  });
+
+  testWidgets('«Pegar código» toma el código aunque se copie la frase del correo', (t) async {
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.getData') return {'text': 'Usa este código para activar tu cuenta: 211885 El código vence en 10 minutos.'};
+      return null;
+    });
+    addTearDown(() => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    await t.pumpWidget(_app(CodigoAccesoScreen(email: 'ana@x.mx', onToggleTheme: () {})));
+    await t.tap(find.text('Pegar código'));
+    await t.pump();
+    await t.pump(const Duration(seconds: 1));
+    expect(auth.llamadas, contains('codigo:211885'));
+  });
+
+  testWidgets('«Pegar código» sin código en el portapapeles avisa y no verifica', (t) async {
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.getData') return {'text': 'hola'};
+      return null;
+    });
+    addTearDown(() => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    await t.pumpWidget(_app(CodigoAccesoScreen(email: 'ana@x.mx', onToggleTheme: () {})));
+    await t.tap(find.text('Pegar código'));
+    await t.pump();
+    expect(find.text('No encontramos un código de 6 dígitos en lo que copiaste.'), findsOneWidget);
+    expect(auth.llamadas.where((l) => l.startsWith('codigo:')), isEmpty);
   });
 }

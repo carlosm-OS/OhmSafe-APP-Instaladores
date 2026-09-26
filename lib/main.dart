@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'controllers/app_state.dart';
 import 'controllers/app_state_provider.dart';
 import 'core/config/env_config.dart';
@@ -152,6 +153,11 @@ class _OhmSafeAppState extends State<OhmSafeApp> with WidgetsBindingObserver {
       themeMode: _themeMode,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      // Español de México: el menú de texto dice «Pegar / Copiar / Seleccionar todo» y los
+      // selectores de fecha y hora salen en español.
+      locale: const Locale('es', 'MX'),
+      supportedLocales: const [Locale('es', 'MX'), Locale('es'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: ArranqueScreen(onToggleTheme: _toggleTheme),
     );
   }
