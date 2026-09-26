@@ -84,7 +84,7 @@ void main() {
     await t.pump();
     await t.pump(const Duration(seconds: 1));
     expect(find.text('Crea tu contraseña'), findsOneWidget);
-    final campos = find.byType(TextField); // el campo del correo para el llavero está fuera de escena (Offstage)
+    final campos = find.byType(TextField);
     await t.enterText(campos.at(0), 'corta');
     await t.enterText(campos.at(1), 'corta');
     await t.tap(find.text('Crear contraseña y entrar'));
@@ -124,5 +124,21 @@ void main() {
     expect(validarPasswordNueva('abcdefgh'), 'Combina letras y números.');
     expect(validarPasswordNueva('12345678'), 'Combina letras y números.');
     expect(validarPasswordNueva('Segura2026'), isNull);
+  });
+
+  testWidgets('crear contraseña: los campos conservan todo lo que se escribe, letra por letra', (t) async {
+    await t.pumpWidget(_app(CrearPasswordScreen(email: 'ana@x.mx', activacion: 'tok', primeraVez: true, onToggleTheme: () {})));
+    final campo = find.byKey(const ValueKey('password-nueva'));
+    await t.tap(campo);
+    var texto = '';
+    for (final c in 'Segura2026'.split('')) {
+      texto += c;
+      await t.enterText(campo, texto);
+      await t.pump();
+    }
+    expect(t.widget<TextField>(campo).controller!.text, 'Segura2026');
+    // Sin la pista de «contraseña nueva» que dispara la sugerencia de iOS.
+    expect(t.widget<TextField>(campo).autofillHints, isNot(contains(AutofillHints.newPassword)));
+    expect(t.widget<TextField>(find.byKey(const ValueKey('password-confirmar'))).autofillHints ?? const <String>[], isEmpty);
   });
 }

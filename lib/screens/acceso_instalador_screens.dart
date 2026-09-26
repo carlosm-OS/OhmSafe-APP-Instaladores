@@ -350,22 +350,29 @@ class _CrearPasswordScreenState extends State<CrearPasswordScreen> {
         subtitulo: 'Con ella entrarás a la app a partir de ahora. Usa al menos 8 caracteres, con letras y números.',
       ),
       const SizedBox(height: 28),
+      // Sin la pista «contraseña nueva» de iOS: con ella iOS toma el campo al primer carácter para
+      // sugerir una contraseña segura y, sin llavero de iCloud (simulador, muchos teléfonos), el
+      // campo se traba y sólo muestra la primera letra. La pista «contraseña» basta para que el
+      // gestor del sistema ofrezca guardarla al terminar (finishAutofillContext).
       AutofillGroup(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          // Campo oculto con el correo: iOS y Android asocian la contraseña nueva a esta cuenta.
-          Offstage(child: TextField(controller: TextEditingController(text: widget.email), autofillHints: const [AutofillHints.username])),
           TextField(
+            key: const ValueKey('password-nueva'),
             controller: _password,
             obscureText: _oculta,
-            autofillHints: const [AutofillHints.newPassword],
+            autocorrect: false,
+            enableSuggestions: false,
+            autofillHints: const [AutofillHints.password],
             textInputAction: TextInputAction.next,
             decoration: _decoracion(context, 'Contraseña nueva', Icons.lock_outline_rounded).copyWith(suffixIcon: ojo),
           ),
           const SizedBox(height: 14),
           TextField(
+            key: const ValueKey('password-confirmar'),
             controller: _confirmar,
             obscureText: _oculta,
-            autofillHints: const [AutofillHints.newPassword],
+            autocorrect: false,
+            enableSuggestions: false,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _cargando ? null : _crear(),
             decoration: _decoracion(context, 'Repite la contraseña', Icons.lock_outline_rounded),
