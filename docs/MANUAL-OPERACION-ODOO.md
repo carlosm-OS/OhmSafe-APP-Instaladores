@@ -56,7 +56,9 @@
    Al dar de alta a un instalador nuevo como empleado, asígnale ambos.
 
 Qué NO hay que hacer: crear tickets a mano, asignar instalador desde el
-contrato, ni tocar HubSpot. Instalaciones migradas del flujo viejo (contratos
+contrato, ni tocar HubSpot. El campo **Cliente** de una intervención que viene de
+una venta está bloqueado: para corregir la dirección, abre la ficha del contacto
+(flechita junto al nombre) y edítala ahí; la intervención y la app la toman solas. Instalaciones migradas del flujo viejo (contratos
 `migracion:task…`, S00162–S00164) están en «Por planificar» esperando agenda.
 
 ## Dónde ver cada paso de la app (flujo vigente)

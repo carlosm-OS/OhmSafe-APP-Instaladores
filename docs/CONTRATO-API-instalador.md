@@ -115,7 +115,7 @@ productos `PAGO-*` en Odoo (hoy 0 hasta que Carlos los fije).
 | Método | Ruta | Notas |
 |---|---|---|
 | GET | `/v1/instalador/ordenes?tipo=&estado=&dia=` | `tipo=instalacion\|reparacion\|mantenimiento`; `estado=por_hacer\|en_curso\|completo\|cancelado`. Lista: `[{id, tipo, titulo, estado, urgente, cliente, direccion, ciudad, cp, telefono, metraje, fechaCreacion, diasAbierto}]` |
-| GET | `/v1/instalador/ordenes/{id}` | detalle + `registroInstalacion:{perimetroMetros, lineasInstaladas, postesEsquinaInstalados, postesPasoInstalados, abanicosInstalados, aisladoresPorPoste, edadCercaAnios}` + `pasosCompletados:[...]` |
+| GET | `/v1/instalador/ordenes/{id}` | detalle + `registroInstalacion:{perimetroMetros, lineasInstaladas, postesEsquinaInstalados, postesPasoInstalados, abanicosInstalados, edadCercaAnios}` + `pasosCompletados:[...]` |
 | POST | `/v1/instalador/ordenes/{id}/iniciar-ruta` | pasa a `en_curso`; notifica al cliente |
 | POST | `/v1/instalador/ordenes/{id}/marcar-llegada` | completa paso 1 |
 | POST | `/v1/instalador/ordenes/{id}/inspeccion-perimetro` | `{sinObstaculos:bool, obstaculos:[string]}` |
