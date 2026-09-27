@@ -180,3 +180,37 @@ Odoo sin tocar Stripe/checkout:
 2. La app **no retoma** desde la etapa de Odoo: siempre arranca en el paso 1 (`_stepNCompleted` en memoria). Con 1) obliga a rehacer pasos a mitad de trabajo.
 3. `_allCompleted` no exige `enLinea`: telemetría de días atrás pasa las pruebas.
 4. UX: "Cancelar instalación" pegado bajo el CTA primario en tres pantallas (mismo ancho) — riesgo de cancelar por error.
+
+## Pendientes — corte 2026-09-27
+
+E2E completo verificado por Carlos (S00168/i25, TestFlight build 19): venta → intervención por planificar →
+agendar por rango (28→29) → push al instalador → ruta → cámara/QR → cierre → reporte PDF y encuesta con marca.
+Los arreglos posteriores al build 19 son **sólo de backend** (api-dev): no hace falta un build nuevo.
+
+**Decisiones / esperando a alguien**
+1. **WhatsApp «técnico en ruta» (y futuros avisos por WhatsApp):** elegir canal — HubSpot con el número de SAC
+   (requiere OK para mandar a HubSpot un dato de operación), Odoo (otro número; hoy sólo cuenta demo) o Twilio.
+   Cualquiera necesita plantilla aprobada por Meta. El correo equivalente ya existe (plantilla 104).
+2. **Reglas de pago al instalador:** Operaciones llena la hoja «Pago a instaladores — reglas para Operaciones»
+   (Drive de admin@) → opción A (manual) o B (tabulador por concepto). Mientras: costos `PAGO-*` en $0.
+3. **Precios `SRV-*`** (catálogo de «Cotizar venta» vacío mientras estén en $0) y **comisión por venta** (no existe).
+4. **DNS de ohmsafe.com (Dan, GoDaddy):** SPF + DKIM de Odoo para que los correos de Odoo no caigan en spam.
+5. **Responsable de operaciones:** cambiar `VENTAS_OPERACIONES_LOGIN` a Santiago al salir de pruebas.
+
+**Desarrollo**
+6. Reparaciones (pantalla existe; cerrar flujo y cobro), Mantenimiento y Reemplazo de equipo — uno por uno, cada
+   uno con su plantilla de hoja de trabajo.
+7. Disponibilidad del instalador (cita → intervención automática).
+8. Sesión nivel B (Face ID con secreto del sistema, «Dispositivos con sesión»).
+9. Push en Android (dispositivo real).
+10. Inventario real de energizadores en Odoo (hoy la serie se crea al vincular).
+
+**Limpieza**
+11. Borrar campos `x_` de `project.task` (~2026-10-26) y el código de project.task que quede en el backend.
+12. Borrar las pruebas S00167/i24 y S00168/i25 al terminar las pruebas (series `OHM-CARLOS-DEV*` quedaron entregadas).
+
+**Paso a producción**
+13. Todo vive en api-dev y en las ramas `feature/reparaciones` (app) y `CarlosClaudDev-casa-raiz` (backend):
+    merge a `dev` → `main` → deploy del backend a prod.
+14. Hoy **Odoo es producción (ohmsafe2) y sus webhooks apuntan a api-dev**: al salir, apuntarlos al backend de prod.
+15. App: la build de TestFlight habla con api-dev; para la tienda, compilar contra prod.
