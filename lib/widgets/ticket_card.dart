@@ -58,8 +58,9 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final urgentRed = const Color(0xFFEF4444);
+    final urgentRed = cs.error;
 
     return AnimatedBuilder(
       animation: _entranceController,
@@ -76,14 +77,14 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFE2E8F0).withOpacity(0.8),
+            color: isDark ? cs.outline.withValues(alpha: 0.5) : cs.outlineVariant.withValues(alpha: 0.8),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.15 : 0.02),
+              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.02),
               blurRadius: 8,
               offset: const Offset(0, 4),
             )
@@ -103,7 +104,7 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: urgentRed.withOpacity(0.6),
+                        color: urgentRed.withValues(alpha: 0.6),
                         blurRadius: 4,
                         spreadRadius: 1,
                       )
@@ -136,17 +137,17 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF111827) : const Color(0xFFF8F8FA),
+                          color: cs.surface,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isDark ? const Color(0xFF334155).withOpacity(0.3) : const Color(0xFFECECF1),
+                            color: isDark ? cs.outline.withValues(alpha: 0.3) : cs.outlineVariant,
                           ),
                         ),
                         child: Text(
                           detail,
                           style: TextStyle(
                             fontSize: 12,
-                            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.65),
+                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.65),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -158,7 +159,7 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   child: Divider(
                     height: 1,
-                    color: theme.dividerColor.withOpacity(0.08),
+                    color: theme.dividerColor.withValues(alpha: 0.08),
                   ),
                 ),
                 Row(
@@ -166,13 +167,13 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF111827) : const Color(0xFFFFECE4),
+                        color: isDark ? cs.surface : cs.primaryContainer,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.person,
                         size: 14,
-                        color: isDark ? theme.textTheme.bodyMedium?.color?.withOpacity(0.5) : const Color(0xFFFF5A00),
+                        color: isDark ? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5) : cs.primary,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -181,7 +182,7 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                       ),
                     ),
                   ],

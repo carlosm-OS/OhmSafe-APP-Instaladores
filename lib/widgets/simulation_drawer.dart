@@ -45,10 +45,11 @@ class _SimulationDrawerState extends State<SimulationDrawer> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hubspotColor = const Color(0xFFFF7A59);
+    final cs = theme.colorScheme;
+    final hubspotColor = cs.primary;
 
     return Drawer(
-      backgroundColor: theme.cardColor.withOpacity(0.95),
+      backgroundColor: theme.cardColor.withValues(alpha: 0.95),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -96,7 +97,7 @@ class _SimulationDrawerState extends State<SimulationDrawer> with SingleTickerPr
                             Text(
                               "Modifica los contadores de tickets manualmente para validar la reactividad del home en tiempo real.",
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                                 height: 1.3,
                               ),
                             ),
@@ -135,13 +136,13 @@ class _SimulationDrawerState extends State<SimulationDrawer> with SingleTickerPr
                         style: ElevatedButton.styleFrom(
                           backgroundColor: hubspotColor,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: hubspotColor.withOpacity(0.6),
+                          disabledBackgroundColor: hubspotColor.withValues(alpha: 0.6),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                           elevation: 4,
-                          shadowColor: hubspotColor.withOpacity(0.3),
+                          shadowColor: hubspotColor.withValues(alpha: 0.3),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -172,7 +173,7 @@ class _SimulationDrawerState extends State<SimulationDrawer> with SingleTickerPr
                         widget.state.syncStatusMessage,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                          color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                           fontSize: 12,
                         ),
                       ),
@@ -196,7 +197,7 @@ class _SimulationDrawerState extends State<SimulationDrawer> with SingleTickerPr
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: theme.dividerColor.withOpacity(0.2),
+          color: theme.dividerColor.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -219,7 +220,7 @@ class _SimulationDrawerState extends State<SimulationDrawer> with SingleTickerPr
                 style: IconButton.styleFrom(
                   backgroundColor: theme.scaffoldBackgroundColor,
                   shape: const CircleBorder(),
-                  side: BorderSide(color: theme.dividerColor.withOpacity(0.4)),
+                  side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.4)),
                 ),
                 icon: const Icon(Icons.remove),
               ),
@@ -244,7 +245,7 @@ class _SimulationDrawerState extends State<SimulationDrawer> with SingleTickerPr
                 style: IconButton.styleFrom(
                   backgroundColor: theme.scaffoldBackgroundColor,
                   shape: const CircleBorder(),
-                  side: BorderSide(color: theme.dividerColor.withOpacity(0.4)),
+                  side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.4)),
                 ),
                 icon: const Icon(Icons.add),
               ),

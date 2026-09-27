@@ -141,7 +141,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "${state.installerRole} ${state.installerId}",
+                          "${state.installerRole} ${state.numeroVisible}",
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,

@@ -1,20 +1,49 @@
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
+import 'incidencias_screen.dart';
+import 'cotizaciones_screen.dart';
+// import 'reparaciones_screen.dart'; // oculto en el MVP, ver tiles comentados abajo
 import 'profile_main_screen.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/notification_bell.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/menu_item_tile.dart';
 
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
 
-  const HomeScreen({super.key, required this.onToggleTheme});
+  /// true justo tras el onboarding: muestra un aviso para subir la foto de perfil.
+  final bool promptFoto;
+
+  const HomeScreen({super.key, required this.onToggleTheme, this.promptFoto = false});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+
+  @override
+  void initState() {
+    super.initState();
+    // (La invitación «Sube tu foto de perfil» se retiró: la foto la sube OhmSafe en Odoo.)
+    // Sincroniza los badges con las asignaciones reales del backend.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppStateProvider.of(context).refreshBadges();
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
@@ -41,7 +70,7 @@ class HomeScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text("OHM", style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                            const Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF5A00))),
+                            Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
                           ],
                         ),
                       ),
@@ -51,13 +80,10 @@ class HomeScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              onPressed: onToggleTheme,
-                              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: theme.iconTheme.color?.withOpacity(0.7)),
+                              onPressed: widget.onToggleTheme,
+                              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                             ),
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withOpacity(0.7)),
-                            ),
+                            const NotificationBell(),
                           ],
                         ),
                       ),
@@ -91,58 +117,101 @@ class HomeScreen extends StatelessWidget {
                       GestureDetector(
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const ProfileMainScreen()),
+                          MaterialPageRoute(builder: (_) => ProfileMainScreen(onToggleTheme: widget.onToggleTheme)),
                         ),
                         child: AvatarHalo(
                           size: 112,
-                          initials: "JM",
+                          initials: initialsFromName(state.installerName),
                           imagePath: state.customAvatarPath,
+                          imageBase64: state.fotoBase64,
+                          placeholderIcon: Icons.engineering_rounded,
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(state.installerName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
                       const SizedBox(height: 2),
-                      Text("${state.installerRole} ${state.installerId}", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6))),
+                      Text("${state.installerRole} #${state.numeroVisible}", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6))),
                     ],
                   ),
                 ),
 
                 // Main Options List Card
                  Expanded(
-                  child: ListView(
+                  // Jalar hacia abajo vuelve a pedir los contadores al backend.
+                  // Sin esto, un ticket que cambia en Odoo no se refleja hasta
+                  // cerrar y reabrir la app.
+                  child: RefreshIndicator(
+                    onRefresh: () => AppStateProvider.of(context).refreshBadges(),
+                    color: cs.primary,
+                    child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    physics: const BouncingScrollPhysics(),
+                    // AlwaysScrollable: el gesto debe funcionar aunque la lista
+                    // no llegue a desbordar la pantalla.
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
                     children: [
                       MenuItemTile(
                         label: "Instalaciones",
                         count: state.instalacionesCount,
+                        // Al volver (p. ej. tras cerrar una instalación) se recuentan los badges.
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const InstalacionesScreen()),
-                        ),
+                        ).then((_) {
+                          if (context.mounted) AppStateProvider.of(context).refreshBadges();
+                        }),
                       ),
-                      MenuItemTile(
-                        label: "Reparaciones",
-                        count: state.reparacionesCount,
-                        onTap: () => _showComingSoon(context, "Reparaciones"),
-                      ),
+                      // MVP (2026-09-18): solo Instalaciones y Reportar incidencias.
+                      // Reparaciones, Mantenimientos y Reemplazo de equipo quedan
+                      // ocultos hasta la siguiente version; se construyen uno a uno.
+                      // Para reactivar un modulo basta descomentar su tile (y el
+                      // import de reparaciones_screen.dart). Ver
+                      // docs/ESTADO-INSTALADORES.md > "Pendientes priorizados".
+                      // MenuItemTile(
+                      //   label: "Reparaciones",
+                      //   count: state.reparacionesCount,
+                      //   onTap: () => Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(builder: (_) => const ReparacionesScreen()),
+                      //   ),
+                      // ),
+                      // Fase 4 (2026-09-25): los mantenimientos son intervenciones de
+                      // Planificación con producto de mantenimiento; misma lista, otro filtro.
                       MenuItemTile(
                         label: "Mantenimientos",
                         count: state.mantenimientosCount,
-                        onTap: () => _showComingSoon(context, "Mantenimientos"),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const InstalacionesScreen(tipo: 'mantenimiento', titulo: 'Mantenimientos')),
+                        ),
                       ),
-                      MenuItemTile(
-                        label: "Reemplazo de equipo",
-                        count: state.reemplazoCount,
-                        onTap: () => _showComingSoon(context, "Reemplazo de equipo"),
-                      ),
+                      // MenuItemTile(
+                      //   label: "Reemplazo de equipo",
+                      //   count: state.reemplazoCount,
+                      //   onTap: () => _showComingSoon(context, "Reemplazo de equipo"),
+                      // ),
                       MenuItemTile(
                         label: "Reportar incidencias",
                         count: state.incidenciasCount,
-                        onTap: () => _showComingSoon(context, "Reportar incidencias"),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const IncidenciasScreen()),
+                        ),
+                      ),
+                      // Fase 5 (2026-09-25): el instalador cotiza en campo; la venta
+                      // nace en Odoo atribuida a él y el cliente paga en el portal.
+                      MenuItemTile(
+                        label: "Cotizar venta",
+                        count: 0,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CotizacionesScreen()),
+                        ),
                       ),
                       const SizedBox(height: 100), // Extra space to scroll above the bottom nav
                     ],
+                    ),
                   ),
                 ),
               ],
