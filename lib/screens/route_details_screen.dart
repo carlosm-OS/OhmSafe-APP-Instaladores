@@ -1,9 +1,13 @@
+import '../core/utils/como_llegar.dart';
+import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/utils/ubicacion.dart';
 import 'instalaciones_screen.dart';
 
 class RouteDetailsScreen extends StatefulWidget {
@@ -25,7 +29,10 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
     if (_isSending) return;
     setState(() => _isSending = true);
     final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
-    final result = await sl.get<OrdenesRepository>().marcarLlegada(id);
+    // La posición de la llegada es la referencia del cierre (radio de 300 m).
+    final ubicacion = ubicacionJson(await ubicacionActual());
+    if (!mounted) return;
+    final result = await sl.get<OrdenesRepository>().marcarLlegada(id, ubicacion: ubicacion);
     if (!mounted) return;
     result.fold(
       (_) => Navigator.pop(context, 'arrived'),
@@ -95,13 +102,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(
-                            Icons.notifications_none_rounded,
-                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                          ),
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),
@@ -238,6 +239,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                   ],
                                 ),
                               ),
+                              BotonComoLlegar(destino: DestinoServicio.deDetalles(details)),
                               const SizedBox(height: 12),
                               Divider(height: 1, color: theme.dividerColor),
                               const SizedBox(height: 12),
@@ -368,15 +370,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                   onPressed: () {
                                     final reason = _reasonController.text.trim();
                                     print("Instalación cancelada. Motivo: $reason");
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => InstalacionesScreen(
-                                          cancelledTicketTitle: widget.ticket["title"],
-                                        ),
-                                      ),
-                                      (route) => false,
-                                    );
+                                    volverAListado(context, InstalacionesScreen(cancelledTicketTitle: widget.ticket["title"]));
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,

@@ -1,3 +1,4 @@
+import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../screens/instalaciones_screen.dart';
@@ -74,15 +75,7 @@ void showCancellationFlow(BuildContext context, Map<String, dynamic> ticket) {
                   final reason = reasonController.text.trim();
                   print("Instalación cancelada. Motivo: $reason");
                   Navigator.pop(context); // Cerrar bottom sheet
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => InstalacionesScreen(
-                        cancelledTicketTitle: ticket["title"],
-                      ),
-                    ),
-                    (route) => false,
-                  );
+                  volverAListado(context, InstalacionesScreen(cancelledTicketTitle: ticket["title"]));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,

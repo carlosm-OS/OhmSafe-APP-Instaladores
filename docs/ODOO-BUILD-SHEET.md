@@ -1,5 +1,9 @@
 # Odoo Build Sheet — Operación de Instaladores (Opción A: Project + Portal)
 
+> **OBSOLETO (2026-09-26).** El flujo de tareas de Proyecto se retiró; la operación vive en
+> Planificación (ver `ARQUITECTURA-ODOO-SERVICIO.md`, `ROADMAP-ODOO-SERVICIO.md` y
+> `MANUAL-OPERACION-ODOO.md`). Se conserva sólo como historial.
+
 > Checklist ejecutable para configurar la **copia** de `ohmsafe2` (Odoo Online,
 > solo Studio). Al terminar, el API apunta aquí (useMock=false) y se valida con
 > la app; luego se replica en producción. Diseño: `DISENO-ODOO-instalador.md`.

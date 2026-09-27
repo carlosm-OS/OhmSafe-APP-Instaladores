@@ -31,13 +31,8 @@ class PerfilRepositoryImpl implements PerfilRepository {
   Future<Result<Perfil>> updatePerfil({String? nombre, String? telefono, String? rfc, String? curp}) =>
       _run(() => dataSource.updatePerfil(nombre: nombre, telefono: telefono, rfc: rfc, curp: curp));
 
-  @override
-  Future<Result<Perfil>> subirConstancia({required String nombreArchivo, required String contenidoBase64, String mimetype = 'application/pdf'}) =>
-      _run(() => dataSource.subirConstancia(nombreArchivo: nombreArchivo, contenidoBase64: contenidoBase64, mimetype: mimetype));
 
-  @override
-  Future<Result<Perfil>> subirAvatar({required String contenidoBase64}) =>
-      _run(() => dataSource.subirAvatar(contenidoBase64: contenidoBase64));
+
 
   @override
   Future<Result<bool>> cambiarPassword({required String passwordActual, required String passwordNueva}) =>

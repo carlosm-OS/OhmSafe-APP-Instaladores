@@ -42,14 +42,18 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
-  Future<void> marcarLlegada(String id) async {
-    await dioClient.post('/instalador/ordenes/$id/marcar-llegada');
+  Future<void> marcarLlegada(String id, {Map<String, dynamic>? ubicacion}) async {
+    await dioClient.post('/instalador/ordenes/$id/marcar-llegada', body: {'ubicacion': ?ubicacion});
   }
 
   @override
-  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos}) async {
+  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales}) async {
     await dioClient.post('/instalador/ordenes/$id/inspeccion-perimetro',
-        body: {'sinObstaculos': sinObstaculos, 'obstaculos': obstaculos});
+        body: {
+          'sinObstaculos': sinObstaculos,
+          'obstaculos': obstaculos,
+          if (metrosReales != null) 'metrosReales': metrosReales,
+        });
   }
 
   @override
@@ -63,17 +67,32 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
-  Future<void> vincularEnergizador(String id, {required String codigo, String? serie}) async {
+  Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
     // `codigo` = MAC del energizador (Odoo x_mac_address). `serie` = número de
     // serie instalado en campo (Odoo x_numero_serie).
     await dioClient.post('/instalador/ordenes/$id/vincular-energizador',
-        body: {'qr': serie ?? codigo, 'mac': codigo, if (serie != null) 'serial': serie});
+        body: {
+          'qr': serie ?? codigo,
+          'mac': codigo,
+          if (serie != null) 'serial': serie,
+          if (tierraConfirmada != null) 'tierraConfirmada': tierraConfirmada,
+        });
   }
 
   @override
-  Future<Map<String, dynamic>> diagnosticoEnergizador(String serie) async {
-    final res = await dioClient.post('/instalador/energizador/diagnostico', body: {'serie': serie});
+  Future<Map<String, dynamic>> diagnosticoEnergizador(String serie, {String ordenId = ''}) async {
+    final res = await dioClient.post('/instalador/energizador/diagnostico', body: {'serie': serie, if (ordenId.isNotEmpty) 'ordenId': ordenId});
     return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<String> subirEvidencia(String id, String categoria, String imagenBase64) async {
+    final res = await dioClient.post(
+      '/instalador/ordenes/$id/evidencias',
+      body: {'categoria': categoria, 'imagenBase64': imagenBase64},
+    );
+    final data = (res['data'] as Map<String, dynamic>?) ?? const {};
+    return (data['fileKey'] ?? '').toString();
   }
 
   @override

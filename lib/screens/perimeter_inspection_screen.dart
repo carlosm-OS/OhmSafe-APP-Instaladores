@@ -1,4 +1,6 @@
+import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
@@ -34,8 +36,31 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
   bool _noObstaclesSelected = false;
   final Set<String> _selectedObstacles = {};
 
+  /// Metraje REAL medido en sitio. Arranca con el agendado (de la llamada) pero
+  /// el instalador lo corrige con lo que mide: el agendado se conserva aparte
+  /// para poder contrastar lo cotizado contra lo real.
+  final TextEditingController _metrosController = TextEditingController();
+  bool _metrosInicializado = false;
+
+  /// Solo dígitos del metraje que viene del ticket ("85 m" -> "85").
+  String _metrajeAgendado() {
+    final raw = (widget.ticket['details']?['metraje'] ?? '').toString();
+    final m = RegExp(r'[\d.]+').firstMatch(raw);
+    return m?.group(0) ?? '';
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_metrosInicializado) {
+      _metrosController.text = _metrajeAgendado();
+      _metrosInicializado = true;
+    }
+  }
+
   @override
   void dispose() {
+    _metrosController.dispose();
     _reasonController.dispose();
     super.dispose();
   }
@@ -72,6 +97,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
           id,
           sinObstaculos: _noObstaclesSelected,
           obstaculos: _selectedObstacles.toList(),
+          metrosReales: double.tryParse(_metrosController.text.trim()),
         );
     if (!mounted) return;
     result.fold(
@@ -134,13 +160,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(
-                            Icons.notifications_none_rounded,
-                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                          ),
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),
@@ -237,7 +257,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  "Metros a instalar:  ",
+                                  "Metraje agendado:  ",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
@@ -250,6 +270,47 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                                     fontSize: 14,
                                     color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                                     fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // El metraje REAL lo mide el instalador en sitio; el
+                            // agendado (arriba) queda intacto para comparar.
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Metraje real:  ",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: theme.textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 96,
+                                  child: TextField(
+                                    controller: _metrosController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: theme.textTheme.bodyLarge?.color,
+                                    ),
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      suffixText: "m",
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                      filled: true,
+                                      fillColor: context.ohm.surfaceContainer,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -379,15 +440,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                                   onPressed: () {
                                     final reason = _reasonController.text.trim();
                                     print("Instalación cancelada. Motivo: $reason");
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => InstalacionesScreen(
-                                          cancelledTicketTitle: widget.ticket["title"],
-                                        ),
-                                      ),
-                                      (route) => false,
-                                    );
+                                    volverAListado(context, InstalacionesScreen(cancelledTicketTitle: widget.ticket["title"]));
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,

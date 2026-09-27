@@ -1,4 +1,6 @@
+import '../core/utils/como_llegar.dart';
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import 'service_steps_screen.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
@@ -6,6 +8,7 @@ import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/entities/orden.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/utils/fechas_odoo.dart';
 
 /// Sección Reparaciones (accesible desde el Home).
 /// Carga las órdenes de reparación desde el repositorio (Mock o Api según
@@ -102,10 +105,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),
@@ -135,7 +135,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () => Navigator.maybePop(context),
                             style: IconButton.styleFrom(
                               padding: const EdgeInsets.all(6),
                               shape: const CircleBorder(),
@@ -247,7 +247,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                 const SizedBox(height: 16),
                 Text("Abierto por ${orden.diasAbierto} días", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color)),
                 const SizedBox(height: 6),
-                _detailRow(theme, "Fecha de Creación: ", orden.fechaCreacion),
+                _detailRow(theme, "Fecha de Creación: ", FechasOdoo.fechaHora(orden.fechaCreacion)),
                 const SizedBox(height: 6),
                 _detailRow(theme, "Metraje: ", orden.metraje),
                 const SizedBox(height: 6),
@@ -262,6 +262,7 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                 ),
                 const SizedBox(height: 6),
                 _detailRow(theme, "Teléfono: ", orden.telefono),
+                BotonComoLlegar(destino: DestinoServicio.deDetalles(orden.toTicketMap()['details'] as Map)),
               ],
               const SizedBox(height: 12),
               Divider(height: 1, color: theme.dividerColor),

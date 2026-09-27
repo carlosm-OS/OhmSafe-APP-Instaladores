@@ -9,11 +9,13 @@ class PerfilModel extends Perfil {
     required super.telefono,
     required super.rfc,
     required super.curp,
-    required super.constanciaUrl,
     required super.estado,
     required super.perfilCompleto,
     super.numeroInstalador,
     super.codigoVenta,
+    super.fotoBase64,
+    super.calificacion,
+    super.respuestasEncuesta,
   });
 
   factory PerfilModel.fromJson(Map<String, dynamic> json) {
@@ -25,11 +27,13 @@ class PerfilModel extends Perfil {
       telefono: s(json['telefono']),
       rfc: s(json['rfc']),
       curp: s(json['curp']),
-      constanciaUrl: s(json['constanciaUrl']),
       estado: s(json['estado']).isEmpty ? 'pendiente_perfil' : s(json['estado']),
       perfilCompleto: json['perfilCompleto'] == true,
       numeroInstalador: s(json['numeroInstalador']),
       codigoVenta: s(json['codigoVenta']),
+      fotoBase64: s(json['fotoBase64']),
+      calificacion: (json['calificacion'] as num?)?.toDouble(),
+      respuestasEncuesta: (json['respuestasEncuesta'] as num?)?.toInt() ?? 0,
     );
   }
 }

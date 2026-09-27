@@ -1,4 +1,7 @@
+import '../core/utils/como_llegar.dart';
+import '../core/navigation/volver_a_listado.dart';
 import 'dart:async';
+import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -327,7 +330,13 @@ class WheelSpokesPainter extends CustomPainter {
 // --- SERVICE STEPS SCREEN ---
 class ServiceStepsScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
-  const ServiceStepsScreen({super.key, required this.ticket});
+
+  /// Paso con el que se abre la pantalla (1 = ruta … 5 = cierre). Los pasos
+  /// anteriores se marcan completados: es lo que permite retomar un servicio
+  /// que ya tiene llegada, inspección o equipo guardados en Odoo.
+  final int pasoInicial;
+
+  const ServiceStepsScreen({super.key, required this.ticket, this.pasoInicial = 1});
 
   @override
   State<ServiceStepsScreen> createState() => _ServiceStepsScreenState();
@@ -355,6 +364,12 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   @override
   void initState() {
     super.initState();
+    // Retomar: lo que ya quedó guardado en Odoo no se vuelve a pedir.
+    _step1Completed = widget.pasoInicial > 1;
+    _step2Completed = widget.pasoInicial > 2;
+    _step3Completed = widget.pasoInicial > 3;
+    // En reparación no hay paso de vinculación; el cierre sigue al paso 3.
+    _step4Completed = widget.pasoInicial > 4 || (_isReparacion && widget.pasoInicial > 3);
     // Hide the toast automatically after 4 seconds
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
@@ -415,13 +430,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(
-                            Icons.notifications_none_rounded,
-                            color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                          ),
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),
@@ -559,6 +568,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 ),
                               ),
                               
+                              BotonComoLlegar(destino: DestinoServicio.deDetalles(details)),
                               const SizedBox(height: 12),
                               Divider(height: 1, color: theme.dividerColor),
                               const SizedBox(height: 12),
@@ -959,17 +969,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                     label: isRep ? "Volver a Reparaciones" : "Volver a Instalaciones",
                     onPressed: () {
                       Navigator.pop(context); // Close dialog
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => isRep
-                              ? const ReparacionesScreen()
-                              : InstalacionesScreen(
-                                  completedTicketTitle: widget.ticket["title"],
-                                ),
-                        ),
-                        (route) => false,
-                      );
+                      volverAListado(context, isRep ? const ReparacionesScreen() : InstalacionesScreen(completedTicketTitle: widget.ticket["title"]));
                     },
                   ),
                 ],

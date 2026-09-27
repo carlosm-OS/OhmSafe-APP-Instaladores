@@ -86,13 +86,14 @@ Odoo sin tocar Stripe/checkout:
   vincular energizador → cierre con firma), cada paso escribe en Odoo y mueve la
   etapa. Detalle campo por campo en [MANUAL-OPERACION-ODOO](MANUAL-OPERACION-ODOO.md).
 
-## Fases 4–5 — Pago al instalador y encuesta/ranking  ⬜
-- ⬜ **Pago (cuentas por pagar)**: al cerrar, abrir el flujo de pago al instalador
-  (proveedor), corte de viernes. Pendiente de construir.
-- ⬜ **Encuesta + ranking** (estilo Uber): migrar preguntas desde HubSpot; el
-  instalador ve solo su ranking; Operaciones ve las encuestas. Pendiente.
-- 🟡 **Bono por referidos (Capa B)**: el código de venta ya existe (Capa A). La
-  atribución de ventas + cálculo del bono se acopla al puente Stripe→Odoo.
+## Fases 4–5 — Pago al instalador y encuesta/ranking  ✅ (2026-09-25, sobre apps nativas de Odoo)
+- ✅ **Pago (cuentas por pagar)**: al cerrar nace la factura de proveedor en borrador
+  (Compras) con el producto `PAGO-<tipo>`; operaciones valida, contabilidad paga.
+  Perfil › Mis pagos. Falta que Carlos fije los costos de `PAGO-*` en Odoo.
+- ✅ **Encuesta + ranking**: encuesta nativa al cerrar; `perfil.calificacion` real.
+- 🟡 **Bono por referidos (Capa B)**: la atribución ya existe (cotización desde la app con
+  UTM «App instalador / Venta en campo» y código de venta en `origin`); falta la regla de
+  comisión.
 
 ---
 
@@ -150,9 +151,66 @@ Odoo sin tocar Stripe/checkout:
   con Operaciones.
 
 ## Pendientes priorizados
+0. ⬜ **Módulos del home ocultos en el MVP (2026-09-18)** — el home solo muestra
+   *Instalaciones* y *Reportar incidencias*. Quedan comentados en
+   `lib/screens/home_screen.dart` para construirse uno a uno en la siguiente versión:
+   - **Reparaciones** (la pantalla `reparaciones_screen.dart` y las tarifas ya existen;
+     falta cerrar el flujo E2E y el cobro).
+   - **Mantenimientos** (sin pantalla; solo "próximamente").
+   - **Reemplazo de equipo** (sin pantalla; solo "próximamente").
+   - *Reportar incidencias* — ✅ HECHO 2026-09-25 (fase 4, Helpdesk). *Mantenimientos* — ✅ lista de intervenciones de mantenimiento.
+1. ✅ **Sesión persistente y biometría nivel A (2026-09-27)** — refresh rotado en Keychain/Keystore, refresco automático ante 401, Face ID al arrancar y tras 15 min en segundo plano, invitación tras el primer inicio, Perfil › Seguridad. Nivel B (secreto protegido por el SO) y «Dispositivos con sesión» quedan para la siguiente versión.
 1. 🟡 **Probar el push en un teléfono** (Android primero) — cierra el ciclo.
 2. 🟡 **HubSpot**: pegar la acción de webhook en el workflow (tiempo real).
 3. ⬜ **iOS**: APNs Auth Key en Firebase.
-4. ⬜ **Fase 4** (pago al instalador) y **Fase 5** (encuesta + ranking).
-5. ⬜ **Bono Capa B** (atribución de ventas), acoplado a Stripe→Odoo.
+4. ✅ **Fases 4, 5 y 6** (postventa, dinero, venta→intervención + retiro del flujo viejo) — ver `ROADMAP-ODOO-SERVICIO.md`.
+5. 🟡 **Bono Capa B**: atribución hecha (cotizaciones desde la app); falta la comisión.
 6. ⬜ **Publicación**: TestFlight/Play con el bundle `com.ohmsafe.instalador`.
+
+## Estado E2E — 2026-09-14 (simulador iOS, ticket 43 "Carlos M TestFlight")
+
+**Verificado contra Odoo (con auditoría en el chatter):** iniciar ruta → *En ruta*; marcar llegada → *En sitio*; perímetro → *En proceso* con `x_obstaculos_perimetro=["Vegetación","Árboles"]`; materiales → `x_materiales_instalados` completo. El calendario coloca la instalación en su fecha agendada (17/09 08:00).
+
+**Paso 4 (energizador):** pantalla corregida (b26e3fe) validada con la serie real `003` (equipo sin reportar desde julio): ya no declara "Vinculación exitosa" sin equipo; muestra "Diagnóstico del equipo", pruebas con telemetría real y una tarjeta con serie/MAC/cerca/en línea/firmware/último reporte (se quitaron "Wi-Fi" y "SIM", que eran texto fijo sin dato detrás). **Pendiente:** pasada completa con un equipo en verde (`OHM-CARLOS-DEV`) y paso 5 (cierre).
+
+**Backend:** `writeTaskAvanzando` (Back- 341df44): las etapas solo avanzan; re-tocar pasos tras reabrir la app ya no rebobina el ticket ni pisa `x_hora_*`. Verificado desde la app: `iniciar-ruta`/`marcar-llegada` sobre *En proceso* no escriben nada; `inspeccion`/`instalacion` reescriben datos sin mover la etapa.
+
+**Bloqueos para un E2E real en campo (decisión pendiente):**
+1. Token de sesión de **15 min** sin refresco (el `refreshToken` del login no se persiste ni hay endpoint); el 401 se muestra como aviso fugaz y la app no lleva al login. Una instalación dura horas.
+2. La app **no retoma** desde la etapa de Odoo: siempre arranca en el paso 1 (`_stepNCompleted` en memoria). Con 1) obliga a rehacer pasos a mitad de trabajo.
+3. `_allCompleted` no exige `enLinea`: telemetría de días atrás pasa las pruebas.
+4. UX: "Cancelar instalación" pegado bajo el CTA primario en tres pantallas (mismo ancho) — riesgo de cancelar por error.
+
+## Pendientes — corte 2026-09-27
+
+E2E completo verificado por Carlos (S00168/i25, TestFlight build 19): venta → intervención por planificar →
+agendar por rango (28→29) → push al instalador → ruta → cámara/QR → cierre → reporte PDF y encuesta con marca.
+Los arreglos posteriores al build 19 son **sólo de backend** (api-dev): no hace falta un build nuevo.
+
+**Decisiones / esperando a alguien**
+1. **WhatsApp «técnico en ruta» (y futuros avisos por WhatsApp):** elegir canal — HubSpot con el número de SAC
+   (requiere OK para mandar a HubSpot un dato de operación), Odoo (otro número; hoy sólo cuenta demo) o Twilio.
+   Cualquiera necesita plantilla aprobada por Meta. El correo equivalente ya existe (plantilla 104).
+2. **Reglas de pago al instalador:** Operaciones llena la hoja «Pago a instaladores — reglas para Operaciones»
+   (Drive de admin@) → opción A (manual) o B (tabulador por concepto). Mientras: costos `PAGO-*` en $0.
+3. **Precios `SRV-*`** (catálogo de «Cotizar venta» vacío mientras estén en $0) y **comisión por venta** (no existe).
+4. **DNS de ohmsafe.com (Dan, GoDaddy):** SPF + DKIM de Odoo para que los correos de Odoo no caigan en spam.
+5. **Responsable de operaciones:** cambiar `VENTAS_OPERACIONES_LOGIN` a Santiago al salir de pruebas.
+
+**Desarrollo**
+6. Reparaciones (pantalla existe; cerrar flujo y cobro), Mantenimiento y Reemplazo de equipo — uno por uno, cada
+   uno con su plantilla de hoja de trabajo.
+7. Disponibilidad del instalador (cita → intervención automática).
+8. Sesión nivel B (Face ID con secreto del sistema, «Dispositivos con sesión»).
+9. Push en Android (dispositivo real).
+10. Inventario real de energizadores en Odoo (hoy la serie se crea al vincular).
+
+**Limpieza**
+11. Borrar campos `x_` de `project.task` (~2026-10-26) y el código de project.task que quede en el backend.
+12. Borrar las pruebas S00167/i24 y S00168/i25 al terminar las pruebas (series `OHM-CARLOS-DEV*` quedaron entregadas).
+
+**Paso a producción**
+13. Todo vive en api-dev y en las ramas `feature/reparaciones` (app) y `CarlosClaudDev-casa-raiz` (backend):
+    merge a `dev` → `main` → deploy del backend a prod.
+14. Hoy **Odoo es producción (ohmsafe2) y sus webhooks apuntan a api-dev**: al salir, apuntarlos al backend de prod.
+15. App: la build de TestFlight habla con api-dev; para la tienda, compilar contra prod.

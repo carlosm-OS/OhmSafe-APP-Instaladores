@@ -1,10 +1,12 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
-import 'reparaciones_screen.dart';
+import 'incidencias_screen.dart';
+import 'cotizaciones_screen.dart';
+// import 'reparaciones_screen.dart'; // oculto en el MVP, ver tiles comentados abajo
 import 'profile_main_screen.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/notification_bell.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/menu_item_tile.dart';
 
@@ -22,19 +24,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _fotoHint = false;
-  Timer? _hintTimer;
 
   @override
   void initState() {
     super.initState();
-    if (widget.promptFoto) {
-      // Aviso flotante junto a la foto (tras el onboarding). Se auto-oculta.
-      _fotoHint = true;
-      _hintTimer = Timer(const Duration(seconds: 8), () {
-        if (mounted) setState(() => _fotoHint = false);
-      });
-    }
+    // (La invitación «Sube tu foto de perfil» se retiró: la foto la sube OhmSafe en Odoo.)
     // Sincroniza los badges con las asignaciones reales del backend.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) AppStateProvider.of(context).refreshBadges();
@@ -43,51 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _hintTimer?.cancel();
     super.dispose();
-  }
-
-  /// Toast flotante que "vuela" arriba de la foto invitando a subirla.
-  Widget _buildFotoHint(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeOutBack,
-      builder: (context, t, child) => Opacity(
-        opacity: t.clamp(0.0, 1.0),
-        child: Transform.translate(offset: Offset(0, (1 - t) * -12), child: child),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: GestureDetector(
-          onTap: () {
-            setState(() => _fotoHint = false);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileMainScreen(onToggleTheme: widget.onToggleTheme)));
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              color: cs.primary,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(color: cs.primary.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 6)),
-              ],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.photo_camera_rounded, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text("Sube tu foto de perfil", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                SizedBox(width: 8),
-                Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -133,10 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onPressed: widget.onToggleTheme,
                               icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
                             ),
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.notifications_none_rounded, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
-                            ),
+                            const NotificationBell(),
                           ],
                         ),
                       ),
@@ -167,7 +114,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      if (_fotoHint) _buildFotoHint(context),
                       GestureDetector(
                         onTap: () => Navigator.push(
                           context,
@@ -175,8 +121,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: AvatarHalo(
                           size: 112,
-                          initials: "JM",
+                          initials: initialsFromName(state.installerName),
                           imagePath: state.customAvatarPath,
+                          imageBase64: state.fotoBase64,
                           placeholderIcon: Icons.engineering_rounded,
                         ),
                       ),
@@ -190,43 +137,81 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // Main Options List Card
                  Expanded(
-                  child: ListView(
+                  // Jalar hacia abajo vuelve a pedir los contadores al backend.
+                  // Sin esto, un ticket que cambia en Odoo no se refleja hasta
+                  // cerrar y reabrir la app.
+                  child: RefreshIndicator(
+                    onRefresh: () => AppStateProvider.of(context).refreshBadges(),
+                    color: cs.primary,
+                    child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    physics: const BouncingScrollPhysics(),
+                    // AlwaysScrollable: el gesto debe funcionar aunque la lista
+                    // no llegue a desbordar la pantalla.
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
                     children: [
                       MenuItemTile(
                         label: "Instalaciones",
                         count: state.instalacionesCount,
+                        // Al volver (p. ej. tras cerrar una instalación) se recuentan los badges.
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const InstalacionesScreen()),
-                        ),
+                        ).then((_) {
+                          if (context.mounted) AppStateProvider.of(context).refreshBadges();
+                        }),
                       ),
-                      MenuItemTile(
-                        label: "Reparaciones",
-                        count: state.reparacionesCount,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ReparacionesScreen()),
-                        ),
-                      ),
+                      // MVP (2026-09-18): solo Instalaciones y Reportar incidencias.
+                      // Reparaciones, Mantenimientos y Reemplazo de equipo quedan
+                      // ocultos hasta la siguiente version; se construyen uno a uno.
+                      // Para reactivar un modulo basta descomentar su tile (y el
+                      // import de reparaciones_screen.dart). Ver
+                      // docs/ESTADO-INSTALADORES.md > "Pendientes priorizados".
+                      // MenuItemTile(
+                      //   label: "Reparaciones",
+                      //   count: state.reparacionesCount,
+                      //   onTap: () => Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(builder: (_) => const ReparacionesScreen()),
+                      //   ),
+                      // ),
+                      // Fase 4 (2026-09-25): los mantenimientos son intervenciones de
+                      // Planificación con producto de mantenimiento; misma lista, otro filtro.
                       MenuItemTile(
                         label: "Mantenimientos",
                         count: state.mantenimientosCount,
-                        onTap: () => _showComingSoon(context, "Mantenimientos"),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const InstalacionesScreen(tipo: 'mantenimiento', titulo: 'Mantenimientos')),
+                        ),
                       ),
-                      MenuItemTile(
-                        label: "Reemplazo de equipo",
-                        count: state.reemplazoCount,
-                        onTap: () => _showComingSoon(context, "Reemplazo de equipo"),
-                      ),
+                      // MenuItemTile(
+                      //   label: "Reemplazo de equipo",
+                      //   count: state.reemplazoCount,
+                      //   onTap: () => _showComingSoon(context, "Reemplazo de equipo"),
+                      // ),
                       MenuItemTile(
                         label: "Reportar incidencias",
                         count: state.incidenciasCount,
-                        onTap: () => _showComingSoon(context, "Reportar incidencias"),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const IncidenciasScreen()),
+                        ),
+                      ),
+                      // Fase 5 (2026-09-25): el instalador cotiza en campo; la venta
+                      // nace en Odoo atribuida a él y el cliente paga en el portal.
+                      MenuItemTile(
+                        label: "Cotizar venta",
+                        count: 0,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CotizacionesScreen()),
+                        ),
                       ),
                       const SizedBox(height: 100), // Extra space to scroll above the bottom nav
                     ],
+                    ),
                   ),
                 ),
               ],

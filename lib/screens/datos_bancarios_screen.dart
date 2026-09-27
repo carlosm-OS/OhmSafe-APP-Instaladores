@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import '../controllers/app_state_provider.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -154,13 +155,7 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
                         child: Stack(
                           alignment: Alignment.topRight,
                           children: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(
-                                Icons.notifications,
-                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                              ),
-                            ),
+                            const NotificationBell(),
                             Positioned(
                               top: 10,
                               right: 10,

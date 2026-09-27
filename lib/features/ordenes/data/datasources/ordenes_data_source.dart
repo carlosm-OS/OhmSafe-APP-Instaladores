@@ -14,12 +14,14 @@ abstract class OrdenesDataSource {
 
   // Acciones de escritura
   Future<void> iniciarRuta(String id);
-  Future<void> marcarLlegada(String id);
-  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos});
+  Future<void> marcarLlegada(String id, {Map<String, dynamic>? ubicacion});
+  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales});
   Future<void> guardarInstalacion(String id, Map<String, dynamic> registro);
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo);
-  Future<void> vincularEnergizador(String id, {required String codigo, String? serie});
+  Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
-  Future<Map<String, dynamic>> diagnosticoEnergizador(String serie);
+  Future<Map<String, dynamic>> diagnosticoEnergizador(String serie, {String ordenId = ''});
+  /// Sube UNA foto de evidencia y devuelve su fileKey en Odoo.
+  Future<String> subirEvidencia(String id, String categoria, String imagenBase64);
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre);
 }

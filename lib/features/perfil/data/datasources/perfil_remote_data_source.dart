@@ -27,21 +27,8 @@ class PerfilRemoteDataSource implements PerfilDataSource {
     return _parse(await dioClient.put('/instalador/perfil', body: body));
   }
 
-  @override
-  Future<PerfilModel> subirConstancia({required String nombreArchivo, required String contenidoBase64, String mimetype = 'application/pdf'}) async {
-    return _parse(await dioClient.post('/instalador/perfil/constancia', body: {
-      'nombreArchivo': nombreArchivo,
-      'contenidoBase64': contenidoBase64,
-      'mimetype': mimetype,
-    }));
-  }
 
-  @override
-  Future<PerfilModel> subirAvatar({required String contenidoBase64}) async {
-    return _parse(await dioClient.post('/instalador/perfil/avatar', body: {
-      'contenidoBase64': contenidoBase64,
-    }));
-  }
+
 
   @override
   Future<void> cambiarPassword({required String passwordActual, required String passwordNueva}) async {

@@ -1,37 +1,18 @@
-import 'dart:convert';
+import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as img;
-import 'package:image_picker/image_picker.dart';
 import '../controllers/app_state_provider.dart';
-import '../core/error/failures.dart';
 import '../features/perfil/domain/repositories/perfil_repository.dart';
 import '../widgets/avatar_halo.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
-import 'datos_generales_screen.dart';
 import 'datos_bancarios_screen.dart';
 import 'contrasenas_screen.dart';
 import 'facturacion_screen.dart';
 import 'login_screen.dart';
-
-/// Formatea la imagen para que Odoo siempre la acepte: decodifica, redimensiona
-/// a máx 1024px y re-codifica como JPEG. Corre en un isolate (compute) para no
-/// congelar la UI. Devuelve null si la imagen no se pudo leer.
-Uint8List? _formatearAvatar(Uint8List input) {
-  final decoded = img.decodeImage(input);
-  if (decoded == null) return null;
-  final resized = (decoded.width > 1024 || decoded.height > 1024)
-      ? img.copyResize(
-          decoded,
-          width: decoded.width >= decoded.height ? 1024 : null,
-          height: decoded.height > decoded.width ? 1024 : null,
-        )
-      : decoded;
-  return Uint8List.fromList(img.encodeJpg(resized, quality: 85));
-}
+import 'seguridad_screen.dart';
+import 'pagos_screen.dart';
 
 class ProfileMainScreen extends StatefulWidget {
   /// Se propaga a [LoginScreen] al cerrar sesión (para conservar el toggle de
@@ -44,79 +25,106 @@ class ProfileMainScreen extends StatefulWidget {
 }
 
 class _ProfileMainScreenState extends State<ProfileMainScreen> {
-  final ImagePicker _picker = ImagePicker();
 
-  Future<void> _pickImage(BuildContext context) async {
-    final state = AppStateProvider.of(context);
-    final cs = Theme.of(context).colorScheme;
-    try {
-      final XFile? selected = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1024, // comprime en móvil (en macOS lo maneja el límite del backend)
-        maxHeight: 1024,
-      );
-      if (selected != null) {
-        state.updateAvatarPath(selected.path); // preview local inmediato
-        // Formatea la imagen (redimensiona + JPEG) para que Odoo la acepte en
-        // cualquier plataforma (macOS no comprime con image_picker).
-        final raw = await selected.readAsBytes();
-        final formateada = await compute(_formatearAvatar, raw);
-        if (!mounted) return;
-        if (formateada == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("No pudimos leer esa imagen. Usa una foto JPG o PNG."),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-          return;
-        }
-        final result = await sl
-            .get<PerfilRepository>()
-            .subirAvatar(contenidoBase64: base64Encode(formateada));
-        if (!mounted) return;
-        result.fold(
-          (_) => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text("Foto de perfil guardada", style: TextStyle(fontWeight: FontWeight.bold)),
-              backgroundColor: cs.primary,
-            ),
-          ),
-          (failure) => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_mensajeErrorFoto(failure)), backgroundColor: Colors.redAccent),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint("Error picking image: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error al acceder a la galería: $e"),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
+  @override
+  void initState() {
+    super.initState();
+    _loadPerfil();
   }
 
-  /// Traduce el fallo de subida a un mensaje claro para el instalador.
-  String _mensajeErrorFoto(Failure f) {
-    if (f is NetworkFailure) return "Sin conexión. Revisa tu internet e intenta de nuevo.";
-    if (f is AuthFailure) return "Tu sesión expiró. Vuelve a iniciar sesión.";
-    final m = f.message.toLowerCase();
-    if (m.contains("large") || m.contains("payload") || m.contains("entity")) {
-      return "La imagen es muy grande. Intenta con otra.";
-    }
-    if (m.contains("procesar") || m.contains("truncat") || m.contains("jpg") || m.contains("png") || m.contains("imagen")) {
-      return "No se pudo procesar la imagen. Usa una foto JPG o PNG.";
-    }
-    return "No se pudo guardar la foto: ${f.message}";
+  /// Refresca el perfil desde Odoo. No guarda copia local a propósito: la
+  /// única fuente de verdad de foto/nombre es AppState, que ya lo comparte con
+  /// el home y lo persiste en caché. Silencioso ante fallos: se queda con lo
+  /// último conocido (que gracias a la caché nunca es vacío).
+  Future<void> _loadPerfil() async {
+    final result = await sl.get<PerfilRepository>().getPerfil();
+    if (!mounted) return;
+    result.fold(
+      (p) => AppStateProvider.of(context).aplicarPerfil(p),
+      (_) {},
+    );
+  }
+
+  /// Datos generales del instalador como texto de sólo lectura (sin campos de captura).
+  /// Por seguridad sólo el equipo de OhmSafe los corrige en Odoo.
+  Widget _datosGenerales(BuildContext context) {
+    final state = AppStateProvider.of(context);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final partes = state.installerName.trim().split(RegExp(r'\s+'));
+    final nombres = partes.isNotEmpty ? partes.first : '';
+    final apellidos = partes.length > 1 ? partes.sublist(1).join(' ') : '';
+    Widget fila(String etiqueta, String valor, {bool ultima = false}) => Padding(
+          padding: EdgeInsets.only(bottom: ultima ? 0 : 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 96,
+                child: Text(etiqueta, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
+              ),
+              Expanded(
+                child: SelectableText(
+                  valor.isNotEmpty ? valor : '—',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
+                ),
+              ),
+            ],
+          ),
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('DATOS GENERALES', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.6, color: cs.onSurfaceVariant)),
+        const SizedBox(height: 12),
+        fila('Nombre(s)', nombres),
+        fila('Apellidos', apellidos),
+        fila('Teléfono', state.installerPhone),
+        fila('Correo', state.installerEmail),
+        fila('CURP', state.installerCurp, ultima: true),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline_rounded, size: 14, color: cs.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Si algún dato está mal, escríbenos desde Ayuda: sólo el equipo de OhmSafe puede corregirlo.',
+                style: TextStyle(fontSize: 11.5, height: 1.35, color: cs.onSurfaceVariant),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   /// Pide confirmación, cierra la sesión (limpia sesión + token) y vuelve al
   /// login borrando el stack de navegación.
+  Widget _calificacionRow(double? calificacion, int respuestas, ColorScheme cs) {
+    if (calificacion == null) {
+      return Text('Sin calificaciones aún', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w500));
+    }
+    final llenas = calificacion.floor();
+    final media = calificacion - llenas >= 0.5;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < 5; i++)
+          Icon(
+            i < llenas ? Icons.star_rounded : (i == llenas && media ? Icons.star_half_rounded : Icons.star_outline_rounded),
+            color: cs.secondary,
+            size: 24,
+          ),
+        const SizedBox(width: 8),
+        Text(calificacion.toStringAsFixed(1), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(width: 4),
+        Text('($respuestas)', style: TextStyle(color: cs.onSurfaceVariant)),
+      ],
+    );
+  }
+
   Future<void> _cerrarSesion(BuildContext context) async {
     final cs = Theme.of(context).colorScheme;
     final confirmar = await showDialog<bool>(
@@ -199,13 +207,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         child: Stack(
                           alignment: Alignment.topRight,
                           children: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(
-                                Icons.notifications,
-                                color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                              ),
-                            ),
+                            const NotificationBell(),
                             Positioned(
                               top: 10,
                               right: 10,
@@ -274,41 +276,19 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Editable circular avatar
+                        // Foto de perfil: sólo lectura. La sube el equipo de OhmSafe en Odoo.
                         Center(
                           child: Stack(
                             children: [
+                              // Misma fuente que el home (AppState): la foto se
+                              // pinta al instante desde la cache, en vez de
+                              // esperar a /perfil y quedar vacia si falla.
                               AvatarHalo(
                                 size: 112,
-                                initials: "JM",
+                                initials: initialsFromName(state.installerName),
                                 imagePath: state.customAvatarPath,
+                                imageBase64: state.fotoBase64,
                                 placeholderIcon: Icons.engineering_rounded,
-                              ),
-                              Positioned(
-                                bottom: 12,
-                                right: 12,
-                                child: GestureDetector(
-                                  onTap: () => _pickImage(context),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: cs.primary,
-                                      shape: BoxShape.circle,
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black12,
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      Icons.edit_rounded,
-                                      color: cs.onPrimary,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ),
                               ),
                             ],
                           ),
@@ -318,7 +298,7 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         // Name / Role ID
                         Center(
                           child: Text(
-                            "${state.installerRole} ${state.installerId}",
+                            "${state.installerRole} ${state.numeroVisible}",
                             style: TextStyle(
                               fontSize: 16,
                               color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
@@ -328,49 +308,33 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Star Rating Row
-                        Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
-                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
-                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
-                              Icon(Icons.star_rounded, color: cs.secondary, size: 24),
-                              Icon(Icons.star_half_rounded, color: cs.secondary, size: 24),
-                              const SizedBox(width: 8),
-                              const Text(
-                                "4.7",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        // Calificación real: promedio de las encuestas de satisfacción
+                        // que contestan los clientes al cerrar cada servicio.
+                        Center(child: _calificacionRow(state.calificacion, state.respuestasEncuesta, cs)),
                         const SizedBox(height: 20),
 
-                        // Unique Sales Code
-                        Center(
-                          child: Text(
-                            "Código de ventas: OSJM01",
-                            style: TextStyle(
-                              color: cs.primary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                        // Código de venta real (Odoo x_codigo_venta). Se oculta
+                        // mientras no se conozca, en vez de mostrar uno falso.
+                        if (state.codigoVenta.isNotEmpty) ...[
+                          Center(
+                            child: Text(
+                              "Código de ventas: ${state.codigoVenta}",
+                              style: TextStyle(
+                                color: cs.primary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 32),
+                          const SizedBox(height: 32),
+                        ] else
+                          const SizedBox(height: 12),
+
+                        // Datos generales: sólo lectura, como texto (los carga OhmSafe en Odoo).
+                        _datosGenerales(context),
+                        const SizedBox(height: 24),
 
                         // Styled ListTile Menu Buttons
-                        _buildMenuItem(
-                          context,
-                          label: "Datos Generales",
-                          icon: Icons.person,
-                          targetScreen: const DatosGeneralesScreen(),
-                        ),
                         _buildMenuItem(
                           context,
                           label: "Datos bancarios",
@@ -382,6 +346,18 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                           label: "Contraseñas",
                           icon: Icons.settings,
                           targetScreen: const ContrasenasScreen(),
+                        ),
+                        _buildMenuItem(
+                          context,
+                          label: "Seguridad",
+                          icon: Icons.fingerprint,
+                          targetScreen: const SeguridadScreen(),
+                        ),
+                        _buildMenuItem(
+                          context,
+                          label: "Mis pagos",
+                          icon: Icons.payments_outlined,
+                          targetScreen: const PagosScreen(),
                         ),
                         _buildMenuItem(
                           context,

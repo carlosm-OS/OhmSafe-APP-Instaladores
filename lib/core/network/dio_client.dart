@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import '../error/exceptions.dart';
 import '../config/env_config.dart';
 
@@ -45,9 +47,41 @@ class DioClient {
   /// Limpia el token (logout).
   void clearAuthToken() => _authToken = null;
 
+  /// Quien sabe refrescar la sesión (SessionManager). Devuelve true si dejó
+  /// un access token nuevo; la petición original se reintenta UNA vez.
+  Future<bool> Function()? onUnauthorized;
+
+  /// Reintenta una vez si el backend contestó 401 y hay quien refresque. Las
+  /// rutas de auth (`sinReintento`) nunca entran aquí: un 401 en el login son
+  /// credenciales malas y en el refresh es una sesión muerta.
+  Future<Map<String, dynamic>> _conReintento(Future<Map<String, dynamic>> Function() intento, {required bool sinReintento}) async {
+    try {
+      return await intento();
+    } on UnauthorizedException {
+      final refrescar = onUnauthorized;
+      if (sinReintento || refrescar == null) rethrow;
+      bool ok;
+      try {
+        ok = await refrescar();
+      } catch (_) {
+        ok = false;
+      }
+      if (!ok) rethrow;
+      return await intento();
+    }
+  }
+
   String get _bearer => _authToken ?? envConfig.hubspotApiKey;
 
-  Future<Map<String, dynamic>> get(String path, {Map<String, String>? headers}) async {
+  Future<Map<String, dynamic>> get(String path, {Map<String, String>? headers, bool sinReintento = false}) =>
+      _conReintento(() => enviar('GET', path, headers: headers), sinReintento: sinReintento);
+
+  /// Transporte real (una petición, sin reintento). Las pruebas lo sustituyen.
+  @visibleForTesting
+  Future<Map<String, dynamic>> enviar(String method, String path, {Map<String, dynamic>? body, Map<String, String>? headers}) =>
+      method == 'GET' ? _getOnce(path, headers: headers) : _sendBody(method, path, body: body, headers: headers);
+
+  Future<Map<String, dynamic>> _getOnce(String path, {Map<String, String>? headers}) async {
     final uri = Uri.parse("${envConfig.apiBaseUrl}$path");
     
     Map<String, String> mergedHeaders = {
@@ -87,11 +121,14 @@ class DioClient {
     }
   }
 
-  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) =>
-      _sendBody('POST', path, body: body, headers: headers);
+  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body, Map<String, String>? headers, bool sinReintento = false}) =>
+      _conReintento(() => enviar('POST', path, body: body, headers: headers), sinReintento: sinReintento);
 
-  Future<Map<String, dynamic>> put(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) =>
-      _sendBody('PUT', path, body: body, headers: headers);
+  Future<Map<String, dynamic>> put(String path, {Map<String, dynamic>? body, Map<String, String>? headers, bool sinReintento = false}) =>
+      _conReintento(() => enviar('PUT', path, body: body, headers: headers), sinReintento: sinReintento);
+
+  Future<Map<String, dynamic>> delete(String path, {Map<String, dynamic>? body, Map<String, String>? headers, bool sinReintento = false}) =>
+      _conReintento(() => enviar('DELETE', path, body: body, headers: headers), sinReintento: sinReintento);
 
   /// Envío con cuerpo JSON (POST/PUT), con el mismo manejo de errores que get().
   Future<Map<String, dynamic>> _sendBody(String method, String path,
@@ -143,15 +180,19 @@ class DioClient {
       return jsonDecode(responseBody) as Map<String, dynamic>;
     }
     String msg = "Respuesta fallida: $statusCode";
+    String code = '';
+    Map<String, dynamic> details = const {};
     try {
       final decoded = jsonDecode(responseBody);
       if (decoded is Map && decoded['message'] is String) {
         msg = decoded['message'] as String;
       }
+      if (decoded is Map && decoded['error'] is String) code = decoded['error'] as String;
+      if (decoded is Map && decoded['details'] is Map) details = Map<String, dynamic>.from(decoded['details'] as Map);
     } catch (_) {
       // cuerpo no-JSON: se queda el mensaje por defecto
     }
     if (statusCode == 401) throw UnauthorizedException(msg);
-    throw ServerException(msg);
+    throw ServerException(msg, code, details);
   }
 }

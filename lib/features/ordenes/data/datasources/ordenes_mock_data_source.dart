@@ -22,6 +22,11 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       metraje: '65m',
       fechaCreacion: '21/07/2026',
       diasAbierto: '1',
+      plan: 'Reparación Cerca Eléctrica',
+      monto: 1800,
+      stripePaymentId: 'pi_mock_rep001',
+      fechaAgendada: '2026-09-11 09:00:00',
+      agendado: true,
     ),
     OrdenModel(
       id: 'REP-002',
@@ -37,6 +42,11 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       metraje: '40m',
       fechaCreacion: '20/07/2026',
       diasAbierto: '2',
+      plan: 'Reparación Energizador',
+      monto: 1200,
+      stripePaymentId: 'pi_mock_rep002',
+      fechaAgendada: '2026-09-12 11:30:00',
+      agendado: true,
     ),
     // --- Instalaciones ---
     OrdenModel(
@@ -53,6 +63,11 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       metraje: '70m',
       fechaCreacion: '7/02/2026',
       diasAbierto: '1',
+      plan: 'Fortress - Pago Anual',
+      monto: 8990,
+      stripePaymentId: 'pi_mock_ins001',
+      fechaAgendada: '2026-09-08 10:00:00',
+      agendado: true,
     ),
     OrdenModel(
       id: 'INS-002',
@@ -68,6 +83,12 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       metraje: '35m',
       fechaCreacion: '22/05/2026',
       diasAbierto: '3',
+      plan: 'Hogar Seguro - Pago Mensual',
+      monto: 499,
+      stripePaymentId: 'pi_mock_ins002',
+      // Sin agendar: demuestra el bloqueo del botón "Iniciar ruta".
+      fechaAgendada: null,
+      agendado: false,
     ),
     OrdenModel(
       id: 'INS-003',
@@ -83,6 +104,11 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       metraje: '15m',
       fechaCreacion: '20/05/2026',
       diasAbierto: '2',
+      plan: 'Cerradura Inteligente',
+      monto: 2490,
+      stripePaymentId: 'pi_mock_ins003',
+      fechaAgendada: '2026-09-08 16:00:00',
+      agendado: true,
     ),
   ];
 
@@ -115,10 +141,10 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> iniciarRuta(String id) => _ok();
 
   @override
-  Future<void> marcarLlegada(String id) => _ok();
+  Future<void> marcarLlegada(String id, {Map<String, dynamic>? ubicacion}) => _ok();
 
   @override
-  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos}) => _ok();
+  Future<void> guardarInspeccion(String id, {required bool sinObstaculos, required List<String> obstaculos, double? metrosReales}) => _ok();
 
   @override
   Future<void> guardarInstalacion(String id, Map<String, dynamic> registro) => _ok();
@@ -127,10 +153,10 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) => _ok();
 
   @override
-  Future<void> vincularEnergizador(String id, {required String codigo, String? serie}) => _ok();
+  Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) => _ok();
 
   @override
-  Future<Map<String, dynamic>> diagnosticoEnergizador(String serie) async {
+  Future<Map<String, dynamic>> diagnosticoEnergizador(String serie, {String ordenId = ''}) async {
     await Future.delayed(const Duration(milliseconds: 600));
     return {
       'encontrado': true, 'serie': serie, 'mac': 'AA:BB:CC:00:CA:R1',
@@ -138,6 +164,10 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       'cercaActiva': true, 'firmware': '2.7.1.0', 'ultimoReporte': DateTime.now().toIso8601String(),
     };
   }
+
+  @override
+  Future<String> subirEvidencia(String id, String categoria, String imagenBase64) async =>
+      '/web/content/0';
 
   @override
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre) => _ok();

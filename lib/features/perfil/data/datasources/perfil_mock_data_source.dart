@@ -10,7 +10,6 @@ class PerfilMockDataSource implements PerfilDataSource {
     telefono: '55 8888 1122',
     rfc: '',
     curp: '',
-    constanciaUrl: '',
     estado: 'pendiente_perfil',
     perfilCompleto: false,
     numeroInstalador: '14336',
@@ -33,7 +32,6 @@ class PerfilMockDataSource implements PerfilDataSource {
       telefono: telefono ?? _perfil.telefono,
       rfc: rfc ?? _perfil.rfc,
       curp: curp ?? _perfil.curp,
-      constanciaUrl: _perfil.constanciaUrl,
       estado: _perfil.estado,
       perfilCompleto: _perfil.perfilCompleto,
       numeroInstalador: _perfil.numeroInstalador,
@@ -42,23 +40,8 @@ class PerfilMockDataSource implements PerfilDataSource {
     return _perfil;
   }
 
-  @override
-  Future<PerfilModel> subirConstancia({required String nombreArchivo, required String contenidoBase64, String mimetype = 'application/pdf'}) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _perfil = PerfilModel(
-      id: _perfil.id, nombre: _perfil.nombre, email: _perfil.email, telefono: _perfil.telefono,
-      rfc: _perfil.rfc, curp: _perfil.curp, constanciaUrl: 'mock://constancia.pdf',
-      estado: _perfil.estado, perfilCompleto: _perfil.perfilCompleto,
-      numeroInstalador: _perfil.numeroInstalador, codigoVenta: _perfil.codigoVenta,
-    );
-    return _perfil;
-  }
 
-  @override
-  Future<PerfilModel> subirAvatar({required String contenidoBase64}) async {
-    await Future.delayed(const Duration(milliseconds: 250));
-    return _perfil; // mock: no persiste imagen
-  }
+
 
   @override
   Future<void> cambiarPassword({required String passwordActual, required String passwordNueva}) async {

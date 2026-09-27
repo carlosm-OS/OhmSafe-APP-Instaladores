@@ -10,7 +10,10 @@ abstract class Failure {
 
 /// Error genérico del servidor (HTTP >= 400 distinto de 401).
 class ServerFailure extends Failure {
-  const ServerFailure([super.message = "Ocurrió un error en el servidor"]);
+  /// Código del backend (vacío si no viene), p. ej. FUERA_DE_SITIO.
+  final String code;
+  final Map<String, dynamic> details;
+  const ServerFailure([super.message = "Ocurrió un error en el servidor", this.code = '', this.details = const {}]);
 }
 
 /// Credenciales inválidas / sesión no autorizada (HTTP 401).

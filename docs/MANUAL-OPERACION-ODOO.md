@@ -1,7 +1,82 @@
-# Manual de operación — Ruta del ticket (App ↔ Odoo)
+# Manual de operación — Ruta de la instalación (App ↔ Odoo)
 
-Qué escribe cada paso de la app de instaladores en Odoo y **dónde verlo**.
-Versión visual/compartible: artifact "Ruta del Ticket en Odoo".
+> **Vigente desde 2026-09-26.** La instalación vive en **Planificación** (Field
+> Service) como una *intervención*. El proyecto «Instalaciones OhmSafe» quedó
+> **archivado**; todo lo que dice «tarea», «Kanban del proyecto» o campos `x_…`
+> más abajo es el flujo anterior y se conserva sólo como histórico.
+
+## Flujo vigente: de la venta a la app del instalador
+
+1. **La venta se paga en Stripe.** El cobro avisa a la vez a HubSpot (negocio +
+   suscripción) y a Odoo. En Odoo nacen solos el **cliente**, su **casa** y el
+   **contrato** (Ventas › Pedidos, referencia `stripe:…`) con la línea
+   «Instalación de cerca eléctrica» incluida a $0.
+2. **Nace la intervención «por planificar».** Odoo la crea sola al confirmar el
+   contrato: sin fecha y sin instalador, con la hoja de trabajo «Instalación
+   OhmSafe» y la dirección de la casa. Se ve en
+   `Planificación › Programación › panel «Por planificar»` (o en el contrato,
+   botón *Planificación*).
+3. **Operaciones recibe una actividad «Agendar intervención»** (vence a 2 días
+   hábiles). Aparece en su bandeja de actividades y en el chatter de la
+   intervención. Responsable: Santiago (santiago.gea@ohmsafe.com); mientras dura
+   la prueba, Carlos.
+4. **Agendar (esto es lo único manual).** Una intervención que viene de una venta
+   y aún no tiene fecha tiene la *Fecha* **bloqueada** en su formulario: Odoo exige
+   planificarla desde el calendario.
+   - `Planeación › Horario` (Gantt por recurso). Ve a la semana deseada con **→**.
+   - Mira el calendario del instalador. Pasa el mouse sobre la celda del día en su
+     fila (o en **Turnos abiertos** si su fila no aparece esa semana) y haz clic en
+     la **lupa** («Planificar existente»). Elige la intervención del cliente.
+   - Abre la tarjeta: ya se puede editar la *Fecha*. Déjala de **9:00 a 17:00**
+     (instalación de 8 h) y confirma **Recursos = el instalador**.
+   - También puedes abrir la intervención desde la actividad del reloj y asignar el
+     instalador ahí; la fecha sigue siendo desde el calendario.
+   - Si no hay hueco, la actividad sigue abierta como pendiente.
+   - **Instalación de varios días:** es UNA sola intervención cuyo fin cae otro día.
+     Estira la tarjeta en el Gantt hasta el día siguiente o pon la fecha de fin
+     (p. ej. sáb 9:00 → dom 17:00). No la partas en dos intervenciones.
+   - Mientras esté en **Borrador** puedes asignar, mover y corregir cuantas veces
+     quieras: **el instalador no recibe nada ni la ve en su app**.
+5. **Publicar.** Botón **Publicar** (o *Publicar y enviar*). En ese instante:
+   - el instalador recibe **un solo push** «Nueva instalación asignada —
+     <cliente> · <rango de días y horas>» y la instalación aparece en su app, en
+     cada día que abarca, lista para *Iniciar ruta*;
+   - el cliente recibe el correo «Intervención programada»;
+   - la actividad «Agendar intervención» **se cierra sola** con la constancia
+     «Asignada a <instalador>» en cuanto la intervención tiene instalador **y**
+     fecha (asignar sin fecha avisa al instalador pero deja la actividad abierta).
+6. **Reagendar** (ya publicada) = mover la intervención en el Gantt: push
+   «Servicio reagendado» con el rango nuevo. **Retirarla** = *Anular programación*
+   o regresarla a borrador: push «Servicio cancelado».
+7. **Pago al instalador: a destajo.** Se paga una vez por instalación completada,
+   con el importe fijo del producto «Pago a instalador — Instalación»; las horas,
+   los días y las horas extra no cuentan. Los instaladores son externos: su
+   horario en Odoo es «Instalador externo · lunes a domingo (sin jornada fija)» y
+   su tipo de empleado «Instalador externo (independiente, pago por instalación)».
+   Al dar de alta a un instalador nuevo como empleado, asígnale ambos.
+
+Qué NO hay que hacer: crear tickets a mano, asignar instalador desde el
+contrato, ni tocar HubSpot. El campo **Cliente** de una intervención que viene de
+una venta está bloqueado: para corregir la dirección, abre la ficha del contacto
+(flechita junto al nombre) y edítala ahí; la intervención y la app la toman solas. Instalaciones migradas del flujo viejo (contratos
+`migracion:task…`, S00162–S00164) están en «Por planificar» esperando agenda.
+
+## Dónde ver cada paso de la app (flujo vigente)
+
+Todo queda en la **intervención** (`Planificación`), no en una tarea:
+
+| Paso en la app | Dónde queda en la intervención |
+|---|---|
+| Iniciar ruta / Marcar llegada | propiedades `op_hora_salida`, `op_hora_llegada`, `op_llegada_lat/lng`; estado *En curso* |
+| Inspección y registro de instalación | pestaña **Hoja de trabajo** («Instalación de cerca eléctrica») |
+| Vincular energizador | `op_serie`, `op_mac`; material del contrato con número de serie; equipo en **Mantenimiento** |
+| Evidencias | fotos adjuntas a la intervención |
+| Cierre y firma | firma en la hoja de trabajo; estado *Completada*; PDF «Reporte de servicio» enviado al cliente; encuesta; factura al cliente y pago al instalador en borrador (**Contabilidad / Compras**) |
+| Incidencias | **Servicio de asistencia** › «Incidencias de campo» |
+
+---
+
+# Flujo anterior (proyecto archivado el 2026-09-26) — sólo histórico
 
 ## Dónde vive todo
 Cada orden es una **tarea** del proyecto **“[TEST] Servicios Instalador”**
@@ -133,3 +208,29 @@ categoría **“Tarifas Instalador”**.
 > Todo ocurre en el proyecto **[TEST] Servicios Instalador** de `ohmsafe2`. La app
 > escribe vía el backend `/v1/instalador`; Odoo es la fuente de verdad. Los `x_…`
 > son los nombres técnicos; la etiqueta es lo que ves en la ficha.
+
+## Datos y foto del instalador: sólo los cambia OhmSafe (desde 2026-09-26)
+Por seguridad, el instalador **no puede** cambiar desde la app su nombre, apellidos,
+teléfono, correo, CURP ni su foto; sólo el RFC (Facturación). Si pide una corrección:
+- **Nombre, teléfono, correo, CURP:** en `Contactos`, ficha del instalador.
+- **Foto:** en `Empleados`, ficha del instalador → clic en la foto → subir. Es la que ve
+  la app y la que muestra Planificación. Se refleja en la app la próxima vez que la abra.
+
+## Dar de alta a un instalador externo (desde 2026-09-26)
+Todo se hace en Odoo; el instalador sólo descarga la app y entra con su correo.
+1. `Contactos › Instaladores externos › Nuevo` (formulario «Instalador externo»). Carga **todo**:
+   nombre y apellidos, teléfono, **correo** (con él entrará a la app), CURP, RFC, **foto** y la
+   **constancia fiscal** (PDF, en «Documentación»).
+2. Ponle la etiqueta **Instalador Externo-OS** (campo *Roles*). Odoo prepara solo: número de
+   instalador, código de venta, su ficha de empleado (horario lunes a domingo, pago por instalación) y
+   su acceso a la app. La barra de arriba (*Avance de alta*) dice qué falta.
+3. **Estado (lo decide OhmSafe)** — la lista desplegable del perfil es el check:
+   - **Activo**: aparece en Planificación y se le puede asignar trabajo.
+   - **Temporalmente no disponible**: sigue entrando a la app, pero no se le puede asignar.
+   - **Suspendido**: no se le asigna y tampoco puede entrar a la app.
+   Si lo activas antes de que complete su alta, Odoo lo avisa: no recibirá notificaciones hasta que
+   active la app.
+4. Dile que descargue la app y escriba su correo: le llega un código, ve su bienvenida como
+   instalador certificado y crea su contraseña. En el chatter queda «Activó su cuenta en la app» y la
+   barra pasa a *Alta completa*.
+5. Si olvida su contraseña, él mismo la cambia desde «¿Olvidaste tu contraseña?» con un código.

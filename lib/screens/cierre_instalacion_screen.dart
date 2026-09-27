@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import '../widgets/notification_bell.dart';
 import 'package:geolocator/geolocator.dart';
+
+import '../core/error/failures.dart';
+import '../core/utils/ubicacion.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/gestures.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
@@ -23,8 +30,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Reference coordinates for anti-fraud location verification
   // (Centred in Mexico City - Juarez/Roma area, where our mock installer is operating)
-  final double _refLat = 19.432608;
-  final double _refLng = -99.133209;
+  // La validación de ubicación vive en el backend: compara la posición del
+  // cierre con la de la llegada (radio de 300 m) y pide confirmación si está lejos.
 
   // Step 1 State: Photos, Metadatas and Anomaly Justifications
   final List<String> _categories = [
@@ -36,13 +43,22 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   final Map<String, String?> _photoPaths = {};
   final Map<String, Position?> _photoLocations = {};
   final Map<String, DateTime?> _photoTimestamps = {};
+  // Ya no se calcula discrepancia por foto en la app (la valida el backend al cerrar); queda vacío.
   final Map<String, bool> _geoMismatches = {};
+  final ImagePicker _picker = ImagePicker();
 
   // Simulated photo list and capture states
-  final List<String> _simulatedPhotos = [];
+  final List<String> _fotosCapturadas = [];
   String? _capturingCategory;
 
   final _photoCommentsController = TextEditingController();
+  /// fileKey que devolvió el backend por cada foto ya subida. Es lo que viaja
+  /// en el cierre; la ruta local del teléfono no le sirve al servidor.
+  final Map<String, String> _photoFileKeys = {};
+  /// Estado de la subida por foto. Se muestra en la tarjeta: sin esto una
+  /// foto que falló al subir se veía igual que una subida y el instalador
+  /// solo se enteraba al intentar firmar.
+  final Map<String, _EstadoSubida> _subidaFotos = {};
   String? _step1Error;
 
   // Reparación: evidencias fotográficas dinámicas (se agregan una a una).
@@ -52,7 +68,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   int _repairPhotoCounter = 1;
 
   // Step 2 State: confirmación de entrega del equipo (checks, sin foto/serie).
-  bool _controlEntregado = false;        // Entregué el control remoto al cliente
+  bool _controlEntregado = false;        // Entregué el control remoto funcional
+  // Addons del servicio. null = sin responder; el técnico debe decir si los
+  // instaló o si el servicio no los incluye. No se infiere del plan porque
+  // hoy el ticket no trae los addons contratados.
+  String? _camaras;                      // 'instaladas' | 'no_aplica'
+  String? _sensores;                     // 'instaladas' | 'no_aplica'
   bool _entregaConAnomalias = false;     // false = todo funcional; true = hubo anomalías
   bool _anomFisica = false;              // Daño físico
   bool _anomFuncionamiento = false;      // Falla de funcionamiento
@@ -61,6 +82,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   String? _step2Error;
 
   // Step 3 State: Signature Canvas
+  /// Llave del lienzo: se usa para convertir coordenadas globales a locales
+  /// y para conocer su tamaño al rasterizar la firma a PNG.
+  final GlobalKey _signatureCanvasKey = GlobalKey();
   List<Offset> _signaturePoints = [];
   bool _signatureConfirmed = false;
   String? _step3Error;
@@ -85,102 +109,199 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     super.dispose();
   }
 
-  // Fetch current GPS location with high accuracy
-  Future<Position?> _getCurrentLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        // Return dummy position for testing if GPS is off
-        return Position(
-          latitude: 19.4326,
-          longitude: -99.1332,
-          timestamp: DateTime.now(),
-          accuracy: 5.0,
-          altitude: 2240.0,
-          heading: 0.0,
-          speed: 0.0,
-          speedAccuracy: 0.0,
-          altitudeAccuracy: 1.0,
-          headingAccuracy: 1.0,
-        );
-      }
+  /// Posición real del teléfono o null; nunca una posición inventada.
+  Future<Position?> _getCurrentLocation() => ubicacionActual(limite: const Duration(seconds: 4));
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return null;
-      }
-      if (permission == LocationPermission.deniedForever) return null;
+  /// Toma o elige una foto de evidencia. Antes esto era una simulación: esperaba
+  /// 2 segundos y guardaba la ruta falsa "simulated_path_<categoria>.png", así
+  /// que el cierre viajaba sin ninguna evidencia real.
+  Future<void> _capturarFoto(String category) async {
+    if (_capturingCategory != null) return; // evita capturas concurrentes
 
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 4),
-      );
-    } catch (e) {
-      debugPrint("Error fetching location: $e");
-      // Fallback location close to Mexico City reference coordinates
-      return Position(
-        latitude: 19.432608 + 0.0005, // slightly offset to test mismatch optionally
-        longitude: -99.133209 - 0.0003,
-        timestamp: DateTime.now(),
-        accuracy: 10.0,
-        altitude: 2240.0,
-        heading: 0.0,
-        speed: 0.0,
-        speedAccuracy: 0.0,
-        altitudeAccuracy: 1.0,
-        headingAccuracy: 1.0,
-      );
-    }
-  }
-
-  // Validate geolocalisation distance (Haversine or simple threshold check)
-  // Distance mismatch threshold ~ 200 meters (~0.002 degrees difference)
-  bool _validateGeoLocation(double photoLat, double photoLng) {
-    final double latDiff = (photoLat - _refLat).abs();
-    final double lngDiff = (photoLng - _refLng).abs();
-    return latDiff < 0.002 && lngDiff < 0.002;
-  }
-
-  // Simulated photo capture for Step 1
-  Future<void> _simulatePhotoCapture(String category) async {
-    if (_capturingCategory != null) return; // Prevent concurrent captures
+    final origen = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded),
+              title: const Text('Tomar foto'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Elegir de la galería'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (origen == null || !mounted) return;
 
     setState(() {
       _capturingCategory = category;
       _step1Error = null;
+      // Al retomar una foto, su subida anterior deja de ser válida: si no se
+      // olvida, el cierre enviaría la referencia de la foto vieja.
+      _photoFileKeys.remove(category);
     });
 
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      final position = await _getCurrentLocation();
-      final timestamp = DateTime.now();
-      bool isMatched = true;
-      if (position != null) {
-        isMatched = _validateGeoLocation(position.latitude, position.longitude);
+    try {
+      final XFile? foto = await _picker.pickImage(
+        source: origen,
+        imageQuality: 70,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      );
+      if (!mounted) return;
+      if (foto == null) {
+        setState(() => _capturingCategory = null);
+        return;
       }
 
+      // La ubicación se sigue registrando aunque no bloquee (ver
+      // _validarGeolocalizacion): sirve como dato del cierre.
+      final position = await _getCurrentLocation();
+      if (!mounted) return;
+
       setState(() {
-        if (!_simulatedPhotos.contains(category)) {
-          _simulatedPhotos.add(category);
-        }
-        _photoPaths[category] = "simulated_path_$category.png";
+        if (!_fotosCapturadas.contains(category)) _fotosCapturadas.add(category);
+        _photoPaths[category] = foto.path;
         _photoLocations[category] = position;
-        _photoTimestamps[category] = timestamp;
-        _geoMismatches[category] = !isMatched;
+        _photoTimestamps[category] = DateTime.now();
+      });
+
+      setState(() => _capturingCategory = null);
+      // La foto se sube AQUÍ, no al cerrar: en campo la señal es mala y un
+      // solo envío con las cuatro fotos hace que un corte tire el cierre
+      // completo. Así cada foto es reintentable por separado y el cierre
+      // solo manda referencias.
+      await _subirFoto(category);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
         _capturingCategory = null;
+        _step1Error = "No se pudo tomar la foto: $e";
       });
     }
   }
 
-  // Submit all details and complete installation
-  Future<void> _submitCierreInstalacion() async {
-    // Compile JSON Payload
-    final List<String> urlsFotos = [
-      ..._photoPaths.values.where((p) => p != null).map((p) => p!),
-    ];
+  // ----- Evidencias: subida por foto con estado visible y reintento -----
 
+  /// Sube la foto de [category] y deja su estado en `_subidaFotos`.
+  /// Reutilizable para reintentar sin volver a tomar la foto.
+  Future<void> _subirFoto(String category) async {
+    final path = _photoPaths[category];
+    if (path == null) return;
+    setState(() => _subidaFotos[category] = _EstadoSubida.subiendo);
+
+    final ticketId =
+        (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    try {
+      final bytes = await File(path).readAsBytes();
+      final subida = await sl
+          .get<OrdenesRepository>()
+          .subirEvidencia(ticketId, category, base64Encode(bytes));
+      if (!mounted) return;
+      subida.fold(
+        (fileKey) => setState(() {
+          _photoFileKeys[category] = fileKey;
+          _subidaFotos[category] = _EstadoSubida.ok;
+        }),
+        (_) => setState(() => _subidaFotos[category] = _EstadoSubida.error),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _subidaFotos[category] = _EstadoSubida.error);
+    }
+  }
+
+  /// Fotos tomadas que aún no tienen fileKey (fallaron o siguen subiendo).
+  List<String> get _fotosSinSubir => _photoPaths.entries
+      .where((e) => e.value != null && !_photoFileKeys.containsKey(e.key))
+      .map((e) => e.key)
+      .toList();
+
+  /// Antes de cerrar se reintentan solas las subidas pendientes: el
+  /// instalador no debe volver al paso 1 por un corte de red momentáneo.
+  Future<void> _reintentarSubidasPendientes() async {
+    final pendientes = _fotosSinSubir
+        .where((c) => _subidaFotos[c] != _EstadoSubida.subiendo)
+        .toList();
+    await Future.wait(pendientes.map(_subirFoto));
+  }
+
+  // ----- Firma: captura de trazos y rasterizado -----
+
+  RenderBox? get _signatureBox =>
+      _signatureCanvasKey.currentContext?.findRenderObject() as RenderBox?;
+
+  /// Agrega un punto del trazo, en coordenadas locales del lienzo y recortado
+  /// a su área (un arrastre puede salirse del recuadro).
+  void _agregarTrazo(Offset globalPosition) {
+    final box = _signatureBox;
+    if (box == null) return;
+    final local = box.globalToLocal(globalPosition);
+    final size = box.size;
+    final clamped = Offset(
+      local.dx.clamp(0.0, size.width),
+      local.dy.clamp(0.0, size.height),
+    );
+    setState(() {
+      _signaturePoints = List.from(_signaturePoints)..add(clamped);
+    });
+  }
+
+  /// Marca el fin de un trazo (el pincel levanta): el painter no une puntos
+  /// separados por este centinela.
+  void _terminarTrazo() {
+    setState(() {
+      _signaturePoints = List.from(_signaturePoints)..add(const Offset(-1, -1));
+    });
+  }
+
+  /// Rasteriza la firma a PNG (base64, sin prefijo data:).
+  ///
+  /// No captura la pantalla: redibuja los trazos sobre fondo blanco con tinta
+  /// oscura, para que el documento sea legible sin importar el tema de la app
+  /// ni el estado visual del lienzo.
+  Future<String?> _firmaPngBase64() async {
+    final box = _signatureBox;
+    if (box == null || _signaturePoints.isEmpty) return null;
+    final size = box.size;
+    if (size.width <= 0 || size.height <= 0) return null;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(
+      recorder,
+      Rect.fromLTWH(0, 0, size.width, size.height),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..color = const Color(0xFFFFFFFF),
+    );
+    SignaturePainter(_signaturePoints, const Color(0xFF111111)).paint(canvas, size);
+
+    final picture = recorder.endRecording();
+    try {
+      final image = await picture.toImage(size.width.ceil(), size.height.ceil());
+      try {
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (bytes == null) return null;
+        return base64Encode(bytes.buffer.asUint8List());
+      } finally {
+        image.dispose();
+      }
+    } finally {
+      picture.dispose();
+    }
+  }
+
+  // Submit all details and complete installation
+  Future<void> _submitCierreInstalacion({bool confirmarUbicacion = false}) async {
+    // Compile JSON Payload
     final Map<String, dynamic> geoJson = {};
     _photoLocations.forEach((category, pos) {
       if (pos != null) {
@@ -188,7 +309,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           "lat": pos.latitude,
           "lng": pos.longitude,
           "timestamp": _photoTimestamps[category]?.toIso8601String(),
-          "mismatch": _geoMismatches[category] ?? false
         };
       }
     });
@@ -199,24 +319,65 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (_anomControl) 'control_no_funciona',
     ];
 
+    // Una foto capturada pero no subida no llega a la orden de servicio. Antes
+    // de avisar se reintenta la subida: casi siempre fue un corte momentáneo.
+    if (_fotosSinSubir.isNotEmpty) {
+      setState(() {
+        _step3Error = null;
+        _isLoading = true;
+      });
+      await _reintentarSubidasPendientes();
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
+    final sinSubir = _fotosSinSubir;
+    if (sinSubir.isNotEmpty) {
+      setState(() => _step3Error =
+          "No se pudo subir ${sinSubir.length == 1 ? 'la foto' : 'las fotos'} de ${sinSubir.join(', ')}. Revisa tu conexión y toca «Reintentar» en el paso 1.");
+      return;
+    }
+
+    // La firma se rasteriza ANTES de mostrar el overlay de carga: el lienzo
+    // debe seguir montado para poder medirlo.
+    final firmaBase64 = await _firmaPngBase64();
+    if (!mounted) return;
+    final ubicacionCierre = ubicacionJson(await _getCurrentLocation());
+    if (!mounted) return;
+    if (firmaBase64 == null) {
+      setState(() => _step3Error =
+          "No se pudo capturar la firma. Pide al cliente que firme de nuevo.");
+      return;
+    }
+
+    // Las claves deben coincidir con el esquema del backend (camelCase). Con
+    // snake_case, Zod las descartaba en silencio y el cierre se guardaba vacío.
     final payload = {
-      "ticket_id": widget.ticket["id"] ?? "999",
-      "urls_fotos": urlsFotos,
+      "evidencias": [
+        for (final entry in _photoFileKeys.entries)
+          {"fileKey": entry.value, "categoria": entry.key},
+      ],
       "geolocalizacion": geoJson,
-      "entrega_equipo": {
-        "control_remoto_entregado": _controlEntregado,
-        "entrega_funcional": !_entregaConAnomalias,
+      "entregaEquipo": {
+        "controlRemotoEntregado": _controlEntregado,
+        "entregaFuncional": !_entregaConAnomalias,
         "anomalias": anomalias,
+        "comentarios": _step2CommentsController.text.trim(),
+        if (_camaras != null) "camaras": _camaras,
+        if (_sensores != null) "sensores": _sensores,
       },
-      "firma_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJY...", // Simulado
-      "comentarios_generales": "Paso 1: ${_photoCommentsController.text.trim()} | Paso 2: ${_step2CommentsController.text.trim()}",
+      "firmaBase64": firmaBase64,
+      // Posición al cerrar: el backend la compara con la de la llegada.
+      if (ubicacionCierre != null) "ubicacion": ubicacionCierre,
+      if (confirmarUbicacion) "confirmarUbicacion": true,
+      "comentariosGenerales":
+          "Paso 1: ${_photoCommentsController.text.trim()} | Paso 2: ${_step2CommentsController.text.trim()}",
     };
 
-    debugPrint("ENVIANDO CIERRE:");
-    debugPrint(const JsonEncoder.withIndent('  ').convert(payload));
-
     // Enviar al backend vía repositorio (Mock o Api según EnvConfig.useMock).
-    setState(() => _isLoading = true);
+    setState(() {
+      _step3Error = null;
+      _isLoading = true;
+    });
     final repo = sl.get<OrdenesRepository>();
     final ticketId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     final result = await repo.guardarCierre(ticketId, payload);
@@ -225,6 +386,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       (_) => Navigator.pop(context, 'cierre_completed'),
       (failure) {
         setState(() => _isLoading = false);
+        if (failure is ServerFailure && failure.code == 'FUERA_DE_SITIO') {
+          _confirmarCierreLejos(failure);
+          return;
+        }
+        setState(() => _step3Error = "No se pudo enviar el cierre: ${failure.message}");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("No se pudo enviar el cierre: ${failure.message}")),
         );
@@ -232,12 +398,39 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     );
   }
 
+  /// El backend detectó que el cierre está a más de 300 m de la llegada. El
+  /// instalador puede confirmar; la confirmación queda en el chatter de Odoo.
+  Future<void> _confirmarCierreLejos(ServerFailure failure) async {
+    final distancia = failure.details['distanciaM'];
+    final cs = Theme.of(context).colorScheme;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Estás lejos del sitio'),
+        content: Text(
+          distancia != null
+              ? 'Estás a $distancia m del punto donde marcaste la llegada. ¿Confirmas que estás cerrando la instalación en el sitio correcto?'
+              : failure.message,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Revisar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: cs.primary),
+            child: const Text('Sí, cerrar aquí'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar == true && mounted) await _submitCierreInstalacion(confirmarUbicacion: true);
+  }
+
   // ----- Reparación: manejo de fotos de evidencia dinámicas -----
   String _repairKey(int id) => 'Reparación foto $id';
 
   // Solo se puede agregar otra foto cuando todas las actuales ya se tomaron.
   bool get _canAddRepairPhoto =>
-      _repairPhotoSlots.every((id) => _simulatedPhotos.contains(_repairKey(id)));
+      _repairPhotoSlots.every((id) => _fotosCapturadas.contains(_repairKey(id)));
 
   void _addRepairPhotoSlot() {
     setState(() {
@@ -254,7 +447,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       _photoLocations.remove(key);
       _photoTimestamps.remove(key);
       _geoMismatches.remove(key);
-      _simulatedPhotos.remove(key);
+      _fotosCapturadas.remove(key);
     });
   }
 
@@ -264,12 +457,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       // Al menos una foto y sin slots vacíos.
       if (_repairPhotoSlots.isEmpty) return false;
       for (final id in _repairPhotoSlots) {
-        if (!_simulatedPhotos.contains(_repairKey(id))) return false;
+        if (!_fotosCapturadas.contains(_repairKey(id))) return false;
       }
       return true;
     }
     for (String cat in _categories) {
-      if (!_simulatedPhotos.contains(cat)) return false;
+      if (!_fotosCapturadas.contains(cat)) return false;
     }
     return true;
   }
@@ -277,13 +470,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   // Validate Step 1
   bool _validateStep1() {
     if (!_evidenciasCompletas()) return false;
-
-    // Anti-fraud validation: if any photo has location mismatch, comments must be provided
-    bool hasMismatch = _geoMismatches.values.contains(true);
-    if (hasMismatch && _photoCommentsController.text.trim().isEmpty) {
-      return false;
-    }
-
     return true;
   }
 
@@ -292,8 +478,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     // En reparación sin cambio de energizador no aplica el paso de equipo.
     if (!_requiereEquipo) return true;
 
-    // Debe confirmar la entrega del control remoto al cliente.
+    // Debe confirmar la entrega del control remoto funcional.
     if (!_controlEntregado) return false;
+    // Y responder por los addons: instalados o no aplica. Sin respuesta no
+    // hay forma de saber si faltó algo del servicio.
+    if (_camaras == null || _sensores == null) return false;
 
     // Si reporta anomalías, debe marcar al menos un tipo o describirlas.
     if (_entregaConAnomalias) {
@@ -332,13 +521,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
     if (_currentStep == 1) {
       if (!_validateStep1()) {
-        bool hasMismatch = _geoMismatches.values.contains(true);
         setState(() {
-          _step1Error = hasMismatch
-            ? "⚠️ Alerta de fraude. Se detectó discrepancia de ubicación. Justifica las anomalías en el campo de texto."
-            : (_isReparacion
-                ? "Agrega al menos una foto de la reparación (sin dejar fotos pendientes de captura)."
-                : "Por favor, toma las 4 fotografías obligatorias.");
+          _step1Error = _isReparacion
+              ? "Agrega al menos una foto de la reparación (sin dejar fotos pendientes de captura)."
+              : "Por favor, toma las 4 fotografías obligatorias.";
         });
         return;
       }
@@ -349,8 +535,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (!_validateStep2()) {
         setState(() {
           _step2Error = !_controlEntregado
-            ? "Confirma la entrega del control remoto al cliente."
-            : "Indica el tipo de anomalía o descríbela en los comentarios.";
+            ? "Confirma que entregaste el control remoto funcional."
+            : (_camaras == null || _sensores == null)
+                ? "Indica si instalaste cámaras y sensores, o marca «No aplica»."
+                : "Indica el tipo de anomalía o descríbela en los comentarios.";
         });
         return;
       }
@@ -416,27 +604,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: Stack(
-                          alignment: Alignment.topRight,
-                          children: [
-                            Icon(
-                              Icons.notifications,
-                              color: theme.iconTheme.color?.withValues(alpha: 0.7),
-                            ),
-                            Positioned(
-                              top: 2,
-                              right: 2,
-                              child: Container(
-                                width: 7,
-                                height: 7,
-                                decoration: const BoxDecoration(
-                                  color: Colors.blueAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: const NotificationBell(),
                       ),
                     ],
                   ),
@@ -734,6 +902,55 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     );
   }
 
+  /// Estado de la subida de la foto. En error, tocarlo reintenta sin volver a
+  /// tomar la foto.
+  Widget _estadoSubidaChip(String category) {
+    final estado = _subidaFotos[category];
+    switch (estado) {
+      case _EstadoSubida.subiendo:
+        return Row(
+          children: const [
+            SizedBox(width: 11, height: 11, child: CircularProgressIndicator(strokeWidth: 1.6)),
+            SizedBox(width: 6),
+            Text("Subiendo…", style: TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        );
+      case _EstadoSubida.ok:
+        return const Row(
+          children: [
+            Icon(Icons.cloud_done_rounded, size: 13, color: Colors.green),
+            SizedBox(width: 4),
+            Text("Subida", style: TextStyle(fontSize: 11, color: Colors.green)),
+          ],
+        );
+      case _EstadoSubida.error:
+        return Semantics(
+          button: true,
+          label: "Reintentar subida de $category",
+          child: InkWell(
+            onTap: () => _subirFoto(category),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              // Área táctil cómoda sin agrandar la tarjeta.
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: const [
+                  Icon(Icons.cloud_off_rounded, size: 13, color: Colors.redAccent),
+                  SizedBox(width: 4),
+                  Text(
+                    "No se subió · Reintentar",
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      case null:
+        return const SizedBox.shrink();
+    }
+  }
+
   Widget _buildPhotoCategoryCard(String category, Color brandDark, Color brandOrange) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -763,8 +980,20 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               width: 50,
               height: 50,
               color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
+              // Ahora que la foto es real, se muestra: es la evidencia que
+              // el instalador acaba de tomar, no un palomeo.
               child: hasPhoto
-                  ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary, size: 28)
+                  ? Image.file(
+                      File(path),
+                      fit: BoxFit.cover,
+                      width: 50,
+                      height: 50,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.check_circle,
+                        color: Theme.of(context).colorScheme.secondary,
+                        size: 28,
+                      ),
+                    )
                   : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
             ),
           ),
@@ -799,6 +1028,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 4),
+                  _estadoSubidaChip(category),
                 ],
               ],
             ),
@@ -818,7 +1049,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   ),
                 )
               : IconButton(
-                  onPressed: () => _simulatePhotoCapture(category),
+                  onPressed: () => _capturarFoto(category),
                   icon: Icon(
                     hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
                     color: hasPhoto ? Colors.green : brandOrange,
@@ -861,8 +1092,20 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               width: 50,
               height: 50,
               color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
+              // Ahora que la foto es real, se muestra: es la evidencia que
+              // el instalador acaba de tomar, no un palomeo.
               child: hasPhoto
-                  ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary, size: 28)
+                  ? Image.file(
+                      File(_photoPaths[key]!),
+                      fit: BoxFit.cover,
+                      width: 50,
+                      height: 50,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.check_circle,
+                        color: Theme.of(context).colorScheme.secondary,
+                        size: 28,
+                      ),
+                    )
                   : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
             ),
           ),
@@ -923,7 +1166,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   ),
                 )
               : IconButton(
-                  onPressed: () => _simulatePhotoCapture(key),
+                  onPressed: () => _capturarFoto(key),
                   icon: Icon(
                     hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
                     color: hasPhoto ? Colors.green : brandOrange,
@@ -987,7 +1230,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          "Confirma la entrega del control remoto al cliente y el estado del equipo. No se requiere foto ni número de serie.",
+          "Confirma lo que entregaste e instalaste. Si el servicio no incluye un addon, márcalo como «No aplica». No se requiere foto ni número de serie.",
           style: TextStyle(
             fontSize: 13,
             color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
@@ -996,17 +1239,50 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 20),
 
-        // Check: entrega del control remoto
+        // Check: entrega del control remoto funcional
         _entregaCheckTile(
           theme,
           isDark,
           value: _controlEntregado,
-          label: "Entregué el control remoto al cliente",
+          label: "Entregué funcional el control remoto",
           onChanged: (v) => setState(() {
             _controlEntregado = v;
             _step2Error = null;
           }),
           brandOrange: brandOrange,
+        ),
+        const SizedBox(height: 20),
+
+        // Addons del servicio: cámaras y sensores
+        Text(
+          "ADDONS DEL SERVICIO",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _addonRow(
+          theme,
+          brandOrange,
+          label: "Instalé y dejé funcionando cámaras",
+          value: _camaras,
+          onChanged: (v) => setState(() {
+            _camaras = v;
+            _step2Error = null;
+          }),
+        ),
+        const SizedBox(height: 8),
+        _addonRow(
+          theme,
+          brandOrange,
+          label: "Instalé y dejé funcionando sensores",
+          value: _sensores,
+          onChanged: (v) => setState(() {
+            _sensores = v;
+            _step2Error = null;
+          }),
         ),
         const SizedBox(height: 20),
 
@@ -1113,7 +1389,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         const SizedBox(height: 32),
         Row(
           children: [
+            // El boton de conclusion lleva la etiqueta larga, asi que se le da
+            // el doble de espacio que a "Atras" para que no se trunque.
             Expanded(
+              flex: 2,
               child: SizedBox(
                 height: 52,
                 child: OutlinedButton(
@@ -1145,6 +1424,86 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   }
 
   // Fila-check reutilizable (tap para alternar).
+  /// Fila de addon con dos opciones excluyentes: instalado o no aplica.
+  /// Se exige respuesta explícita (no un check que se pueda dejar vacío) para
+  /// distinguir "no lo instalé" de "el servicio no lo incluye".
+  Widget _addonRow(
+    ThemeData theme,
+    Color brandOrange, {
+    required String label,
+    required String? value,
+    required ValueChanged<String> onChanged,
+  }) {
+    Widget opcion(String v, String texto, IconData icono) {
+      final activo = value == v;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: activo,
+          label: "$label: $texto",
+          child: InkWell(
+            onTap: () => onChanged(v),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              // 44 de alto: mínimo táctil de la guía.
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: activo ? brandOrange.withValues(alpha: 0.12) : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: activo ? brandOrange : theme.dividerColor,
+                  width: activo ? 1.6 : 1,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icono, size: 16, color: activo ? brandOrange : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      texto,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+                        color: activo ? brandOrange : theme.textTheme.bodyMedium?.color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              opcion('instaladas', "Instalé y funciona", Icons.check_circle_outline_rounded),
+              const SizedBox(width: 8),
+              opcion('no_aplica', "No aplica", Icons.block_rounded),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _entregaCheckTile(
     ThemeData theme,
     bool isDark, {
@@ -1401,36 +1760,36 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(19),
-                child: Builder(
-                  builder: (canvasContext) {
-                    return GestureDetector(
-                      onPanUpdate: _signatureConfirmed 
-                        ? null 
-                        : (details) {
-                            final renderBox = canvasContext.findRenderObject() as RenderBox;
-                            final localPosition = renderBox.globalToLocal(details.globalPosition);
-                            setState(() {
-                              _signaturePoints = List.from(_signaturePoints)..add(localPosition);
-                            });
-                          },
-                      onPanEnd: _signatureConfirmed 
-                        ? null 
-                        : (details) {
-                            setState(() {
-                              _signaturePoints = List.from(_signaturePoints)..add(const Offset(-1, -1));
-                            });
-                          },
-                      child: CustomPaint(
-                        painter: SignaturePainter(
-                          _signaturePoints, 
-                          _signatureConfirmed 
-                            ? Colors.green 
-                            : (isDark ? Colors.white : Colors.black)
-                        ),
-                        size: Size.infinite,
-                      ),
-                    );
-                  }
+                // El lienzo compite con el SingleChildScrollView que lo contiene:
+                // un GestureDetector normal pierde el arrastre vertical contra el
+                // scroll y la firma sale entrecortada (solo trazos horizontales).
+                // Por eso usamos un reconocedor que reclama el puntero al tocar.
+                child: RawGestureDetector(
+                  key: _signatureCanvasKey,
+                  behavior: HitTestBehavior.opaque,
+                  gestures: _signatureConfirmed
+                      ? const <Type, GestureRecognizerFactory>{}
+                      : <Type, GestureRecognizerFactory>{
+                          _FirmaPanRecognizer:
+                              GestureRecognizerFactoryWithHandlers<_FirmaPanRecognizer>(
+                            () => _FirmaPanRecognizer(),
+                            (_FirmaPanRecognizer r) {
+                              r.dragStartBehavior = DragStartBehavior.down;
+                              r.onStart = (d) => _agregarTrazo(d.globalPosition);
+                              r.onUpdate = (d) => _agregarTrazo(d.globalPosition);
+                              r.onEnd = (_) => _terminarTrazo();
+                            },
+                          ),
+                        },
+                  child: CustomPaint(
+                    painter: SignaturePainter(
+                      _signaturePoints,
+                      _signatureConfirmed
+                          ? Colors.green
+                          : (isDark ? Colors.white : Colors.black),
+                    ),
+                    size: Size.infinite,
+                  ),
                 ),
               ),
             ),
@@ -1506,9 +1865,18 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   backgroundColor: Colors.green.shade600,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade300,
+                  disabledForegroundColor: Colors.grey.shade600,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  // OBLIGATORIO dentro de un Row: el tema global fija
+                  // `minimumSize: Size.fromHeight(...)`, que es
+                  // Size(double.infinity, h). En un Row el ancho disponible no
+                  // esta acotado, asi que el boton pedia un ancho infinito, el
+                  // layout de ese subarbol fallaba y el boton no se pintaba ni
+                  // recibia toques: el instalador no podia confirmar la firma.
+                  // (Mismo origen que la pantalla de Facturacion en blanco.)
+                  minimumSize: const Size(150, 44),
                 ),
               )
             else
@@ -1557,6 +1925,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
+              flex: 3,
               child: OhmGradientButton(
                 label: _isReparacion ? "TERMINAR REPARACIÓN" : "TERMINAR INSTALACIÓN",
                 icon: Icons.check_circle_rounded,
@@ -1639,3 +2008,20 @@ class SignaturePainter extends CustomPainter {
   @override
   bool shouldRepaint(SignaturePainter oldDelegate) => true;
 }
+
+/// Reconocedor de arrastre para el lienzo de firma.
+///
+/// Reclama el puntero en cuanto el dedo toca ([GestureDisposition.accepted]),
+/// de modo que el `SingleChildScrollView` que envuelve el formulario no le
+/// robe el arrastre vertical. Sin esto, firmar mueve la pantalla en lugar de
+/// dibujar y el instalador no puede confirmar el cierre.
+class _FirmaPanRecognizer extends PanGestureRecognizer {
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    resolve(GestureDisposition.accepted);
+  }
+}
+
+/// Estado de la subida de una foto de evidencia.
+enum _EstadoSubida { subiendo, ok, error }

@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 import '../config/env_config.dart';
 import '../di/injection_container.dart';
@@ -27,12 +28,23 @@ class PushService {
   /// Callback que la app fija para navegar al tocar la notificación.
   void Function(String taskId)? onOpenInstalacion;
 
+  /// Callback cuando llega un push con la app ABIERTA (primer plano). La app
+  /// lo usa para refrescar el contador de la campana sin esperar al usuario.
+  void Function(String tipo)? onMensajeEnPrimerPlano;
+
   /// Permisos + listeners. Llamar una vez al arrancar (tras Firebase.initializeApp).
   Future<void> setupListeners() async {
     if (!soportado) return;
     try {
       await _fm.requestPermission();
+      // iOS NO muestra el banner de un push si la app está en primer plano,
+      // salvo que se le pida. Sin esto, el instalador que tiene la app abierta
+      // viendo el calendario no se entera del reagendamiento hasta abrir la
+      // campana. (Android sigue sin banner en primer plano: FCM lo delega a
+      // la app; ahí se refresca la campana vía onMensajeEnPrimerPlano.)
+      await _fm.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
       _fm.onTokenRefresh.listen(_registrar);
+      FirebaseMessaging.onMessage.listen((m) => onMensajeEnPrimerPlano?.call((m.data['tipo'] ?? '').toString()));
       FirebaseMessaging.onMessageOpenedApp.listen(_abrir);
       // App abierta desde una notificación (estado terminado).
       final inicial = await _fm.getInitialMessage();
@@ -58,14 +70,29 @@ class PushService {
       await sl.get<DioClient>().post('/instalador/push/registrar', body: {
         'token': token,
         'platform': Platform.isIOS ? 'ios' : 'android',
+        // Zona IANA del dispositivo (p. ej. America/Tijuana). El backend la
+        // guarda en el `tz` del instalador para redactar avisos y PDF en su
+        // hora, no en la de CDMX por defecto.
+        'zonaHoraria': ?await _zonaHoraria(),
       });
     } catch (_) {
       // Best-effort: si falla el registro, el push simplemente no llega aún.
     }
   }
 
+  /// Identificador IANA de la zona del dispositivo, o null si no se pudo leer.
+  Future<String?> _zonaHoraria() async {
+    try {
+      final id = (await FlutterTimezone.getLocalTimezone()).identifier.trim();
+      return id.isEmpty ? null : id;
+    } catch (_) {
+      return null;
+    }
+  }
+
   void _abrir(RemoteMessage m) {
-    if (m.data['tipo'] == 'asignacion_instalacion') {
+    const abren = {'asignacion_instalacion', 'agenda_instalacion', 'reagenda_instalacion'};
+    if (abren.contains(m.data['tipo'])) {
       onOpenInstalacion?.call((m.data['taskId'] ?? '').toString());
     }
   }
