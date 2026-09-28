@@ -154,6 +154,8 @@ class OrdenesMockDataSource implements OrdenesDataSource {
 
   @override
   Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) => _ok();
+  @override
+  Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion}) async => {'estado': 'cancelado'};
 
   @override
   Future<Map<String, dynamic>> diagnosticoEnergizador(String serie, {String ordenId = ''}) async {

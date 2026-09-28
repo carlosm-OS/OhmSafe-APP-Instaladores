@@ -67,6 +67,17 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion}) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/cancelar', body: {
+      'motivo': motivo,
+      if (notas != null && notas.isNotEmpty) 'notas': notas,
+      if (fotoBase64 != null) 'fotoBase64': fotoBase64,
+      if (ubicacion != null) 'ubicacion': ubicacion,
+    });
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
   Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
     // `codigo` = MAC del energizador (Odoo x_mac_address). `serie` = número de
     // serie instalado en campo (Odoo x_numero_serie).

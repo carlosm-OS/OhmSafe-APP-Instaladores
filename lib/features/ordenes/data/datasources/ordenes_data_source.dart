@@ -19,6 +19,7 @@ abstract class OrdenesDataSource {
   Future<void> guardarInstalacion(String id, Map<String, dynamic> registro);
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo);
   Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
+  Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
   Future<Map<String, dynamic>> diagnosticoEnergizador(String serie, {String ordenId = ''});
   /// Sube UNA foto de evidencia y devuelve su fileKey en Odoo.

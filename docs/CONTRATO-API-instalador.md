@@ -121,7 +121,7 @@ productos `PAGO-*` en Odoo (hoy 0 hasta que Carlos los fije).
 | POST | `/v1/instalador/ordenes/{id}/iniciar-ruta` | pasa a `en_curso`; notifica al cliente |
 | POST | `/v1/instalador/ordenes/{id}/marcar-llegada` | completa paso 1 |
 | POST | `/v1/instalador/ordenes/{id}/inspeccion-perimetro` | `{sinObstaculos:bool, obstaculos:[string]}` |
-| POST | `/v1/instalador/ordenes/{id}/cancelar` | `{motivo}` |
+| POST | `/v1/instalador/ordenes/{id}/cancelar` | `{motivo: cliente_ausente\|sin_acceso\|mal_clima\|cliente_reagenda\|falta_material\|riesgo_en_sitio\|otro, notas?, fotoBase64?, ubicacion?}` → `{estado:'cancelado', nuevaId?}`. Con `otro` las notas son obligatorias (400 NOTAS_REQUERIDAS). En Odoo la intervención vuelve a «por planificar» y operaciones recibe «Cancelada en sitio: llamar al cliente»; el cliente no recibe aviso automático |
 
 ## 4. Reparación — costeo
 | Método | Ruta | Notas |

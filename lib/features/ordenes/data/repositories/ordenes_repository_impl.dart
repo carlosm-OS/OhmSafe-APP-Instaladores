@@ -100,6 +100,19 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       _accion(() => dataSource.guardarReparacion(id, costeo));
 
   @override
+  Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion}) async {
+    try {
+      return Success(await dataSource.cancelar(id, motivo: motivo, notas: notas, fotoBase64: fotoBase64, ubicacion: ubicacion));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    }
+  }
+
+  @override
   Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) =>
       _accion(() => dataSource.vincularEnergizador(id, codigo: codigo, serie: serie, tierraConfirmada: tierraConfirmada));
 

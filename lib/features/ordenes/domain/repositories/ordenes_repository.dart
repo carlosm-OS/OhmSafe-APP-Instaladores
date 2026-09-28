@@ -34,6 +34,8 @@ abstract class OrdenesRepository {
 
   /// Vincula el energizador (por QR o número de serie).
   Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
+  /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
+  Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
   Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie, {String ordenId = ''});
