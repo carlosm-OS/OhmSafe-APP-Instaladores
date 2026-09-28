@@ -78,6 +78,14 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> historial({String rango = 'todo'}) async {
+    final res = await dioClient.get('/instalador/historial?rango=${Uri.encodeQueryComponent(rango)}');
+    final data = res['data'];
+    if (data is! List) return const [];
+    return data.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
+  }
+
+  @override
   Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
     // `codigo` = MAC del energizador (Odoo x_mac_address). `serie` = número de
     // serie instalado en campo (Odoo x_numero_serie).

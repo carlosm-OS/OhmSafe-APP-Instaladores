@@ -37,6 +37,9 @@ abstract class OrdenesRepository {
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
+  /// Historial del instalador (completadas y canceladas en sitio), del backend.
+  Future<Result<List<Map<String, dynamic>>>> historial({String rango = 'todo'});
+
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
   Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie, {String ordenId = ''});
 

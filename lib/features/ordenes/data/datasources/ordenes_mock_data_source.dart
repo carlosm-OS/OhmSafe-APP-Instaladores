@@ -158,6 +158,9 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion}) async => {'estado': 'cancelado'};
 
   @override
+  Future<List<Map<String, dynamic>>> historial({String rango = 'todo'}) async => const [];
+
+  @override
   Future<Map<String, dynamic>> diagnosticoEnergizador(String serie, {String ordenId = ''}) async {
     await Future.delayed(const Duration(milliseconds: 600));
     return {

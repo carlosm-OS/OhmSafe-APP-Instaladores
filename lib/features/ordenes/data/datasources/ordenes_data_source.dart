@@ -20,6 +20,11 @@ abstract class OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo);
   Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
+
+  /// Historial del instalador: intervenciones completadas y canceladas en sitio
+  /// (`GET /instalador/historial`). Cada fila trae `estado` (completado | cancelado),
+  /// `fecha` del evento y, si aplica, `motivo`.
+  Future<List<Map<String, dynamic>>> historial({String rango = 'todo'});
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
   Future<Map<String, dynamic>> diagnosticoEnergizador(String serie, {String ordenId = ''});
   /// Sube UNA foto de evidencia y devuelve su fileKey en Odoo.
