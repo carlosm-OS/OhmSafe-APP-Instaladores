@@ -99,7 +99,16 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
         );
     if (!mounted) return;
     result.fold(
-      (_) => Navigator.pop(context, 'perimeter_completed'),
+      (_) {
+        // Los metros reales medidos mandan desde aquí: el paso de instalación y la ficha
+        // los muestran sin esperar a recargar la orden del backend.
+        final metros = double.tryParse(_metrosController.text.trim());
+        if (metros != null && metros > 0) {
+          final details = widget.ticket['details'];
+          if (details is Map) details['metraje'] = '${metros % 1 == 0 ? metros.toInt() : metros} m';
+        }
+        Navigator.pop(context, 'perimeter_completed');
+      },
       (failure) {
         setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(
