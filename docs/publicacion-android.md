@@ -133,3 +133,10 @@ simulador/emulador con datos de prueba (sin clientes reales).
 - 2026-09-30 (tarde): **versión 21 (1.0.0)** publicada en pruebas internas con el ícono definitivo (círculo azul marino
   plano `#171F29`, diseño de Carlos; capas en `assets/icon/`, vista previa en `store/android/preview-iconos.png`).
   Es la «Versión más reciente» de la pista; la 20 quedó en el historial.
+- 2026-09-30 (noche): **pista de pruebas cerradas «Alpha» armada**: verificadores = lista «Instaladores OhmSafe», 1 país
+  (elegido por Carlos), versión 21 tomada de la biblioteca, notas es-419, «Contenido listo para el lanzamiento».
+  Ficha de la tienda completa (textos + ícono 512 + gráfico de funciones + 4 capturas subidas por Carlos),
+  Configuración de la tienda: categoría **Negocios**, contacto info@ohmsafe.com, sitio https://ohmsafe.com.
+  Seguridad de los datos: URL de borrado = la política de privacidad (Carlos; falta que la página describa los pasos).
+  Queda **«Enviar 13 cambios a revisión»** en Descripción general de la publicación (primera revisión de Google,
+  horas a días); la publicación administrada está desactivada, así que al aprobarse se publica sola en la pista cerrada.
