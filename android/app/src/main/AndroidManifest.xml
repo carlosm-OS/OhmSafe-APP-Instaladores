@@ -1,8 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Ubicación sólo mientras se usa (geolocator): llegada al domicilio, cancelación y cierre. Nunca en segundo plano. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Cámara: escanear el QR del energizador y fotos de evidencia (mobile_scanner la declara; explícita para la ficha de Play). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="ohmsafe_app"
+        android:label="OhmSafe Installer"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
