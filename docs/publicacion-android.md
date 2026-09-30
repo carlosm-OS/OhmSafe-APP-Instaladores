@@ -106,3 +106,27 @@ simulador/emulador con datos de prueba (sin clientes reales).
   en Play no existe «oculta»: la alternativa es pruebas cerradas por lista o distribución gestionada por organización).
 - Correo/URL para solicitudes de eliminación de datos y actualización de la política de privacidad.
 - Cuenta de revisión para Google (instalador ficticio en Odoo con su contraseña).
+
+## Bitácora — 2026-09-30: app creada y en pruebas internas
+
+- Play Console: cuenta de organización **OhmSafe** (ID 7392211266474143372). Quien opera es la cuenta Google
+  **devandroid@ohmsafe.com** (`/u/6/` en el navegador de Carlos); `carlos.mucinor@gmail.com` sólo tiene lectura.
+- App creada: **OhmSafe Installer**, id de app en Play `4973298632574825440`, paquete `com.ohmsafe.instalador`,
+  es-419, gratuita. Play App Signing aceptado al subir el primer bundle.
+- **Pruebas internas ACTIVAS** con la versión 20 (1.0.0), sin revisión (19 MB de descarga). Lista de probadores
+  «Instaladores OhmSafe»: castillonahum91@gmail.com, gea.santiago@gmail.com. Enlace para unirse:
+  https://play.google.com/apps/internaltest/4701450879635723831 (la lista «Testers internos» de 13 personas es la de
+  OhmSafe GO y NO se seleccionó).
+- Declaraciones de contenido completadas (todas): privacidad (URL de ohmsafe.com), sin anuncios, detalles de acceso
+  (cuadrilla1@ohmsafe.com; la contraseña la tecleó Carlos), público 18+, sin ID de publicidad (verificado en el
+  manifiesto compilado: no hay `AD_ID`), seguridad de los datos (ubicación precisa, nombre, correo, teléfono, fotos,
+  ID de dispositivo; cifrado en tránsito; necesarios; funciones de la app; sin compartir; cuentas creadas fuera de la
+  app como cuentas de trabajo; **método de borrado = No** hasta tener una página web con los pasos), no gubernamental,
+  sin funciones financieras, sin funciones de salud, clasificación IARC «Todas las edades» (Carlos aceptó los
+  términos IARC; contacto devandroid@ohmsafe.com).
+- Trampas de Play Console con el navegador automatizado: los botones «Comenzar declaración» del resumen no
+  responden al clic por referencia, sólo por coordenada; en los diálogos de Seguridad de los datos el **primer clic
+  tras abrir se pierde**; el cuestionario IARC vuelve al paso 1 (casilla de términos sin marcar) cada vez que se
+  entra aunque las respuestas se conserven.
+- Pendiente para producción: ficha de la tienda (textos de `docs/play-store-ficha.md`, capturas), países, y crear
+  la página de solicitud de borrado de datos en ohmsafe.com para actualizar Seguridad de los datos.
