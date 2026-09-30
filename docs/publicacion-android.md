@@ -130,3 +130,6 @@ simulador/emulador con datos de prueba (sin clientes reales).
   entra aunque las respuestas se conserven.
 - Pendiente para producción: ficha de la tienda (textos de `docs/play-store-ficha.md`, capturas), países, y crear
   la página de solicitud de borrado de datos en ohmsafe.com para actualizar Seguridad de los datos.
+- 2026-09-30 (tarde): **versión 21 (1.0.0)** publicada en pruebas internas con el ícono definitivo (círculo azul marino
+  plano `#171F29`, diseño de Carlos; capas en `assets/icon/`, vista previa en `store/android/preview-iconos.png`).
+  Es la «Versión más reciente» de la pista; la 20 quedó en el historial.
