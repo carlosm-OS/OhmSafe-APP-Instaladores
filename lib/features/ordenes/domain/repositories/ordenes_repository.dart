@@ -33,7 +33,8 @@ abstract class OrdenesRepository {
   Future<Result<bool>> guardarReparacion(String id, Map<String, dynamic> costeo);
 
   /// Vincula el energizador (por QR o número de serie).
-  Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
+  /// Devuelve el resultado del ligado a la cuenta del cliente (`ligado`, `motivo`).
+  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 

@@ -10,6 +10,7 @@ import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/utils/fechas_odoo.dart';
+import '../core/utils/ligado_cliente.dart';
 
 enum LinkState { input, validating }
 
@@ -103,7 +104,11 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           _diag = null;
           _macDetectada = '';
           _currentState = LinkState.input;
-          _triggerBanner(false, "No se encontró un equipo con la serie \"$s\"");
+          _triggerBanner(
+              false,
+              d['motivo'] == 'SIN_ALTA'
+                  ? "El equipo $s no está dado de alta en el dashboard. Avisa a operaciones."
+                  : "No se encontró un equipo con la serie \"$s\"");
           return;
         }
         _diag = Map<String, dynamic>.from(d);
@@ -157,7 +162,23 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         );
     if (!mounted) return;
     result.fold(
-      (_) => Navigator.pop(context, 'device_linked'),
+      (dashboard) async {
+        // El equipo quedó vinculado a la intervención, pero puede no haber
+        // llegado a la cuenta del cliente: se dice la verdad antes de seguir.
+        final aviso = avisoLigadoCliente(dashboard);
+        if (aviso != null) {
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Equipo vinculado, falta la cuenta del cliente'),
+              content: Text(aviso),
+              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
+            ),
+          );
+          if (!mounted) return;
+        }
+        Navigator.pop(context, 'device_linked');
+      },
       (failure) {
         setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -384,7 +405,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 labelStyle: TextStyle(
                   color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 ),
-                hintText: "Ej: OHM-XXXX-XXXX (o escanéalo del QR)",
+                hintText: "Ej: OS-OBV01-0001 (o escanéalo del QR)",
                 filled: true,
                 fillColor: ohm.surfaceContainer,
                 border: OutlineInputBorder(
