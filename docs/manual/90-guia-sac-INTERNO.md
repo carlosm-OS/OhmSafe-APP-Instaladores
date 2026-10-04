@@ -82,7 +82,8 @@ Los pagos nacen en borrador al cerrar («En revisión»). Validarlos en Compras.
 
 - **Terminar instalación** (botón final de la lista de pasos) no envía nada: el cierre real ya se mandó con «TERMINAR INSTALACIÓN» en la pantalla de firma. Si el instalador sale sin tocarlo, el servicio ya está cerrado.
 - En la pantalla «Diagnóstico del equipo», el botón «Reportar incidencias (opcional)» abre la **cancelación**, no una incidencia.
-- En **Ayuda**, «Reportar incidencias» abre un formulario que **no** envía nada a OhmSafe aunque diga «Reporte enviado correctamente». Las incidencias reales son las de Inicio › «Reportar incidencias».
+- Desde la build 25, **Ayuda › «Reportar incidencias»** abre el formulario real (el mismo de Inicio) y crea el ticket en Helpdesk › «Incidencias de campo». En builds 24 o anteriores ese botón no enviaba nada aunque dijera «Reporte enviado correctamente»: pide que actualice.
+- Desde la build 25, Ayuda muestra y marca el número real de soporte (55 5199 1396), también por WhatsApp. En builds anteriores se mostraban números de ejemplo y el enlace de WhatsApp no abría el chat correcto.
 - Las fotos del cierre dicen «Verificado» al tomarlas; la app no verifica la posición de cada foto. La única validación de ubicación es la del cierre contra la llegada (300 m).
 - «Contrato firmado: Pendiente» aparece siempre en la tarjeta.
 - Los contadores de materiales arrancan en 5, 5, 5, 5, 1 y 3; si el instalador no los ajusta, se guardan así.

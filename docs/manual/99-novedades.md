@@ -2,6 +2,11 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 25 — 4 de octubre de 2026
+
+- **Ayuda**: «Reportar incidencias» ahora sí envía el reporte a operaciones (es el mismo formulario que en Inicio) y te muestra su número de incidencia.
+- **Ayuda**: teléfono y WhatsApp de soporte corregidos (55 5199 1396).
+
 ## Build 24 — 4 de octubre de 2026
 
 - La app trabaja con el sistema real de OhmSafe (producción) en iPhone (TestFlight) y Android (Google Play). Las instalaciones son reales y el energizador queda en la cuenta real del cliente.

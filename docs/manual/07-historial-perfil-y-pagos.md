@@ -80,8 +80,8 @@ Mensajes:
 
 Toca «Ayuda» en la barra inferior:
 
-- «CONTÁCTO DIRECTO» — llama a OhmSafe.
-- «WHATS APP» — escribe a OhmSafe por WhatsApp.
+- «CONTACTO DIRECTO» — llama a soporte de OhmSafe al 55 5199 1396.
+- «WHATSAPP» — escribe a soporte de OhmSafe por WhatsApp al mismo número.
 - «RECURSOS» › «Academia OhmSafe» — cursos y material de capacitación.
 
-Para reportar un problema en sitio usa **Inicio › Reportar incidencias** (ver [06](06-reparaciones-y-mantenimiento.md#reportar-una-incidencia)).
+- «Reportar incidencias» — abre el mismo formulario que **Inicio › Reportar incidencias**: el reporte llega a operaciones y la app te muestra su número de incidencia (ver [06](06-reparaciones-y-mantenimiento.md)).
