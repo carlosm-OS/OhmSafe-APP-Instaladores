@@ -58,10 +58,11 @@ rsync -a --delete --exclude build/ --exclude ios/Pods/ --exclude .git/ --exclude
       --exclude android/key.properties --exclude android/.gradle/ "$SRC/" ./
 export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
 flutter pub get
-# Pruebas internas (misma API que TestFlight):
-flutter build appbundle --release --dart-define=API_BASE_URL=https://api-dev.dashboard.ohmsafe.com/v1 --dart-define=APP_ENV=testflight
-# Producción (tienda):
+# Desde 2026-10-04 TODAS las builds (pruebas internas, cerradas y TestFlight) van a PRODUCCIÓN
+# (decisión de Carlos: las instalaciones son reales). Es también el valor por defecto de main.dart.
 flutter build appbundle --release --dart-define=API_BASE_URL=https://api.ohmsafe.com/v1 --dart-define=APP_ENV=production
+# Sólo si alguna vez se necesita una build contra dev, explícito:
+# flutter build appbundle --release --dart-define=API_BASE_URL=https://api-dev.dashboard.ohmsafe.com/v1 --dart-define=APP_ENV=development
 # Resultado: build/app/outputs/bundle/release/app-release.aab
 ```
 
