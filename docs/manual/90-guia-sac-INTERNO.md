@@ -100,7 +100,7 @@ Los pagos nacen en borrador al cerrar («En revisión»). Validarlos en Compras.
 Desde la build 24 la app trabaja con **producción**. Para que el instalador pueda vincular un energizador nuevo:
 
 1. En el dashboard de producción › Dispositivos › «Crear dispositivo», escribe el **Número de serie OhmSafe** de la etiqueta (OS-OBV01-####) y la **MAC** del equipo.
-2. **En «Asignar a usuario» elige al cliente** si ya tiene cuenta en la app. **No lo dejes en «(Sin asignar)»**: en ese caso el dashboard pone como titular a quien lo da de alta y, al vincular, la app avisará «ya está dado de alta con otro cliente» y el equipo no llegará a la cuenta del cliente.
+2. En «Asignar a usuario» puedes elegir al cliente o dejarlo en «(Sin asignar)». Desde el 4 de octubre de 2026, si queda a nombre de personal de OhmSafe (quien lo da de alta), al vincularlo en campo **pasa solo a la cuenta del cliente**. Sólo si el equipo está a nombre de **otro cliente** la app avisará «ya está dado de alta con otro cliente» y no lo moverá.
 3. Si el cliente todavía no tiene cuenta, avisa al equipo de producto antes de la instalación (hoy no hay forma automática de pasarle el equipo cuando cree su cuenta).
 4. Anota la MAC también en la serie del inventario en Odoo (Inventario › Números de serie › OS-OBV01-#### › MAC Address); así la app lo encuentra aunque la serie del dashboard estuviera mal escrita.
 
