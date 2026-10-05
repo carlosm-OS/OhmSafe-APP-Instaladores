@@ -104,3 +104,12 @@ Desde la build 24 la app trabaja con **producción**. Para que el instalador pue
 3. Si el cliente todavía no tiene cuenta, avisa al equipo de producto antes de la instalación (hoy no hay forma automática de pasarle el equipo cuando cree su cuenta).
 4. Anota la MAC también en la serie del inventario en Odoo (Inventario › Números de serie › OS-OBV01-#### › MAC Address); así la app lo encuentra aunque la serie del dashboard estuviera mal escrita.
 
+
+## Series de prueba (OS-PRUEBA-0001 … 0005)
+
+Son series **sólo para probar la app** en producción; nunca se entregan a un cliente real.
+Llevan la MAC del energizador de pruebas de OhmSafe y sólo funcionan con el cliente de prueba
+«Carlos M TestFlight». Si ves una serie OS-PRUEBA en una entrega, una suscripción o en el
+dashboard, es una prueba que no se reinició: avisa al equipo de producto para que corra el
+reinicio (`scripts/pruebas-instalador.mjs` en el backend; detalle en `docs/pruebas-instalador.md`).
+No las cuentes como inventario vendible.
