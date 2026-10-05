@@ -1,6 +1,6 @@
 # Manual de usuario — App OhmSafe Installer
 
-Versión de la app que describe este manual: **1.0.0 (build 24)**.
+Versión de la app que describe este manual: **1.0.0 (build 25)**.
 
 ## A quién va dirigido
 
@@ -30,4 +30,4 @@ A los instaladores certificados OhmSafe que usan la app en campo (iPhone o Andro
 - La fuente vive en este repositorio, carpeta `docs/manual/`. Se edita aquí, junto con el código, en el mismo cambio que modifica la pantalla.
 - Con cada build nueva se publica en **Odoo › Conocimiento › «Manual App OHMSAFE INSTALLER»**.
 - Antes de publicar: actualiza la versión de arriba, agrega la entrada en [Novedades](99-novedades.md) y revisa que los textos entre «» sigan igual que en la app.
-- El archivo `90-guia-sac-INTERNO.md` es de **uso interno** para soporte y **no se publica** en Conocimiento.
+- Los archivos `90-guia-sac-INTERNO.md` (soporte) y `91-alta-instalador-externo-INTERNO.md` (alta de instaladores en Odoo) son de **uso interno**: van al artículo «Guía SAC (interno)» de Conocimiento, **sin publicar** en la web.
