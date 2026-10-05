@@ -13,7 +13,7 @@
 | Qué | Dónde |
 |---|---|
 | Estado del instalador (Activo / Temporalmente no disponible / Suspendido), alta completa, número de instalador, código de venta | Odoo › Contactos › ficha del instalador (formulario «Instalador externo»); barra *Avance de alta* y chatter («Activó su cuenta en la app») |
-| Que pueda recibir trabajo | Odoo › Empleados: debe tener ficha de empleado con recurso. Sin recurso, la app le muestra la agenda vacía |
+| Que pueda recibir trabajo | Ficha del instalador: campo «Recurso en Planificación» lleno y Estado «Activo» (el recurso es *material*, no empleado). Sin recurso, la app le muestra la agenda vacía |
 | Agenda / intervención | Odoo › Planificación › intervención: estado (Borrador / Publicado / En curso / Completado), recurso, fecha y fin |
 | Avance del servicio en la app | Propiedades de la intervención: `op_hora_salida` (inició ruta), `op_hora_llegada` + `op_llegada_lat/lng` (llegada), `op_vinculado`, `op_serie`, `op_mac`, `op_tierra_confirmada`, `op_cancelada` / `op_motivo_cancelacion` / `op_cancelada_en`, `op_cierre_lat/lng` / `op_cierre_distancia_m` |
 | Inspección, materiales, entrega | Pestaña **Hoja de trabajo** («Instalación de cerca eléctrica»): `insp_*`, `inst_*`, `ent_*` |
@@ -53,7 +53,7 @@ El cierre está a más de 300 m de la llegada. Puede confirmar con «Sí, cerrar
 Señal mala. Que toque la tarjeta para reintentar; al cerrar la app reintenta sola. Errores posibles del servidor: imagen vacía, mayor al límite, que no sea JPEG/PNG, u Odoo no la guardó («Odoo no almacenó la foto; inténtalo de nuevo»).
 
 **Quiero corregir mis datos / mi foto / mi cuenta bancaria.**
-Datos y foto: Odoo (Contactos para datos, Empleados para foto). RFC: lo captura él en Facturación. La pantalla «Datos bancarios» de la app no envía nada a OhmSafe en esta build.
+Datos y foto: Odoo › Contactos (la foto oficial es la del contacto; ya no hay ficha de empleado). RFC: lo captura él en Facturación. La pantalla «Datos bancarios» de la app no envía nada a OhmSafe en esta build.
 
 **Un pago no coincide.**
 Los pagos nacen en borrador al cerrar («En revisión»). Validarlos en Compras. Si no coincide, que lo reporte como incidencia.

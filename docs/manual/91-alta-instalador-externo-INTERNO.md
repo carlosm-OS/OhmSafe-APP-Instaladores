@@ -4,7 +4,7 @@
 
 ## En una frase
 
-El instalador externo es un **contacto** con la etiqueta «Instalador Externo-OS». Al guardarlo, el sistema crea solo su número de instalador, su código de venta, su ficha de empleado (archivada) y su acceso a la app. **Aparece en Planificación únicamente cuando OhmSafe pone su Estado en «Activo».**
+El instalador externo es un **contacto** con la etiqueta «Instalador Externo-OS». Al guardarlo, el sistema crea solo su número de instalador, su código de venta, su **recurso de Planificación** (archivado) y su acceso a la app. **No es empleado** (Odoo cobraría la ficha): en Planificación es un recurso *material* ligado al contacto. **Aparece en Planificación únicamente cuando OhmSafe pone su Estado en «Activo».**
 
 ## Antes de empezar: ten a la mano
 
@@ -16,7 +16,7 @@ El instalador externo es un **contacto** con la etiqueta «Instalador Externo-OS
 | CURP | Sí | |
 | Constancia de situación fiscal (PDF) | Sí | Se adjunta en la ficha |
 | RFC | Sólo si factura a OhmSafe | |
-| Foto | Recomendada | Es la foto oficial: se copia a su ficha de empleado y la ve el cliente en la app |
+| Foto | Recomendada | Es la foto oficial: la ve el cliente en la app |
 | Dirección | Recomendada | |
 
 Mientras falte alguno de los obligatorios, la barra superior de la ficha dice **«Faltan datos»** y el chatter lista cuáles.
@@ -35,7 +35,7 @@ Mientras falte alguno de los obligatorios, la barra superior de la ficha dice **
 Lo que pasa solo al guardar (tarda unos segundos; refresca la ficha):
 
 - **Identificadores OhmSafe**: número de instalador (5 dígitos) y código de venta `OHMS-…`. Son de solo lectura.
-- **Ficha de empleado** con su nombre, su foto, horario «Instalador externo · lunes a domingo» y rol «Instalador OhmSafe Externo». Nace **archivada**: todavía no se puede planificar.
+- **Recurso en Planificación** (campo de solo lectura en la ficha) con su nombre, horario «Instalador externo · lunes a domingo» y rol «Instalador OhmSafe Externo». Es un recurso *material*, no una ficha de empleado. Nace **archivado**: todavía no se puede planificar.
 - **Acceso a la app** con su correo, sin contraseña (la crea él al activar).
 - Nota en el chatter: «Faltan datos…» o «Datos completos. Falta que descargue la app y active su cuenta con su correo».
 
@@ -44,7 +44,7 @@ Lo que pasa solo al guardar (tarda unos segundos; refresca la ficha):
 1. En la ficha, **Estado (lo decide OhmSafe)** → **Activo**.
 2. Guardar. En el chatter aparece «Disponible en Planificación: ya se le puede asignar trabajo».
 
-Desde este momento su ficha de empleado está activa y sale en Planificación con **el nombre del contacto**. Si lo activas antes de que complete su alta, se puede planificar, pero no recibirá avisos hasta que active la app (el chatter lo advierte).
+Desde este momento su recurso está activo y sale en Planificación con **el nombre del contacto**. Si lo activas antes de que complete su alta, se puede planificar, pero no recibirá avisos hasta que active la app (el chatter lo advierte).
 
 Los otros valores:
 
@@ -72,7 +72,7 @@ Cuando termina, el chatter del contacto dice «Activó su cuenta en la app de in
 2. En **Recurso**, empieza a escribir su nombre y **elige el que ya existe**.
 3. Guarda y publica. La app le avisa y la intervención aparece en su agenda.
 
-> **Nunca escribas un nombre nuevo en Recurso y pulses «Crear»**: Odoo crea un empleado suelto (sin contacto, con horario de 40 h, que además cuenta como usuario de pago) y el instalador real sigue sin trabajo. Si no aparece en el desplegable, revisa el paso 2.
+> **Nunca escribas un nombre nuevo en Recurso y pulses «Crear»**: Odoo crea un empleado suelto (sin contacto, con horario de 40 h, que además cuenta como usuario de pago) y el instalador real sigue sin trabajo. Si no aparece en el desplegable, revisa el paso 2. Tampoco lo des de alta en **Empleados**: los instaladores no son empleados.
 
 ## Cómo verificar que quedó bien
 
@@ -80,7 +80,8 @@ Cuando termina, el chatter del contacto dice «Activó su cuenta en la app de in
 |---|---|
 | Contactos › Instaladores externos › ficha | Barra «Alta completa»; Estado «Activo»; número y código llenos; roles con «Instalador Externo-OS» |
 | Chatter de la ficha | «Disponible en Planificación…» y «Activó su cuenta…» |
-| Empleados (incluir archivados) | Una sola ficha con su nombre, ligada al contacto («Contacto laboral»); activa |
+| Ficha del instalador › «Recurso en Planificación» | Lleno, con su nombre. En Planeación › Configuración › Materiales aparece activo |
+| Empleados | **Nada**: no debe tener ficha de empleado (si la tiene de antes, está archivada) |
 | Planificación › Recurso | Su nombre en el desplegable |
 | App | Su agenda (vacía hasta la primera asignación) |
 
@@ -88,9 +89,9 @@ Cuando termina, el chatter del contacto dice «Activó su cuenta en la app de in
 
 | Síntoma | Causa | Qué hacer |
 |---|---|---|
-| No aparece en Planificación | Estado no es «Activo»; o no tiene la etiqueta; o la ficha de empleado está archivada | Poner Estado «Activo» y guardar. Si sigue sin salir, abre la ficha y vuelve a guardar (vuelve a correr la preparación) |
-| Aparece en Planificación con **otro nombre** | El contacto se creó con un nombre (p. ej. el del autocompletado) y luego se corrigió | Guardar de nuevo la ficha: el nombre del empleado se actualiza solo (desde el 2026-10-05). Verifica también RFC y dirección |
-| Hay **dos** empleados con su nombre | Alguien lo «creó» desde Planificación | Archivar el empleado que **no** tiene «Contacto laboral» (no borrarlo si ya tiene turnos) y volver a asignar con el correcto |
+| No aparece en Planificación | Estado no es «Activo»; o no tiene la etiqueta; o el recurso está archivado | Poner Estado «Activo» y guardar. Si sigue sin salir, abre la ficha y vuelve a guardar (vuelve a correr la preparación) |
+| Aparece en Planificación con **otro nombre** | El contacto se creó con un nombre (p. ej. el del autocompletado) y luego se corrigió | Guardar de nuevo la ficha: el nombre del recurso se actualiza solo. Verifica también RFC y dirección |
+| Aparece **dos veces** en Recurso (uno es un empleado) | Alguien lo «creó» desde Planificación o en Empleados | Archivar ese empleado (no borrarlo si ya tiene turnos) y asignar con el recurso del contacto |
 | Chatter: «No se pudo crear su acceso a la app: el correo … ya lo usa otro usuario de Odoo» | Ese correo ya es el usuario de otra persona (un empleado, por ejemplo) | Capturar un correo que sea sólo suyo. Pendiente definir con Carlos qué hacer cuando un empleado también instala |
 | «Faltan datos: teléfono» aunque lo escribiste | Odoo descartó el número por formato | Volver a capturarlo con lada: `+52 …` |
 | «Pediste demasiados códigos hoy» | Tope de 8 códigos por día y 60 s entre envíos | Esperar al día siguiente o, en periodo de pruebas, OhmSafe puede apagar el límite en el servidor |
@@ -102,6 +103,6 @@ Cuando termina, el chatter del contacto dice «Activó su cuenta en la app de in
 - **Pausa**: Estado «Temporalmente no disponible». Sale de Planificación; sus turnos ya asignados se quedan, reasígnalos.
 - **Baja definitiva**: Estado «Suspendido» (bloquea la app) y, si procede, quitar la etiqueta «Instalador Externo-OS». No borres el contacto: su historial de intervenciones y pagos cuelga de él.
 
-## Nota de costo (pendiente)
+## Nota de costo
 
-Hoy cada instalador activo tiene una ficha de empleado, y Odoo cobra los empleados activos sin usuario interno como usuarios de pago. Está en análisis cambiar a recursos de Planificación que no sean empleados; mientras tanto, mantén archivados (Estado distinto de «Activo») a los que no están operando.
+Odoo cobra como usuario de pago cada ficha de **empleado** activa sin usuario interno. Por eso los instaladores externos **no** son empleados: son recursos materiales de Planificación (desde el 2026-10-05). Si ves a un instalador en Empleados, es un residuo: archívalo.
