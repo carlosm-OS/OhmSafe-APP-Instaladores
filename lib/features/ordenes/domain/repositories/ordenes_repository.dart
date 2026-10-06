@@ -33,7 +33,17 @@ abstract class OrdenesRepository {
   Future<Result<bool>> guardarReparacion(String id, Map<String, dynamic> costeo);
 
   /// Vincula el energizador (por QR o número de serie).
-  Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
+  /// Devuelve el resultado del ligado a la cuenta del cliente (`ligado`, `motivo`).
+  /// `destino`: casa existente (`{'casaId'}`) o casa nueva (`{'nueva': {...}}`); sin él, como siempre.
+  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino});
+
+  /// Casas del cliente de la orden en el dashboard, para decidir dónde va el equipo.
+  Future<Result<Map<String, dynamic>>> casasParaVincular(String id);
+  /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
+  Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
+
+  /// Historial del instalador (completadas y canceladas en sitio), del backend.
+  Future<Result<List<Map<String, dynamic>>>> historial({String rango = 'todo'});
 
   /// Diagnóstico real del energizador por número de serie (telemetría del device).
   Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie, {String ordenId = ''});

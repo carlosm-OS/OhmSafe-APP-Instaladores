@@ -100,8 +100,60 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       _accion(() => dataSource.guardarReparacion(id, costeo));
 
   @override
-  Future<Result<bool>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) =>
-      _accion(() => dataSource.vincularEnergizador(id, codigo: codigo, serie: serie, tierraConfirmada: tierraConfirmada));
+  Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion}) async {
+    try {
+      return Success(await dataSource.cancelar(id, motivo: motivo, notas: notas, fotoBase64: fotoBase64, ubicacion: ubicacion));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    }
+  }
+
+  @override
+  Future<Result<List<Map<String, dynamic>>>> historial({String rango = 'todo'}) async {
+    try {
+      return Success(await dataSource.historial(rango: rango));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> casasParaVincular(String id) async {
+    try {
+      return Success(await dataSource.casasParaVincular(id));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
+    try {
+      return Success(await dataSource.vincularEnergizador(id, codigo: codigo, serie: serie, tierraConfirmada: tierraConfirmada, destino: destino));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
 
   @override
   Future<Result<Map<String, dynamic>>> diagnosticoEnergizador(String serie, {String ordenId = ''}) async {

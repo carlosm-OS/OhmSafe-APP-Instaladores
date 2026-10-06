@@ -4,6 +4,15 @@ import 'package:geolocator/geolocator.dart';
 /// no hay permiso, GPS o señal a tiempo: NUNCA inventa una posición (antes el
 /// cierre traía coordenadas falsas de CDMX cuando el GPS estaba apagado).
 Future<Position?> ubicacionActual({Duration limite = const Duration(seconds: 6)}) async {
+  // Tope duro: si el plugin no contesta (sin servicio, sin canal), se sigue sin ubicación.
+  try {
+    return await _ubicacion(limite).timeout(limite + const Duration(seconds: 2));
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<Position?> _ubicacion(Duration limite) async {
   try {
     if (!await Geolocator.isLocationServiceEnabled()) return null;
     var permiso = await Geolocator.checkPermission();

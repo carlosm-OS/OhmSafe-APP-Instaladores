@@ -67,16 +67,44 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
-  Future<void> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
+  Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion}) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/cancelar', body: {
+      'motivo': motivo,
+      if (notas != null && notas.isNotEmpty) 'notas': notas,
+      if (fotoBase64 != null) 'fotoBase64': fotoBase64,
+      if (ubicacion != null) 'ubicacion': ubicacion,
+    });
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> historial({String rango = 'todo'}) async {
+    final res = await dioClient.get('/instalador/historial?rango=${Uri.encodeQueryComponent(rango)}');
+    final data = res['data'];
+    if (data is! List) return const [];
+    return data.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> casasParaVincular(String id) async {
+    final res = await dioClient.get('/instalador/ordenes/$id/casas');
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
     // `codigo` = MAC del energizador (Odoo x_mac_address). `serie` = número de
-    // serie instalado en campo (Odoo x_numero_serie).
-    await dioClient.post('/instalador/ordenes/$id/vincular-energizador',
+    // serie del inventario de Ohmbox en Odoo (OS-OBV01-####).
+    final res = await dioClient.post('/instalador/ordenes/$id/vincular-energizador',
         body: {
           'qr': serie ?? codigo,
           'mac': codigo,
           if (serie != null) 'serial': serie,
           if (tierraConfirmada != null) 'tierraConfirmada': tierraConfirmada,
+          if (destino != null) 'destino': destino,
         });
+    final data = (res['data'] as Map<String, dynamic>?) ?? const {};
+    return (data['dashboard'] as Map<String, dynamic>?) ?? const {'ligado': true};
   }
 
   @override
