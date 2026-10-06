@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 28 — 6 de octubre de 2026
+
+- **Vincular energizador**: si el cliente ya tiene casas en su app, antes de vincular te preguntamos **«¿Dónde va este equipo?»**: a una de sus casas (viene preseleccionada la que coincide con la dirección de la orden) o a una casa nueva. Así un segundo energizador de la misma propiedad ya no aparece como otra casa.
+
 ## Build 27 — 6 de octubre de 2026
 
 - **Ícono de la app**: el número rojo sobre el ícono ahora es tu cantidad de **avisos sin leer** (la misma que la campana). Se borra cuando abres la campana. Antes se quedaba en «1» para siempre.

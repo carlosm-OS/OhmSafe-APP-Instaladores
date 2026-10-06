@@ -91,3 +91,14 @@ El equipo **sí** quedó vinculado a la instalación, pero no llegó a la app de
 ## También desde esta pantalla
 
 - «Cancelar instalación» (en «Identifica el energizador») abre la cancelación en sitio. Ver [05](05-cancelar-en-sitio.md).
+
+## ¿Dónde va este equipo? (desde la build 28)
+
+Al tocar **«Vincular»**, si el cliente **ya tiene casas** en su app OhmSafe aparece una hoja con sus casas (nombre, dirección y cuántos energizadores tiene cada una) y la opción **«Casa nueva»**.
+
+- Viene preseleccionada la casa cuya dirección coincide con la de la orden. Si es la misma propiedad, confirma con **«Continuar»**: el energizador se suma a esa casa.
+- Si es otra propiedad del mismo cliente, elige **«Casa nueva»**, revisa el nombre y la dirección (vienen de la orden) y continúa.
+- **«Cancelar»** te regresa a la pantalla sin vincular.
+- Si el cliente no tiene casas todavía, no se pregunta: la casa se crea sola con la dirección de la orden.
+
+No afecta el cobro: un energizador adicional en una casa existente queda en la misma suscripción de esa casa.

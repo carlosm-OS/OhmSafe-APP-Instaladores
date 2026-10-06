@@ -126,9 +126,24 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
-  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
+  Future<Result<Map<String, dynamic>>> casasParaVincular(String id) async {
     try {
-      return Success(await dataSource.vincularEnergizador(id, codigo: codigo, serie: serie, tierraConfirmada: tierraConfirmada));
+      return Success(await dataSource.casasParaVincular(id));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
+    try {
+      return Success(await dataSource.vincularEnergizador(id, codigo: codigo, serie: serie, tierraConfirmada: tierraConfirmada, destino: destino));
     } on UnauthorizedException {
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {

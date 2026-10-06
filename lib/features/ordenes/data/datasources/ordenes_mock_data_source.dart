@@ -153,9 +153,21 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) => _ok();
 
   @override
-  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
+  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
     await _ok();
     return {'ligado': true};
+  }
+  @override
+  Future<Map<String, dynamic>> casasParaVincular(String id) async {
+    await _ok();
+    return {
+      'clienteConCuenta': true,
+      'casas': [
+        {'id': 'casa-1', 'nombre': 'Casa Mock', 'direccion': 'Av. Insurgentes Sur 1234, CDMX', 'energizadores': 1},
+      ],
+      'sugerida': 'casa-1',
+      'nueva': {'nombre': 'Av. Insurgentes Sur 1234', 'direccion': 'Av. Insurgentes Sur 1234, CDMX'},
+    };
   }
   @override
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion}) async => {'estado': 'cancelado'};

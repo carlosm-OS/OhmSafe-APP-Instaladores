@@ -3,6 +3,9 @@ import '../core/error/failures.dart';
 import 'dart:async';
 import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
+
+import '../core/utils/destino_equipo.dart';
+import '../widgets/destino_equipo_sheet.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
@@ -154,11 +157,29 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     setState(() => _isSending = true);
     final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     final serie = _macController.text.trim();
-    final result = await sl.get<OrdenesRepository>().vincularEnergizador(
+    // ¿Dónde va el equipo? Sólo se pregunta si el cliente ya tiene casas en su
+    // app (si no, el backend crea la casa como siempre). Si falla la consulta,
+    // se vincula sin destino: nunca bloquea la instalación.
+    final repo = sl.get<OrdenesRepository>();
+    Map<String, dynamic>? destino;
+    final casas = await repo.casasParaVincular(id);
+    if (!mounted) return;
+    OpcionesDestino? opciones;
+    casas.fold((d) => opciones = OpcionesDestino.fromJson(d), (_) {});
+    if (opciones != null && opciones!.hayQuePreguntar) {
+      destino = await elegirDestinoEquipo(context, opciones!);
+      if (!mounted) return;
+      if (destino == null) {
+        setState(() => _isSending = false); // canceló: se queda en la pantalla
+        return;
+      }
+    }
+    final result = await repo.vincularEnergizador(
           id,
           codigo: _macDetectada.isNotEmpty ? _macDetectada : serie,
           serie: serie,
           tierraConfirmada: _tierraConfirmada,
+          destino: destino,
         );
     if (!mounted) return;
     result.fold(

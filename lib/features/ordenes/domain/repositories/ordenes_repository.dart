@@ -34,7 +34,11 @@ abstract class OrdenesRepository {
 
   /// Vincula el energizador (por QR o número de serie).
   /// Devuelve el resultado del ligado a la cuenta del cliente (`ligado`, `motivo`).
-  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
+  /// `destino`: casa existente (`{'casaId'}`) o casa nueva (`{'nueva': {...}}`); sin él, como siempre.
+  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino});
+
+  /// Casas del cliente de la orden en el dashboard, para decidir dónde va el equipo.
+  Future<Result<Map<String, dynamic>>> casasParaVincular(String id);
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 

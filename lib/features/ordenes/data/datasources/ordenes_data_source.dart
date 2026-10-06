@@ -20,7 +20,8 @@ abstract class OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo);
   /// Devuelve el resultado del ligado a la cuenta del cliente (`dashboard`:
   /// `ligado`, y si no, `motivo` CLIENTE_SIN_CUENTA | EQUIPO_DE_OTRO_TITULAR | SIN_SERIE).
-  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
+  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino});
+  Future<Map<String, dynamic>> casasParaVincular(String id);
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Historial del instalador: intervenciones completadas y canceladas en sitio
