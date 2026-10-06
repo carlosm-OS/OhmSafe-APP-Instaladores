@@ -115,7 +115,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             _equipoNuevo = true;
             _redLteStatus = 'Gris';
             _retornoStatus = 'Gris';
-            _triggerBanner(true, "Equipo nuevo. Al vincular se dará de alta y se ligará al cliente; después se verifican línea y batería.");
+            _triggerBanner(true, "Equipo nuevo. Al vincular se dará de alta y se ligará al cliente.");
             return;
           }
           // De vuelta al input: sin equipo no hay nada que diagnosticar. Antes
@@ -142,8 +142,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         // La prueba de alto voltaje (cerca energizada) se retiró por ahora: los equipos
         // todavía no traen ese sensor en la telemetría (Carlos, 2026-10-06). El estado de
         // la cerca sigue visible como dato informativo más abajo.
-        final ok = _retornoStatus == 'Verde' && _redLteStatus == 'Verde';
-        _triggerBanner(ok, ok ? "Diagnóstico del equipo exitoso" : "Hay pruebas en rojo, revisa el equipo");
+        _triggerBanner(true, "Equipo identificado. Revisa la ficha y vincúlalo.");
       });
     }, (f) {
       setState(() {
@@ -196,7 +195,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           id,
           codigo: _macDetectada.isNotEmpty ? _macDetectada : serie,
           serie: serie,
-          tierraConfirmada: _tierraConfirmada,
           destino: destino,
         );
     if (!mounted) return;
@@ -216,29 +214,17 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           );
           if (!mounted) return;
         }
-        if (_equipoNuevo) {
-          // Recién dado de alta: ahora sí hay equipo que diagnosticar. Se queda en
-          // la pantalla hasta que línea y batería den verde (con «Reintentar»).
-          final casa = (dashboard['casa'] as Map?)?['nombre']?.toString();
-          await showDialog<void>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Equipo dado de alta'),
-              content: Text('Quedó ligado a la cuenta del cliente${casa != null ? ' en la casa «$casa»' : ''}. '
-                  'Enciéndelo y conéctalo; cuando reporte, verifica línea y batería para continuar.'),
-              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
-            ),
-          );
-          if (!mounted) return;
-          setState(() {
-            _vinculado = true;
-            _equipoNuevo = false;
-            _isSending = false;
-          });
-          await _startValidation(serie);
-          return;
-        }
-        Navigator.pop(context, 'device_linked');
+        // Vinculado: se queda en la pantalla con «Vinculación exitosa» y la ficha del
+        // equipo; el botón pasa a «Continuar». La ficha se refresca por si el equipo
+        // acaba de darse de alta (serie, MAC, último reporte).
+        final casa = (dashboard['casa'] as Map?)?['nombre']?.toString();
+        setState(() {
+          _vinculado = true;
+          _equipoNuevo = false;
+          _isSending = false;
+        });
+        _triggerBanner(true, casa != null ? "Vinculación exitosa · casa «$casa»" : "Vinculación exitosa");
+        await _refrescarFicha(serie);
       },
       (failure) {
         setState(() => _isSending = false);
@@ -249,17 +235,21 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     );
   }
 
-  bool get _allCompleted =>
-      _tierraConfirmada &&
-      _redLteStatus == 'Verde' &&
-      _retornoStatus == 'Verde';
+  Future<void> _refrescarFicha(String serie) async {
+    final ordenId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    final result = await sl.get<OrdenesRepository>().diagnosticoEnergizador(serie.trim(), ordenId: ordenId);
+    if (!mounted) return;
+    result.fold((d) {
+      if (d['encontrado'] == true) setState(() => _diag = Map<String, dynamic>.from(d));
+    }, (_) {});
+  }
 
-  /// Qué hace el botón principal según el momento:
-  /// · equipo nuevo sin vincular → «Vincular y dar de alta» (sólo pide la tierra);
-  /// · ya vinculado → «Continuar» cuando las pruebas den verde;
-  /// · equipo que ya existía → vincular y continuar, como siempre.
-  String get _ctaLabel => _equipoNuevo && !_vinculado ? "Vincular y dar de alta el equipo" : "Continuar con cierre de instalación";
-  bool get _ctaHabilitado => _isSending ? false : (_equipoNuevo && !_vinculado ? _tierraConfirmada : _allCompleted);
+  /// Botón principal: primero «Vincular» (si el equipo es nuevo, eso lo da de alta);
+  /// una vez vinculado, «Continuar con cierre de instalación».
+  String get _ctaLabel => _vinculado
+      ? "Continuar con cierre de instalación"
+      : (_equipoNuevo ? "Vincular y dar de alta el equipo" : "Vincular energizador");
+  bool get _ctaHabilitado => !_isSending && _diag != null;
   void _onCta() {
     if (_vinculado) {
       Navigator.pop(context, 'device_linked');
@@ -542,7 +532,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           children: [
             const SizedBox(height: 12),
             Text(
-              _allCompleted ? "Equipo listo para vincular" : "Diagnóstico del equipo",
+              _vinculado ? "Equipo vinculado" : "Ficha del equipo",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
@@ -552,9 +542,9 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              _allCompleted
-                  ? "Todas las pruebas en verde. Continúa con el cierre."
-                  : "Revisa las pruebas y confirma la tierra física antes de continuar",
+              _vinculado
+                  ? "Vinculación exitosa. Continúa con el cierre de la instalación."
+                  : "Revisa la ficha del equipo y vincúlalo a esta instalación.",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -563,32 +553,9 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Section: Pruebas del sistema
-            Text(
-              "PRUEBAS DEL SISTEMA",
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // 4 Indicators
-            // Tierra física: sin telemetría en esta versión → check manual
-            // obligatorio del instalador; control de calidad lo valida después.
-            _buildTierraCheckbox(),
-            _buildTestIndicatorRow("Conexión de batería auxiliar", _redLteStatus),
-            _buildTestIndicatorRow(
-              "Verificación de conexión a línea",
-              _retornoStatus,
-              errorSubtitle: _retornoStatus == 'Rojo'
-                  ? "El equipo no recibe energía de la línea eléctrica"
-                  : null,
-            ),
-            const SizedBox(height: 16),
-
+            // Validaciones de batería, línea y tierra RETIRADAS por ahora (Carlos, 2026-10-06):
+            // los equipos aún no reportan esos sensores de forma confiable. Se vuelven a poner
+            // cuando la telemetría esté lista. Queda sólo la ficha del equipo y «Vincular».
             // Energizer Details Card
             Container(
               padding: const EdgeInsets.all(20),
@@ -633,31 +600,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 onPressed: _ctaHabilitado ? _onCta : null,
               ),
               const SizedBox(height: 12),
-
-              // Retry Button (shown if one fails, or while a just-registered device has not reported yet)
-              if (_retornoStatus == 'Rojo' || (_vinculado && !_allCompleted)) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => _startValidation(_macController.text),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: cs.primary,
-                      side: BorderSide(color: cs.primary, width: 1.5),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      "Reintentar validación",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
 
               // Report Incidences / Cancel button
               SizedBox(

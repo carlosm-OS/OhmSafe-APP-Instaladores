@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 31 — 6 de octubre de 2026
+
+- **Vincular energizador, simplificado por ahora**: se retiran las validaciones de batería auxiliar, conexión a línea y la casilla de tierra física (los equipos aún no las reportan de forma confiable; volverán cuando estén listas). El flujo es: capturar o escanear la serie → ficha del equipo → **«Vincular»** → mensaje «Vinculación exitosa» con la ficha → **«Continuar con cierre de instalación»**.
+
 ## Build 30 — 6 de octubre de 2026
 
 - **Equipo nuevo al escanear**: ya nadie tiene que darlo de alta antes. Si el equipo no existe pero su número de serie tiene registrada la MAC en el almacén, la app te deja **«Vincular y dar de alta el equipo»** (se liga al cliente del ticket y a la casa que elijas) y después verifica línea y batería con «Reintentar» hasta que reporte.
