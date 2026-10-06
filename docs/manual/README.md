@@ -1,6 +1,6 @@
 # Manual de usuario — App OhmSafe Installer
 
-Versión de la app que describe este manual: **1.0.0 (build 25)**.
+Versión de la app que describe este manual: **1.0.0 (build 26)**.
 
 ## A quién va dirigido
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/utils/observaciones_cierre.dart';
 import '../widgets/notification_bell.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -369,8 +370,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       // Posición al cerrar: el backend la compara con la de la llegada.
       if (ubicacionCierre != null) "ubicacion": ubicacionCierre,
       if (confirmarUbicacion) "confirmarUbicacion": true,
-      "comentariosGenerales":
-          "Paso 1: ${_photoCommentsController.text.trim()} | Paso 2: ${_step2CommentsController.text.trim()}",
+      "comentariosGenerales": observacionesCierre(
+        paso1: _photoCommentsController.text,
+        paso2: _step2CommentsController.text,
+      ),
     };
 
     // Enviar al backend vía repositorio (Mock o Api según EnvConfig.useMock).

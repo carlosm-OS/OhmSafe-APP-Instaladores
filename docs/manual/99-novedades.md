@@ -2,6 +2,11 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 26 — 6 de octubre de 2026
+
+- **Cierre**: las observaciones del reporte ya no muestran «Paso 1: | Paso 2:» vacíos; sólo aparece lo que escribas.
+- **Avisos** (del lado del servidor, sin actualizar la app): si operaciones te quita una instalación ya programada, recibes «Servicio reasignado»; al publicar ya no llegan dos avisos iguales.
+
 ## Build 25 — 4 de octubre de 2026
 
 - **Ayuda**: «Reportar incidencias» ahora sí envía el reporte a operaciones (es el mismo formulario que en Inicio) y te muestra su número de incidencia.
