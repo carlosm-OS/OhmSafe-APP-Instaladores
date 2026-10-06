@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 27 — 6 de octubre de 2026
+
+- **Ícono de la app**: el número rojo sobre el ícono ahora es tu cantidad de **avisos sin leer** (la misma que la campana). Se borra cuando abres la campana. Antes se quedaba en «1» para siempre.
+
 ## Build 26 — 6 de octubre de 2026
 
 - **Cierre**: las observaciones del reporte ya no muestran «Paso 1: | Paso 2:» vacíos; sólo aparece lo que escribas.

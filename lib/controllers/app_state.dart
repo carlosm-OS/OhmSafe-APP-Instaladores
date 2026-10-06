@@ -1,4 +1,5 @@
 import '../features/ordenes/domain/entities/orden.dart';
+import '../core/badge/badge_icono.dart';
 import 'dart:async';
 import '../features/notificaciones/data/notificaciones_repository.dart';
 import 'package:flutter/material.dart';
@@ -123,6 +124,8 @@ class AppState extends ChangeNotifier {
   int get notificacionesNoLeidas => _notificacionesNoLeidas;
 
   void setNotificacionesNoLeidas(int n) {
+    // El ícono de la app muestra el mismo número que la campana.
+    BadgeIcono.fijar(n);
     if (_notificacionesNoLeidas == n) return;
     _notificacionesNoLeidas = n;
     notifyListeners();
@@ -168,7 +171,10 @@ class AppState extends ChangeNotifier {
 
     // El badge de la campana viaja con los demás: una sola espera.
     final notifFuture = sl.get<NotificacionesRepository>().listar().then(
-          (res) => res.fold((data) => _notificacionesNoLeidas = data.noLeidas, (_) {}),
+          (res) => res.fold((data) {
+            _notificacionesNoLeidas = data.noLeidas;
+            BadgeIcono.fijar(data.noLeidas);
+          }, (_) {}),
         );
 
     await Future.wait([perfilFuture, instFuture, repFuture, notifFuture]);
