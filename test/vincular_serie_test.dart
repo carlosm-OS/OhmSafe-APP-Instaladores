@@ -7,6 +7,7 @@ import 'package:ohmsafe_app/core/error/failures.dart';
 import 'package:ohmsafe_app/core/network/result.dart';
 import 'package:ohmsafe_app/core/theme/app_theme.dart';
 import 'package:ohmsafe_app/core/utils/serie_qr.dart';
+import 'package:ohmsafe_app/core/utils/ligado_cliente.dart';
 import 'package:ohmsafe_app/features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'package:ohmsafe_app/screens/link_energizer_screen.dart';
 
@@ -30,6 +31,21 @@ void main() {
       expect(serieDesdeQr('https://ohmsafe.com/e?serie=XY-99'), 'XY-99');
       expect(serieDesdeQr('ABC123'), 'ABC123');
       expect(serieDesdeQr('   '), '');
+    });
+
+    test('formato del inventario de Ohmbox (OS-OBV01-####), solo, en texto o en enlace', () {
+      expect(serieDesdeQr('os-obv01-0007'), 'OS-OBV01-0007');
+      expect(serieDesdeQr('OhmSafe Ohmbox OS-OBV01-0042 hecho en MX'), 'OS-OBV01-0042');
+      expect(serieDesdeQr('https://ohmsafe.com/e?serie=OS-OBV01-0050'), 'OS-OBV01-0050');
+    });
+  });
+
+  group('avisoLigadoCliente', () {
+    test('ligado: sin aviso; sin cuenta u otro titular: aviso claro', () {
+      expect(avisoLigadoCliente({'ligado': true}), isNull);
+      expect(avisoLigadoCliente({'ligado': false, 'motivo': 'CLIENTE_SIN_CUENTA'}), contains('todavía no tiene cuenta'));
+      expect(avisoLigadoCliente({'ligado': false, 'motivo': 'EQUIPO_DE_OTRO_TITULAR'}), contains('otro cliente'));
+      expect(avisoLigadoCliente({'ligado': false}), contains('operaciones'));
     });
   });
 

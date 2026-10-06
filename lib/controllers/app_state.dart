@@ -1,4 +1,5 @@
 import '../features/ordenes/domain/entities/orden.dart';
+import '../core/badge/badge_icono.dart';
 import 'dart:async';
 import '../features/notificaciones/data/notificaciones_repository.dart';
 import 'package:flutter/material.dart';
@@ -123,6 +124,8 @@ class AppState extends ChangeNotifier {
   int get notificacionesNoLeidas => _notificacionesNoLeidas;
 
   void setNotificacionesNoLeidas(int n) {
+    // El ícono de la app muestra el mismo número que la campana.
+    BadgeIcono.fijar(n);
     if (_notificacionesNoLeidas == n) return;
     _notificacionesNoLeidas = n;
     notifyListeners();
@@ -168,7 +171,10 @@ class AppState extends ChangeNotifier {
 
     // El badge de la campana viaja con los demás: una sola espera.
     final notifFuture = sl.get<NotificacionesRepository>().listar().then(
-          (res) => res.fold((data) => _notificacionesNoLeidas = data.noLeidas, (_) {}),
+          (res) => res.fold((data) {
+            _notificacionesNoLeidas = data.noLeidas;
+            BadgeIcono.fijar(data.noLeidas);
+          }, (_) {}),
         );
 
     await Future.wait([perfilFuture, instFuture, repFuture, notifFuture]);
@@ -242,10 +248,52 @@ class AppState extends ChangeNotifier {
   String get syncStatusMessage => _syncStatusMessage;
   List<Ticket> get activeTickets => _activeTickets;
 
-  // Historial de tickets completados (instalaciones y reparaciones).
-  // En memoria durante la sesión; en producción vendría del backend.
+  // Historial de tickets completados y cancelados (instalaciones y reparaciones).
+  // Viene del backend (`GET /instalador/historial`) con [cargarHistorial]; lo que
+  // se cierra en esta sesión se agrega al instante con [addCompletedTicket] y se
+  // deduplica por id cuando llega la versión del backend.
   final List<Map<String, dynamic>> _history = [];
   List<Map<String, dynamic>> get history => List.unmodifiable(_history);
+  bool _historialCargado = false;
+  bool get historialCargado => _historialCargado;
+
+  /// Relee el historial del backend. Si falla la red se conserva lo que ya había.
+  Future<void> cargarHistorial() async {
+    final res = await sl.get<OrdenesRepository>().historial();
+    res.fold((filas) {
+      final remotas = filas.map(entradaHistorial).toList();
+      final ids = remotas.map((e) => e['id']?.toString()).whereType<String>().toSet();
+      final locales = _history.where((e) => !ids.contains(e['id']?.toString())).toList();
+      _history
+        ..clear()
+        ..addAll([...remotas, ...locales])
+        ..sort((a, b) => ((b['completedAt'] as DateTime?) ?? DateTime(0)).compareTo((a['completedAt'] as DateTime?) ?? DateTime(0)));
+      _historialCargado = true;
+      notifyListeners();
+    }, (_) {});
+  }
+
+  /// Fecha de Odoo (`YYYY-MM-DD HH:MM:SS`, UTC) a hora local del teléfono.
+  static DateTime? fechaOdoo(dynamic v) {
+    if (v is! String || v.isEmpty) return null;
+    return DateTime.tryParse('${v.replaceFirst(' ', 'T')}Z')?.toLocal();
+  }
+
+  /// Fila del backend → entrada del historial que pinta [HistorialScreen].
+  static Map<String, dynamic> entradaHistorial(Map<String, dynamic> f) {
+    final cancelada = f['estado'] == 'cancelado';
+    String? texto(dynamic v) => (v is String && v.trim().isNotEmpty) ? v : null;
+    return {
+      'id': f['id']?.toString(),
+      'title': texto(f['titulo']) ?? 'Intervención',
+      'type': texto(f['tipo']) ?? 'instalacion',
+      'user': texto(f['cliente']) ?? '',
+      'status': cancelada ? 'Cancelada' : 'Completo',
+      'completedAt': fechaOdoo(f['fecha'] ?? (cancelada ? f['canceladoEn'] : f['completadoEn'])),
+      'motivo': cancelada ? texto(f['motivo']) : null,
+      'details': {'direccion': texto(f['direccion']), 'ciudad': texto(f['ciudad'])},
+    };
+  }
 
   // Registra un ticket como completado, sellando la fecha de cierre.
   void addCompletedTicket(Map<String, dynamic> ticket) {

@@ -121,7 +121,7 @@ productos `PAGO-*` en Odoo (hoy 0 hasta que Carlos los fije).
 | POST | `/v1/instalador/ordenes/{id}/iniciar-ruta` | pasa a `en_curso`; notifica al cliente |
 | POST | `/v1/instalador/ordenes/{id}/marcar-llegada` | completa paso 1 |
 | POST | `/v1/instalador/ordenes/{id}/inspeccion-perimetro` | `{sinObstaculos:bool, obstaculos:[string]}` |
-| POST | `/v1/instalador/ordenes/{id}/cancelar` | `{motivo}` |
+| POST | `/v1/instalador/ordenes/{id}/cancelar` | `{motivo: cliente_ausente\|sin_acceso\|mal_clima\|cliente_reagenda\|falta_material\|riesgo_en_sitio\|otro, notas?, fotoBase64?, ubicacion?}` → `{estado:'cancelado', nuevaId?}`. Con `otro` las notas son obligatorias (400 NOTAS_REQUERIDAS). En Odoo la intervención vuelve a «por planificar» y operaciones recibe «Cancelada en sitio: llamar al cliente»; el cliente no recibe aviso automático |
 
 ## 4. Reparación — costeo
 | Método | Ruta | Notas |
@@ -132,8 +132,8 @@ productos `PAGO-*` en Odoo (hoy 0 hasta que Carlos los fije).
 ## 5. Energizador / dispositivo (reusa `domains/devices`)
 | Método | Ruta | Notas |
 |---|---|---|
-| POST | `/v1/instalador/energizador/diagnostico` | `{serie, ordenId?}` → telemetría del equipo. Con `ordenId` revisa antes la serie contra el inventario de Odoo: **409 `SERIE_YA_INSTALADA`** (ya entregada a un cliente) o **409 `SERIE_APARTADA`** (en la entrega pendiente de otra orden). La app muestra el mensaje tal cual, al capturar la serie |
-| POST | `/v1/instalador/ordenes/{id}/vincular-energizador` | `{qr}` o `{serial}` → liga el device → `{deviceId}` | · repite la misma revisión de serie antes de tocar nada (antes el error salía hasta el cierre, cuando Odoo valida la entrega). En la app: «Vincular» valida la serie escrita; «Escanear QR» abre la cámara real (`mobile_scanner`, `EscanearSerieScreen`) |
+| POST | `/v1/instalador/energizador/diagnostico` | `{serie, ordenId?}` → telemetría del equipo. Con `ordenId` revisa antes la serie contra el inventario de Odoo: **409 `SERIE_YA_INSTALADA`** (ya entregada a un cliente) o **409 `SERIE_APARTADA`** (en la entrega pendiente de otra orden). La app muestra el mensaje tal cual, al capturar la serie · **2026-10-02:** la serie debe estar en el inventario de «Ohmbox/Energizador» (`OS-OBV01-####`): **404 `SERIE_NO_EN_INVENTARIO`**, **409 `SERIE_SIN_EXISTENCIA`** (no está en el almacén). Si el equipo tiene otra serie en el dashboard se encuentra por la MAC del lote y responde `serieAnterior`; sin alta, `encontrado:false, motivo:"SIN_ALTA"` |
+| POST | `/v1/instalador/ordenes/{id}/vincular-energizador` | `{qr}` o `{serial}` → liga el device → `{deviceId}` | · repite la misma revisión de serie antes de tocar nada (antes el error salía hasta el cierre, cuando Odoo valida la entrega). En la app: «Vincular» valida la serie escrita; «Escanear QR» abre la cámara real (`mobile_scanner`, `EscanearSerieScreen`) · **2026-10-02:** responde `{estadoVinculacion, dashboard:{ligado, deviceId?, motivo?}}`; la serie vieja del dashboard se reemplaza por la del inventario (mismo campo, por MAC). Si `ligado:false` (`CLIENTE_SIN_CUENTA` / `EQUIPO_DE_OTRO_TITULAR`) la app avisa al instalador antes de seguir (`avisoLigadoCliente`) |
 
 ## 6. Cierre
 | Método | Ruta | Notas |

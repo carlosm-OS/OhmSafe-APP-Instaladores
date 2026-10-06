@@ -1,3 +1,4 @@
+import '../widgets/cancellation_flow.dart';
 import '../core/utils/como_llegar.dart';
 import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,6 @@ class RouteDetailsScreen extends StatefulWidget {
 }
 
 class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
-  bool _isCancelling = false;
   bool _isSending = false;
 
   /// Marca la llegada al sitio en el backend (paso "En sitio" en Odoo) y,
@@ -44,11 +44,9 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       },
     );
   }
-  final TextEditingController _reasonController = TextEditingController();
 
   @override
   void dispose() {
-    _reasonController.dispose();
     super.dispose();
   }
 
@@ -295,7 +293,6 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                       const SizedBox(height: 24),
 
                       // Route Details Actions Box
-                      if (!_isCancelling) ...[
                         OhmGradientButton(
                           label: "Marcar llegada",
                           onPressed: _isSending ? null : _marcarLlegada,
@@ -304,11 +301,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _isCancelling = true;
-                              });
-                            },
+                            onPressed: () => showCancellationFlow(context, widget.ticket),
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
                               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -322,94 +315,6 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                             ),
                           ),
                         ),
-                      ] else ...[
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: theme.cardColor,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: theme.dividerColor.withValues(alpha: 0.5),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Motivo de la cancelación",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.textTheme.bodyLarge?.color,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: _reasonController,
-                                maxLines: 3,
-                                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                                decoration: InputDecoration(
-                                  hintText: "Escribe aquí el motivo...",
-                                  hintStyle: TextStyle(
-                                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-                                  ),
-                                  filled: true,
-                                  fillColor: ohm.surfaceContainer,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  contentPadding: const EdgeInsets.all(16),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    final reason = _reasonController.text.trim();
-                                    print("Instalación cancelada. Motivo: $reason");
-                                    volverAListado(context, InstalacionesScreen(cancelledTicketTitle: widget.ticket["title"]));
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  child: const Text(
-                                    "Confirmar cancelación",
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              SizedBox(
-                                width: double.infinity,
-                                child: TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _isCancelling = false;
-                                      _reasonController.clear();
-                                    });
-                                  },
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: theme.textTheme.bodyMedium?.color,
-                                  ),
-                                  child: const Text(
-                                    "Volver",
-                                    style: TextStyle(fontSize: 15),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),

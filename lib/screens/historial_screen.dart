@@ -22,6 +22,17 @@ class _HistorialScreenState extends State<HistorialScreen> {
   _Rango _rango = _Rango.todo;
 
   @override
+  void initState() {
+    super.initState();
+    // El historial vive en el backend (completadas y canceladas en sitio).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppStateProvider.of(context).cargarHistorial();
+    });
+  }
+
+  bool _esCancelada(Map<String, dynamic> t) => (t['status']?.toString().toLowerCase() ?? '') == 'cancelada';
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -262,10 +273,12 @@ class _HistorialScreenState extends State<HistorialScreen> {
     final cs = theme.colorScheme;
     final ohm = context.ohm;
     final esRep = _esReparacion(t);
+    final cancelada = _esCancelada(t);
     final details = (t['details'] as Map?)?.cast<String, dynamic>() ?? {};
     final fecha = _fecha(t['completedAt'] as DateTime?);
+    final motivo = t['motivo']?.toString() ?? '';
 
-    final badgeColor = esRep ? ohm.info : cs.primary;
+    final badgeColor = cancelada ? cs.error : (esRep ? ohm.info : cs.primary);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -300,14 +313,21 @@ class _HistorialScreenState extends State<HistorialScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  esRep ? "Reparación" : "Instalación",
+                  cancelada ? "Cancelada" : (esRep ? "Reparación" : "Instalación"),
                   style: TextStyle(color: badgeColor, fontSize: 11, fontWeight: FontWeight.w700),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          _infoRow(theme, Icons.check_circle_outline_rounded, ohm.success, "Completado el $fecha"),
+          if (cancelada) ...[
+            _infoRow(theme, Icons.cancel_outlined, cs.error, "Cancelada el $fecha"),
+            if (motivo.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _infoRow(theme, Icons.notes_rounded, theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), "Motivo: $motivo"),
+            ],
+          ] else
+            _infoRow(theme, Icons.check_circle_outline_rounded, ohm.success, "Completado el $fecha"),
           if ((t['user']?.toString() ?? '').isNotEmpty) ...[
             const SizedBox(height: 6),
             _infoRow(theme, Icons.person_outline_rounded, theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), t['user'].toString()),
@@ -315,7 +335,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
           if ((details['direccion']?.toString() ?? '').isNotEmpty) ...[
             const SizedBox(height: 6),
             _infoRow(theme, Icons.location_on_outlined, theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                "${details['direccion']}${details['ciudad'] != null ? ', ${details['ciudad']}' : ''}"),
+                "${details['direccion']}${(details['ciudad']?.toString() ?? '').isNotEmpty ? ', ${details['ciudad']}' : ''}"),
           ],
         ],
       ),
@@ -356,7 +376,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
             child: Text(
               hayHistorial
                   ? "Ajusta la búsqueda o el filtro de fechas."
-                  : "Los tickets que completes aparecerán aquí.",
+                  : "Los tickets que completes o canceles aparecerán aquí.",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
             ),

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../widgets/notification_bell.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/app_bottom_nav.dart';
-import '../widgets/ohm_gradient_button.dart';
 import '../core/theme/app_theme_extension.dart';
+import '../features/incidencias/domain/incidencia.dart';
+import 'incidencias_screen.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
@@ -30,101 +31,23 @@ class HelpScreen extends StatelessWidget {
     }
   }
 
-  // Bottom sheet modal to capture reports
-  void _showReportIncidentDialog(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final reportController = TextEditingController();
+  /// Soporte de OhmSafe (el mismo número que ohmsafe.com y la app cliente).
+  static const _telefonoVisible = '55 5199 1396';
+  static const _telefonoUrl = 'tel:+525551991396';
+  static const _whatsappUrl = 'https://wa.me/525551991396';
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: theme.cardColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (BuildContext context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Reportar incidencia",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: reportController,
-                maxLines: 4,
-                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                decoration: InputDecoration(
-                  hintText: "Escribe aquí los detalles del reporte...",
-                  hintStyle: TextStyle(
-                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-                  ),
-                  filled: true,
-                  fillColor: ohm.surfaceContainer,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.all(16),
-                ),
-              ),
-              const SizedBox(height: 20),
-              OhmGradientButton(
-                label: "Enviar reporte",
-                onPressed: () {
-                  final reportText = reportController.text.trim();
-                  if (reportText.isNotEmpty) {
-                    debugPrint("Reporte de incidencia enviado: $reportText");
-                    Navigator.pop(context); // Close bottom sheet
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                          "Reporte enviado correctamente",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        backgroundColor: cs.primary,
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Por favor, describe la incidencia."),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      },
+  /// «Reportar incidencias» abre la pantalla real de incidencias: el reporte
+  /// crea un ticket en el Helpdesk de Odoo («Incidencias de campo»). Antes era
+  /// un formulario que sólo escribía en consola y decía «Reporte enviado».
+  Future<void> _reportarIncidencia(BuildContext context) async {
+    final creada = await Navigator.of(context).push<Incidencia>(
+      MaterialPageRoute(builder: (_) => const NuevaIncidenciaScreen()),
     );
+    if (creada != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Incidencia ${creada.referencia} enviada a operaciones')),
+      );
+    }
   }
 
   @override
@@ -254,7 +177,7 @@ class HelpScreen extends StatelessWidget {
 
                         // Direct Contact Section
                         Text(
-                          "CONTÁCTO DIRECTO",
+                          "CONTACTO DIRECTO",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -266,7 +189,7 @@ class HelpScreen extends StatelessWidget {
                         Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => _launchURL(context, 'tel:5551991396'),
+                            onTap: () => _launchURL(context, _telefonoUrl),
                             borderRadius: BorderRadius.circular(16),
                             child: Ink(
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -283,7 +206,7 @@ class HelpScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 14),
                                   Text(
-                                    "55 1900 9090",
+                                    _telefonoVisible,
                                     style: textStyle,
                                   ),
                                 ],
@@ -295,7 +218,7 @@ class HelpScreen extends StatelessWidget {
 
                         // WhatsApp Section
                         Text(
-                          "WHATS APP",
+                          "WHATSAPP",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -307,7 +230,7 @@ class HelpScreen extends StatelessWidget {
                         Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => _launchURL(context, 'https://wa.me/5551991396'),
+                            onTap: () => _launchURL(context, _whatsappUrl),
                             borderRadius: BorderRadius.circular(16),
                             child: Ink(
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -324,7 +247,7 @@ class HelpScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 14),
                                   Text(
-                                    "55 5018 9090",
+                                    _telefonoVisible,
                                     style: textStyle,
                                   ),
                                 ],
@@ -336,7 +259,7 @@ class HelpScreen extends StatelessWidget {
 
                         // Report Incident Button
                         OutlinedButton(
-                          onPressed: () => _showReportIncidentDialog(context),
+                          onPressed: () => _reportarIncidencia(context),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: theme.textTheme.bodyLarge?.color,
                             side: BorderSide(
