@@ -96,8 +96,8 @@ El equipo **sí** quedó vinculado a la instalación, pero no llegó a la app de
 
 Al tocar **«Vincular»**, si el cliente **ya tiene casas** en su app OhmSafe aparece una hoja con sus casas (nombre, dirección y cuántos energizadores tiene cada una) y la opción **«Casa nueva»**.
 
-- Viene preseleccionada la casa cuya dirección coincide con la de la orden. Si es la misma propiedad, confirma con **«Continuar»**: el energizador se suma a esa casa.
-- Si es otra propiedad del mismo cliente, elige **«Casa nueva»**, revisa el nombre y la dirección (vienen de la orden) y continúa.
+- **Casa nueva** es la primera opción: sólo escribes el nombre; la dirección es la del ticket de instalación y no se puede cambiar ahí (desde la build 32).
+- Debajo están las casas que el cliente ya tiene. Viene preseleccionada la que coincide con la dirección de la orden; si ninguna coincide, Casa nueva.
 - **«Cancelar»** te regresa a la pantalla sin vincular.
 - Si el cliente no tiene casas todavía, no se pregunta: la casa se crea sola con la dirección de la orden.
 

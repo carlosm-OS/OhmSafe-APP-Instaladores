@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 32 — 6 de octubre de 2026
+
+- **«¿Dónde va este equipo?»** reorganizada: **Casa nueva** es la primera opción (sólo escribes el nombre; la dirección es la del ticket de instalación y no se edita) y debajo, en una lista más clara, las casas que el cliente ya tiene. Viene preseleccionada la casa que coincide con la dirección; si ninguna coincide, Casa nueva.
+
 ## Build 31 — 6 de octubre de 2026
 
 - **Vincular energizador, simplificado por ahora**: se retiran las validaciones de batería auxiliar, conexión a línea y la casilla de tierra física (los equipos aún no las reportan de forma confiable; volverán cuando estén listas). El flujo es: capturar o escanear la serie → ficha del equipo → **«Vincular»** → mensaje «Vinculación exitosa» con la ficha → **«Continuar con cierre de instalación»**.

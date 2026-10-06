@@ -29,11 +29,15 @@ class OpcionesDestino {
   /// ¿Hay que preguntar? Sólo si el cliente ya tiene casas.
   bool get hayQuePreguntar => casas.isNotEmpty;
 
-  /// Casa preseleccionada: la sugerida por dirección; si no hay, la única cuando
-  /// sólo tiene una; si tiene varias sin sugerencia, ninguna (que elija).
-  String? get seleccionInicial {
-    if (sugerida != null && casas.any((c) => c.id == sugerida)) return sugerida;
-    return casas.length == 1 ? casas.first.id : null;
+  /// Valor de «casa nueva» en el selector.
+  static const nueva = '__nueva__';
+
+  /// Preselección: la casa que coincide con la dirección de la orden; si ninguna
+  /// coincide, «Casa nueva» (la primera opción), porque la dirección del ticket
+  /// manda (Carlos, 2026-10-06).
+  String get seleccionInicial {
+    if (sugerida != null && casas.any((c) => c.id == sugerida)) return sugerida!;
+    return nueva;
   }
 
   static OpcionesDestino fromJson(Map<String, dynamic> j) {
