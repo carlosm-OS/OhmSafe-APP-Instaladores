@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 29 — 6 de octubre de 2026
+
+- **Vincular energizador**: se quita por ahora la «Prueba de alto voltaje» (los equipos todavía no reportan ese sensor). Bastan línea eléctrica y batería en verde más la tierra física confirmada.
+
 ## Build 28 — 6 de octubre de 2026
 
 - **Vincular energizador**: si el cliente ya tiene casas en su app, antes de vincular te preguntamos **«¿Dónde va este equipo?»**: a una de sus casas (viene preseleccionada la que coincide con la dirección de la orden) o a una casa nueva. Así un segundo energizador de la misma propiedad ya no aparece como otra casa.

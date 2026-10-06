@@ -36,7 +36,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// eso dejó de pintarse como "Pendiente" junto a las que sí se miden — eso
   /// daba a entender que el sistema la comprobaría.
   bool _tierraConfirmada = false;
-  String _bateriaStatus = 'Gris';
   String _redLteStatus = 'Gris';
   String _retornoStatus = 'Gris';
 
@@ -87,7 +86,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       _currentState = LinkState.validating;
       _isLoading = true;
       _showBanner = false;
-      _bateriaStatus = 'Gris'; // alto voltaje / cerca
       _redLteStatus = 'Gris'; // batería auxiliar
       _retornoStatus = 'Gris'; // conexión a línea
     });
@@ -121,10 +119,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         _redLteStatus = d['bateria'] == 'ok'
             ? 'Verde'
             : (d['bateria'] == 'baja' ? 'Rojo' : 'Gris');
-        _bateriaStatus = d['cercaActiva'] == true ? 'Verde' : 'Rojo'; // cerca energizada
-        final ok = _retornoStatus == 'Verde' &&
-            _redLteStatus == 'Verde' &&
-            _bateriaStatus == 'Verde';
+        // La prueba de alto voltaje (cerca energizada) se retiró por ahora: los equipos
+        // todavía no traen ese sensor en la telemetría (Carlos, 2026-10-06). El estado de
+        // la cerca sigue visible como dato informativo más abajo.
+        final ok = _retornoStatus == 'Verde' && _redLteStatus == 'Verde';
         _triggerBanner(ok, ok ? "Diagnóstico del equipo exitoso" : "Hay pruebas en rojo, revisa el equipo");
       });
     }, (f) {
@@ -211,7 +209,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
 
   bool get _allCompleted =>
       _tierraConfirmada &&
-      _bateriaStatus == 'Verde' &&
       _redLteStatus == 'Verde' &&
       _retornoStatus == 'Verde';
 
@@ -526,7 +523,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             // Tierra física: sin telemetría en esta versión → check manual
             // obligatorio del instalador; control de calidad lo valida después.
             _buildTierraCheckbox(),
-            _buildTestIndicatorRow("Prueba de alto voltaje exitosa", _bateriaStatus),
             _buildTestIndicatorRow("Conexión de batería auxiliar", _redLteStatus),
             _buildTestIndicatorRow(
               "Verificación de conexión a línea",

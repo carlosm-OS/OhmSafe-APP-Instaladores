@@ -38,11 +38,11 @@ Para volver a escribir otra serie, toca la flecha de regresar en «Diagnóstico 
 
 | Prueba | Verde («Completa») | Rojo («Error») | Gris («Pendiente») |
 |---|---|---|---|
-| «Prueba de alto voltaje exitosa» | La cerca está activa (energizada). | La cerca está desarmada. Revisa el armado del equipo. | — |
 | «Conexión de batería auxiliar» | La batería reporta bien. | Batería baja. Revisa la batería. | El equipo no ha reportado su batería. |
 | «Verificación de conexión a línea» | El equipo recibe energía de la calle. | «El equipo no recibe energía de la línea eléctrica». Revisa la conexión a la luz. | — |
 
-- El botón «Continuar con cierre de instalación» solo se activa con las 3 pruebas en verde y la tierra física confirmada.
+- El botón «Continuar con cierre de instalación» solo se activa con las 2 pruebas en verde y la tierra física confirmada.
+- Desde la build 29 ya no hay «Prueba de alto voltaje»: los equipos actuales no reportan ese sensor. El «Estado de la cerca» sigue apareciendo como dato informativo en el detalle del equipo.
 - Si la conexión a línea sale en rojo aparece «Reintentar validación»: corrige y tócalo para leer el equipo otra vez.
 
 ### La tierra física
