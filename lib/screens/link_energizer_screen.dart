@@ -53,6 +53,15 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   // MAC real del equipo, detectada por el diagnóstico (se guarda en Odoo).
   String _macDetectada = '';
 
+  /// Equipo NUEVO (2026-10-06): no existe aún en el dashboard pero su lote de Odoo
+  /// trae la MAC. Nadie lo da de alta a mano: al vincular se crea con serie+MAC
+  /// y se liga al cliente del ticket; la telemetría se verifica después.
+  bool _equipoNuevo = false;
+
+  /// Ya quedó vinculado a la intervención (y dado de alta si era nuevo): el
+  /// botón pasa a «Continuar» y sólo falta que las pruebas den verde.
+  bool _vinculado = false;
+
   /// Diagnóstico real devuelto por el backend (serie, MAC, en línea, cerca,
   /// firmware, último reporte). null hasta que se encuentre el equipo.
   Map<String, dynamic>? _diag;
@@ -99,6 +108,16 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       setState(() {
         _isLoading = false;
         if (d['encontrado'] != true) {
+          if (d['motivo'] == 'NUEVO' && (d['mac'] ?? '').toString().isNotEmpty) {
+            // Equipo nuevo con MAC en su lote: se puede vincular (eso lo da de alta).
+            _diag = Map<String, dynamic>.from(d);
+            _macDetectada = (d['mac'] ?? '').toString();
+            _equipoNuevo = true;
+            _redLteStatus = 'Gris';
+            _retornoStatus = 'Gris';
+            _triggerBanner(true, "Equipo nuevo. Al vincular se dará de alta y se ligará al cliente; después se verifican línea y batería.");
+            return;
+          }
           // De vuelta al input: sin equipo no hay nada que diagnosticar. Antes
           // el estado se quedaba en `validating` y el panel de pruebas (con su
           // título de éxito) seguía en pantalla junto al banner de error.
@@ -108,12 +127,13 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           _triggerBanner(
               false,
               d['motivo'] == 'SIN_ALTA'
-                  ? "El equipo $s no está dado de alta en el dashboard. Avisa a operaciones."
+                  ? "El equipo $s no tiene MAC registrada en su lote de Odoo. Pide a almacén que la capture y vuelve a escanear."
                   : "No se encontró un equipo con la serie \"$s\"");
           return;
         }
         _diag = Map<String, dynamic>.from(d);
         _macDetectada = (d['mac'] ?? '').toString();
+        _equipoNuevo = false;
         // Telemetría real -> estado de cada prueba.
         _retornoStatus = d['conexionLinea'] == true ? 'Verde' : 'Rojo'; // energía de la calle
         _redLteStatus = d['bateria'] == 'ok'
@@ -196,6 +216,28 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           );
           if (!mounted) return;
         }
+        if (_equipoNuevo) {
+          // Recién dado de alta: ahora sí hay equipo que diagnosticar. Se queda en
+          // la pantalla hasta que línea y batería den verde (con «Reintentar»).
+          final casa = (dashboard['casa'] as Map?)?['nombre']?.toString();
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Equipo dado de alta'),
+              content: Text('Quedó ligado a la cuenta del cliente${casa != null ? ' en la casa «$casa»' : ''}. '
+                  'Enciéndelo y conéctalo; cuando reporte, verifica línea y batería para continuar.'),
+              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
+            ),
+          );
+          if (!mounted) return;
+          setState(() {
+            _vinculado = true;
+            _equipoNuevo = false;
+            _isSending = false;
+          });
+          await _startValidation(serie);
+          return;
+        }
         Navigator.pop(context, 'device_linked');
       },
       (failure) {
@@ -211,6 +253,20 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       _tierraConfirmada &&
       _redLteStatus == 'Verde' &&
       _retornoStatus == 'Verde';
+
+  /// Qué hace el botón principal según el momento:
+  /// · equipo nuevo sin vincular → «Vincular y dar de alta» (sólo pide la tierra);
+  /// · ya vinculado → «Continuar» cuando las pruebas den verde;
+  /// · equipo que ya existía → vincular y continuar, como siempre.
+  String get _ctaLabel => _equipoNuevo && !_vinculado ? "Vincular y dar de alta el equipo" : "Continuar con cierre de instalación";
+  bool get _ctaHabilitado => _isSending ? false : (_equipoNuevo && !_vinculado ? _tierraConfirmada : _allCompleted);
+  void _onCta() {
+    if (_vinculado) {
+      Navigator.pop(context, 'device_linked');
+      return;
+    }
+    _vincularEnergizador();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -573,13 +629,13 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               )
             else ...[
               OhmGradientButton(
-                label: "Continuar con cierre de instalación",
-                onPressed: (_allCompleted && !_isSending) ? _vincularEnergizador : null,
+                label: _ctaLabel,
+                onPressed: _ctaHabilitado ? _onCta : null,
               ),
               const SizedBox(height: 12),
 
-              // Retry Button (shown if one fails)
-              if (_retornoStatus == 'Rojo') ...[
+              // Retry Button (shown if one fails, or while a just-registered device has not reported yet)
+              if (_retornoStatus == 'Rojo' || (_vinculado && !_allCompleted)) ...[
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

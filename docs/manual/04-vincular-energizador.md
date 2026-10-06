@@ -102,3 +102,13 @@ Al tocar **«Vincular»**, si el cliente **ya tiene casas** en su app OhmSafe ap
 - Si el cliente no tiene casas todavía, no se pregunta: la casa se crea sola con la dirección de la orden.
 
 No afecta el cobro: un energizador adicional en una casa existente queda en la misma suscripción de esa casa.
+
+## Equipo nuevo (desde la build 30)
+
+Si al capturar la serie la app dice **«Equipo nuevo»**, es un equipo que todavía no existe en el sistema. No hay que darlo de alta en ningún lado:
+
+1. Confirma la tierra física y toca **«Vincular y dar de alta el equipo»** (si el cliente ya tiene casas, elige a cuál va).
+2. El equipo queda creado y ligado a la cuenta del cliente. Enciéndelo y conéctalo.
+3. Cuando reporte, las pruebas de línea y batería se ponen en verde (usa **«Reintentar validación»** si aún no reporta) y entonces **«Continuar con cierre de instalación»**.
+
+Si la app dice que la serie **no tiene MAC registrada**, almacén debe capturar la MAC del equipo en su número de serie de Odoo (Inventario › Lotes/Números de serie, columna «MAC Address») antes de poder vincularlo.
