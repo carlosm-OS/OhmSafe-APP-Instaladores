@@ -11,7 +11,6 @@ import '../features/incidencias/data/incidencias_repository.dart';
 import '../features/incidencias/domain/incidencia.dart';
 import '../features/ordenes/domain/entities/orden.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
-import '../widgets/cancellation_flow.dart';
 import '../widgets/notification_bell.dart';
 
 /// Mis incidencias (tickets de Helpdesk que abrí desde la app) + botón para
@@ -163,39 +162,12 @@ class _NuevaIncidenciaScreenState extends State<NuevaIncidenciaScreen> {
       if (!mounted) return;
       r.fold((list) {
         setState(() => _ordenes = list.where((o) => o.estado != 'completo' && o.estado != 'cancelado').toList());
-        // Si hay una instalación EN CURSO, lo más probable es que la incidencia sea de esa visita.
-        // Reportarla no la reagenda: eso sólo lo hace «Cancelar en sitio» (operaciones recibe el
-        // ticket y la vuelve a agendar). Se pregunta una vez antes de llenar el formulario.
+        // La instalación EN CURSO va preseleccionada: casi siempre la incidencia es de esa visita.
+        // (La pregunta «¿reportar o cancelar?» ya se hizo en el Inicio.)
         final enCurso = _ordenes.where((o) => o.estado == 'en_curso').toList();
-        if (enCurso.length == 1) WidgetsBinding.instance.addPostFrameCallback((_) => _preguntarCancelacion(enCurso.first));
+        if (enCurso.length == 1 && _ordenId == null) _ordenId = enCurso.first.id;
       }, (_) {});
     });
-  }
-
-  Future<void> _preguntarCancelacion(Orden o) async {
-    if (!mounted) return;
-    final cancelar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('¿Se cancela la instalación de hoy?'),
-        content: Text(
-          'Tienes en curso la instalación de ${o.cliente} (${o.direccion}).\n\n'
-          'Si por mal clima, una emergencia o porque el cliente no puede, hoy no se termina, '
-          'cancélala en sitio: operaciones recibe el aviso con tu motivo y la vuelve a agendar. '
-          'Reportar una incidencia NO la reagenda.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No, sólo reportar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí, cancelar en sitio')),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    if (cancelar == true) {
-      showCancellationFlow(context, o.toTicketMap());
-    } else {
-      setState(() => _ordenId = o.id);
-    }
   }
 
   @override

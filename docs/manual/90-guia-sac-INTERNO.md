@@ -100,6 +100,7 @@ Los pagos nacen en borrador al cerrar («En revisión»). Validarlos en Compras.
 
 - Helpdesk › Reagendamientos. Etapas: **Por contactar** (recién cancelada) → **Contactado** (ya hablé con el cliente; pon la nueva fecha en Planeación) → **Reagendada** (se cierra sola al publicar) · **Cliente desistió** (cerrada a mano).
 - Desde el ticket, el campo «Intervención» abre la intervención en Planeación; desde la intervención, el chatter tiene la nota «Cancelada en sitio por el técnico».
+- **Incidencias de la app** (Helpdesk › «Incidencias de campo»): desde el 7-oct llegan igual que las cancelaciones: asignadas a operaciones (auxservicios@), con resumen legible (tipo, qué pasó, cliente con teléfono, dirección y Maps) y actividad «Atender incidencia». El cliente no recibe nada; el instalador sí sigue su ticket.
 - Si falta el equipo «Reagendamientos» en Odoo (por ejemplo en una base nueva), la app cae al mecanismo anterior: actividad «Cancelada en sitio: llamar al cliente» sobre la intervención. Se crea con `scripts/setup-odoo-reagendamientos.mjs` del backend.
 
 ## Alta de un equipo nuevo en el dashboard (antes de la instalación)

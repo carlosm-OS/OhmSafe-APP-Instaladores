@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
-import 'incidencias_screen.dart';
+import '../widgets/reportar_o_cancelar_sheet.dart';
 import 'cotizaciones_screen.dart';
 // import 'reparaciones_screen.dart'; // oculto en el MVP, ver tiles comentados abajo
 import 'profile_main_screen.dart';
@@ -191,13 +191,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       //   count: state.reemplazoCount,
                       //   onTap: () => _showComingSoon(context, "Reemplazo de equipo"),
                       // ),
+                      // Pregunta primero si es una incidencia o una cancelación en sitio
+                      // (reportar NO reagenda; cancelar sí). Carlos, 2026-10-07.
                       MenuItemTile(
                         label: "Reportar incidencias",
                         count: state.incidenciasCount,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const IncidenciasScreen()),
-                        ),
+                        onTap: () => mostrarReportarOCancelar(context),
                       ),
                       // Fase 5 (2026-09-25): el instalador cotiza en campo; la venta
                       // nace en Odoo atribuida a él y el cliente paga en el portal.
