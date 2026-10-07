@@ -2,11 +2,14 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 35 — 7 de octubre de 2026
+
+- Se retiran del Inicio, por ahora, **Mantenimientos** y **Cotizar venta** (serán de una fase 2). Quedan Instalaciones y Reportar incidencias.
+
 ## Build 34 — 7 de octubre de 2026
 
 - **«Reportar incidencias» del Inicio pregunta primero qué necesitas**: *Reportar una incidencia* (equipo dañado, riesgo, falta de material… operaciones lo recibe como ticket; no cambia tu agenda) o *Cancelar una instalación en sitio* (mal clima, el cliente no puede, emergencia: la instalación sale de tu agenda y operaciones la vuelve a agendar). Si tienes varias instalaciones pendientes, eliges cuál se cancela.
 - Al reportar una incidencia, la instalación en curso viene preseleccionada como orden relacionada.
-
 ## Build 33 — 7 de octubre de 2026
 
 - **«¿Se cancela la instalación de hoy?»**: si tienes una instalación en curso y abres «Reportar incidencia», la app te pregunta primero si lo que quieres es **cancelarla en sitio** (mal clima, emergencia, el cliente no puede). Reportar una incidencia no reagenda; cancelar en sitio sí: operaciones recibe un ticket con tu motivo y vuelve a agendar.

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import 'instalaciones_screen.dart';
 import '../widgets/reportar_o_cancelar_sheet.dart';
-import 'cotizaciones_screen.dart';
+// import 'cotizaciones_screen.dart'; // Fase 2: «Cotizar venta» oculto (2026-10-07)
 // import 'reparaciones_screen.dart'; // oculto en el MVP, ver tiles comentados abajo
 import 'profile_main_screen.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -178,14 +178,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       // ),
                       // Fase 4 (2026-09-25): los mantenimientos son intervenciones de
                       // Planificación con producto de mantenimiento; misma lista, otro filtro.
-                      MenuItemTile(
-                        label: "Mantenimientos",
-                        count: state.mantenimientosCount,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const InstalacionesScreen(tipo: 'mantenimiento', titulo: 'Mantenimientos')),
-                        ),
-                      ),
+                      // FASE 2 (Carlos, 2026-10-07): oculto por ahora; para reactivarlo basta
+                      // descomentar el tile.
+                      // MenuItemTile(
+                      //   label: "Mantenimientos",
+                      //   count: state.mantenimientosCount,
+                      //   onTap: () => Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(builder: (_) => const InstalacionesScreen(tipo: 'mantenimiento', titulo: 'Mantenimientos')),
+                      //   ),
+                      // ),
                       // MenuItemTile(
                       //   label: "Reemplazo de equipo",
                       //   count: state.reemplazoCount,
@@ -200,14 +202,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       // Fase 5 (2026-09-25): el instalador cotiza en campo; la venta
                       // nace en Odoo atribuida a él y el cliente paga en el portal.
-                      MenuItemTile(
-                        label: "Cotizar venta",
-                        count: 0,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CotizacionesScreen()),
-                        ),
-                      ),
+                      // FASE 2 (Carlos, 2026-10-07): oculto por ahora (la pantalla y el backend
+                      // siguen; descomentar el tile y el import de cotizaciones_screen.dart).
+                      // MenuItemTile(
+                      //   label: "Cotizar venta",
+                      //   count: 0,
+                      //   onTap: () => Navigator.push(
+                      //     context,
+                      //     MaterialPageRoute(builder: (_) => const CotizacionesScreen()),
+                      //   ),
+                      // ),
                       const SizedBox(height: 100), // Extra space to scroll above the bottom nav
                     ],
                     ),
