@@ -2,6 +2,11 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 33 — 7 de octubre de 2026
+
+- **«¿Se cancela la instalación de hoy?»**: si tienes una instalación en curso y abres «Reportar incidencia», la app te pregunta primero si lo que quieres es **cancelarla en sitio** (mal clima, emergencia, el cliente no puede). Reportar una incidencia no reagenda; cancelar en sitio sí: operaciones recibe un ticket con tu motivo y vuelve a agendar.
+- Las incidencias que reportas con una orden relacionada quedan ligadas a esa intervención en Odoo.
+
 ## Build 32 — 6 de octubre de 2026
 
 - **«¿Dónde va este equipo?»** reorganizada: **Casa nueva** es la primera opción (sólo escribes el nombre; la dirección es la del ticket de instalación y no se edita) y debajo, en una lista más clara, las casas que el cliente ya tiene. Viene preseleccionada la casa que coincide con la dirección; si ninguna coincide, Casa nueva.

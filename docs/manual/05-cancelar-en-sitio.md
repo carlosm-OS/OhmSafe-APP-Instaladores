@@ -42,6 +42,7 @@ Para salir sin cancelar toca la «×» de arriba.
 
 - Regresas a tu lista de Instalaciones y el servicio sale de tu agenda.
 - Aparece en tu **Historial** con la etiqueta «Cancelada», la fecha y el motivo.
-- Operaciones recibe un aviso para llamar al cliente («Operaciones llamará al cliente y la reagendará»). Al cliente no le llega aviso automático: operaciones le llama.
+- Operaciones recibe un **ticket «Reagendar»** con tu motivo, tus notas, la foto y el teléfono del cliente, y le llama para volver a agendar. Al cliente no le llega aviso automático: operaciones le llama.
+- **Reportar una incidencia no reagenda nada.** Si tienes una instalación en curso y abres «Reportar incidencia», la app te pregunta primero si lo que quieres es cancelarla en sitio.
 - Si se reagenda, te llega una notificación nueva con la fecha, como cualquier asignación.
 - Lo que ya habías registrado (llegada, inspección, foto) queda guardado como constancia.
