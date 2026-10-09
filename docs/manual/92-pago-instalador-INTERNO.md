@@ -4,7 +4,9 @@
 
 ## En una frase
 
-Cada servicio cerrado genera una **factura de proveedor en borrador** a nombre del instalador (Compras). Operaciones revisa el importe, la **valida** y contabilidad **registra el pago**. Nada se paga solo.
+Cada servicio cerrado genera una **factura de proveedor en borrador y en $0** a nombre del instalador. Operaciones (Lily, auxservicios@) le pone **el monto que negoció con el instalador**, la **confirma** y, al transferir, **registra el pago**. Nada se paga solo.
+
+> **Operación vigente (decisión de Carlos, 8 de octubre de 2026):** durante los próximos meses se opera «en maqueta»: **no hay tabulador ni costos configurados** en los productos `PAGO-*`. El importe de cada servicio lo captura a mano operaciones en la factura, según lo acordado con cada instalador. No cambies el *Costo* de los productos `PAGO-*`.
 
 ## Cómo se genera el pago (automático, al cerrar desde la app)
 
@@ -15,7 +17,7 @@ Cuando el instalador cierra la intervención en la app (firma del cliente), el s
 | Factura de proveedor **en borrador** (`Factura de proveedor`, tipo compra) | Contabilidad › Proveedores › Facturas (o Compras › Facturas de proveedor) |
 | Proveedor | El **contacto del instalador** (el mismo de Contactos › Instaladores externos) |
 | Línea | Producto «Pago a instalador — *Instalación / Reparación / Mantenimiento / Reemplazo de equipo*» (`PAGO-INSTALACION`, `PAGO-REPARACION`, `PAGO-MANTENIMIENTO`, `PAGO-REEMPLAZO`), cantidad 1 |
-| Importe | El **costo** del producto (campo *Costo* en la ficha del producto). **Hoy los cuatro están en $0**: hasta que OhmSafe fije el tabulador, la factura nace en $0 y lleva la nota interna «Sin tarifa configurada: fija el costo del producto … y corrige el importe antes de validar» |
+| Importe | **$0**: los productos `PAGO-*` no tienen costo a propósito (operación en maqueta). La factura lleva la nota interna «Sin tarifa configurada…»; **operaciones captura el monto negociado** antes de confirmar |
 | Referencia | «Intervención i*N* · S00*xxx*» (número de intervención y orden de venta) |
 | Enlace | En la intervención (Planificación) queda el id de la factura en la propiedad «Pago al instalador (factura proveedor id)» |
 
@@ -23,12 +25,12 @@ Regla: **un pago por línea de venta**, aunque la instalación tome varios días
 
 ## Paso a paso para pagar
 
-1. **Fijar el tabulador una sola vez** (si aún está en $0): Inventario o Compras › Productos › buscar `PAGO-` › abrir cada producto › campo **Costo** › guardar. Desde ese momento las facturas nacen con ese importe.
-2. **Revisar la factura**: Contabilidad › Proveedores › Facturas › filtro *Borrador* › buscar por la referencia «Intervención i…» o por el nombre del instalador. Comprueba proveedor, producto, importe y, si aplica, agrega líneas extra (viáticos, material que puso él) con su comprobante.
+1. **Buscar la factura**: Contabilidad › Proveedores › Facturas › filtro *Borrador* › buscar por la referencia «Intervención i… · S00…» o por el nombre del instalador.
+2. **Poner el monto negociado**: en la línea «Pago a instalador — Instalación» (o Reparación / Mantenimiento / Reemplazo) cambia el **Precio** de $0 al monto acordado con el instalador. Si hubo extras (viáticos, material que puso él), agrégalos como líneas adicionales con su comprobante.
 3. **Fecha de factura** = fecha de cierre del servicio; **fecha de vencimiento** según el acuerdo con el instalador.
 4. **Confirmar** (botón *Confirmar*). Ya cuenta como cuenta por pagar.
 5. **Registrar pago**: botón *Registrar pago* › diario (banco con el que se transfiere) › fecha › *Crear pago*. Si pagas varias facturas del mismo instalador en una transferencia, selecciónalas en la lista y usa *Registrar pago* una sola vez.
-6. El instalador ve el movimiento en la app, en **Mis pagos** (lee las facturas de proveedor a su nombre y su estado: borrador / confirmada / pagada).
+6. El instalador ve el movimiento en la app, en **Mis pagos**: «$0 · En revisión» mientras la factura esté en borrador; después, el monto y si ya está pagada.
 
 ## Cuando el servicio NO se cerró desde la app
 
@@ -37,7 +39,7 @@ Pasa cuando la instalación sí se hizo pero la intervención se cerró a mano e
 1. Contabilidad › Proveedores › Facturas › **Nuevo**.
 2. **Proveedor**: el contacto del instalador.
 3. **Referencia de factura**: «Intervención i*N* · S00*xxx*» (así se encuentra igual que las automáticas y la app la muestra en Mis pagos).
-4. **Línea**: producto `PAGO-INSTALACION` (o el que corresponda), cantidad 1, precio = tabulador.
+4. **Línea**: producto `PAGO-INSTALACION` (o el que corresponda), cantidad 1, precio = el monto negociado con el instalador.
 5. Confirmar y registrar pago como arriba.
 6. Opcional, para dejar rastro: en la intervención (Planificación) escribe una nota en el chatter con el número de la factura.
 
@@ -53,6 +55,6 @@ Pasa cuando la instalación sí se hizo pero la intervención se cerró a mano e
 
 ## Lo que todavía no existe
 
-- **Tabulador**: los costos `PAGO-*` siguen en $0; lo fija Carlos (opción A manual por servicio / opción B tabulador por concepto, hoja de cálculo enviada a Operaciones el 2026-09-27).
+- **Tabulador**: por decisión del 8 de octubre de 2026 **no se configura** por ahora; se opera a mano unos meses y queda por explorar (opción A manual por servicio / opción B tabulador por concepto, hoja de cálculo enviada a Operaciones el 2026-09-27).
 - **Comisión por venta** del instalador (código de venta `OHMS-…`): no está implementada; se pagaría también como factura de proveedor cuando se defina.
 - El instalador **no sube factura CFDI** desde la app; si factura a OhmSafe, el PDF/XML se adjunta a la factura de proveedor en Odoo.
