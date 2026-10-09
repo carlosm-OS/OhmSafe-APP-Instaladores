@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 36 — 9 de octubre de 2026
+
+- **Metros a instalar** ahora muestra el metraje real que mediste en la inspección (antes, si volvías a entrar a la orden, mostraba el metraje agendado).
+
 ## Build 35 — 7 de octubre de 2026
 
 - Se retiran del Inicio, por ahora, **Mantenimientos** y **Cotizar venta** (serán de una fase 2). Quedan Instalaciones y Reportar incidencias.
