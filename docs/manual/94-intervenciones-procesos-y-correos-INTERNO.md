@@ -50,9 +50,15 @@ La ventana rápida que aparece al dar clic en la agenda (vista de barras) sirve 
 2. Botón **«Servicios»** (arriba de la ficha): lista sus intervenciones.
 3. Da clic en la intervención: ficha completa con el historial a la derecha.
 
-### Atajo
+### El número de la intervención
 
-Si conoces el número de la intervención: `https://ohmsafe2.odoo.com/odoo/planning/NÚMERO`.
+Cada intervención tiene un número con la forma **«i45»**, el mismo que usan la app del instalador y el equipo de sistemas. Se ve en:
+
+- la **tarjeta** que aparece al dar clic en una barra de la agenda (primera línea, con el icono **#**);
+- la **ficha completa**, arriba: «Intervención i45»;
+- la **vista Lista**, en la primera columna «Núm.».
+
+Para encontrar una por número, escribe **i45** en la barra de búsqueda de Planificación y elige «Buscar Número de intervención». También puedes abrirla directo con `https://ohmsafe2.odoo.com/odoo/planning/45` (el número sin la «i»).
 
 ## Cómo leer el historial
 
