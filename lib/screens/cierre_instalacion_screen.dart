@@ -75,6 +75,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   // hoy el ticket no trae los addons contratados.
   String? _camaras;                      // 'instaladas' | 'no_aplica'
   String? _sensores;                     // 'instaladas' | 'no_aplica'
+  String? _sirena;                       // 'instaladas' | 'no_aplica' — sólo el check; telemetría en el futuro (Carlos, 2026-10-09)
   bool _entregaConAnomalias = false;     // false = todo funcional; true = hubo anomalías
   bool _anomFisica = false;              // Daño físico
   bool _anomFuncionamiento = false;      // Falla de funcionamiento
@@ -365,6 +366,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         "comentarios": _step2CommentsController.text.trim(),
         if (_camaras != null) "camaras": _camaras,
         if (_sensores != null) "sensores": _sensores,
+        if (_sirena != null) "sirena": _sirena,
       },
       "firmaBase64": firmaBase64,
       // Posición al cerrar: el backend la compara con la de la llegada.
@@ -485,7 +487,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (!_controlEntregado) return false;
     // Y responder por los addons: instalados o no aplica. Sin respuesta no
     // hay forma de saber si faltó algo del servicio.
-    if (_camaras == null || _sensores == null) return false;
+    if (_camaras == null || _sensores == null || _sirena == null) return false;
 
     // Si reporta anomalías, debe marcar al menos un tipo o describirlas.
     if (_entregaConAnomalias) {
@@ -539,8 +541,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         setState(() {
           _step2Error = !_controlEntregado
             ? "Confirma que entregaste el control remoto funcional."
-            : (_camaras == null || _sensores == null)
-                ? "Indica si instalaste cámaras y sensores, o marca «No aplica»."
+            : (_camaras == null || _sensores == null || _sirena == null)
+                ? "Indica si instalaste cámaras, sensores y sirena, o marca «No aplica»."
                 : "Indica el tipo de anomalía o descríbela en los comentarios.";
         });
         return;
@@ -1256,7 +1258,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 20),
 
-        // Addons del servicio: cámaras y sensores
+        // Addons del servicio: cámaras, sensores y sirena
         Text(
           "ADDONS DEL SERVICIO",
           style: TextStyle(
@@ -1284,6 +1286,17 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           value: _sensores,
           onChanged: (v) => setState(() {
             _sensores = v;
+            _step2Error = null;
+          }),
+        ),
+        const SizedBox(height: 8),
+        _addonRow(
+          theme,
+          brandOrange,
+          label: "Instalé y dejé funcionando sirena",
+          value: _sirena,
+          onChanged: (v) => setState(() {
+            _sirena = v;
             _step2Error = null;
           }),
         ),

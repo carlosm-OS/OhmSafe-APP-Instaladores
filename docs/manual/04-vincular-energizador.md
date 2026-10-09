@@ -6,6 +6,10 @@ Este es el paso 4 de la instalación. Sirve para tres cosas:
 - comprobar con datos reales del equipo que funciona,
 - dejarlo en la cuenta del cliente para que lo vea en su app OhmSafe.
 
+## Escribir la serie
+
+Si no puedes escanear el QR, escribe la serie de la etiqueta. **Los guiones se ponen solos**: escribe `OSOBV010026` y queda `OS-OBV01-0026`. Si es un energizador OS-OBV01, basta con escribir el número (`26`) y la app completa la serie al pulsar «Vincular».
+
 ## Antes de empezar
 
 - El energizador debe estar instalado, encendido y conectado a la luz.
@@ -113,6 +117,10 @@ Si al capturar la serie la app dice **«Equipo nuevo»**, es un equipo que todav
 
 Si la app dice que la serie **no tiene MAC registrada**, almacén debe capturar la MAC del equipo en su número de serie de Odoo (Inventario › Lotes/Números de serie, columna «MAC Address») antes de poder vincularlo.
 
+## Desde la build 37: al vincular, la app pasa sola al cierre
+
+Al tocar **«Vincular energizador»** (o «Vincular y dar de alta el equipo») y quedar vinculado, verás el aviso «Vinculación exitosa · casa «…»» y la app abre de inmediato el **Cierre de instalación** (paso 5). Ya no hay que tocar «Continuar». Si cancelas el cierre, el paso 4 queda marcado como hecho y puedes abrir el cierre desde la lista de pasos.
+
 ## Desde la build 31: sin validaciones por ahora
 
 Las pruebas de **batería auxiliar**, **conexión a línea** y la casilla de **tierra física** se retiraron temporalmente (los equipos actuales no reportan esos datos de forma confiable). Hoy la pantalla hace esto:
@@ -122,3 +130,14 @@ Las pruebas de **batería auxiliar**, **conexión a línea** y la casilla de **t
 3. Verás **«Vinculación exitosa»** con la ficha; toca **«Continuar con cierre de instalación»**.
 
 Las secciones anteriores sobre pruebas en verde/rojo aplican a builds anteriores y se reactivarán cuando vuelvan las validaciones.
+
+## «¿Dónde va este equipo?»
+
+Aparece cuando el cliente ya tiene casas con algún equipo (energizador, cámaras, sensores…). Arriba de las opciones ves **qué se vendió**: «Venta S00… · Servicio nuevo: <plan> · 1 Ohmbox» (una suscripción nueva, que normalmente va en casa nueva) o «Equipo adicional · …» (que normalmente se suma a una casa que ya existe). Elige:
+
+- **Casa nueva** (primera opción): escribe sólo el nombre. Verás la **dirección de la compra** (la de la venta) y **dónde estás tú ahora**. Si estás lejos de la dirección de la compra, la app te lo marca en rojo: confírmalo con el cliente antes de continuar.
+- **Una casa que el cliente ya tiene**: si este energizador es para una propiedad donde ya hay equipos.
+
+Si el cliente no tiene ninguna casa con equipos (primera compra), la app no pregunta: crea la casa con la dirección de la compra.
+
+Si tu elección no cuadra con lo vendido (servicio nuevo en una casa que ya existe, o equipo adicional en casa nueva), la app te lo avisa; puedes continuar, tú decides. Cuando la venta es un servicio nuevo, al vincular la **suscripción de esa venta queda ligada a la casa que elegiste**; el mensaje de «Vinculación exitosa» te dice qué pasó (ligada, ya estaba ligada, o quedó pendiente para que operaciones la ligue desde el dashboard).

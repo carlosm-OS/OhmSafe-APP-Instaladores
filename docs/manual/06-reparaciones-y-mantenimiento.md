@@ -2,7 +2,7 @@
 
 ## Mantenimientos
 
-En el inicio toca «Mantenimientos». Verás tus mantenimientos asignados con el mismo calendario, la misma tarjeta y los mismos botones que en Instalaciones (ver [02](02-inicio-y-agenda.md) y [03](03-instalacion-paso-a-paso.md)). El título de la pantalla es «Mantenimientos».
+Fase 2: el botón «Mantenimientos» se retiró del Inicio en la build 34. Cuando vuelva, en el inicio tocarás «Mantenimientos» y verás tus mantenimientos asignados con el mismo calendario, la misma tarjeta y los mismos botones que en Instalaciones (ver [02](02-inicio-y-agenda.md) y [03](03-instalacion-paso-a-paso.md)). El título de la pantalla es «Mantenimientos».
 
 Próximamente: pasos y hoja de trabajo propios del mantenimiento.
 

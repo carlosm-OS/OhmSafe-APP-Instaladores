@@ -349,6 +349,17 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   bool _step3Completed = false;
   bool _step4Completed = false;
   bool _step5Completed = false;
+
+  /// Abre el cierre (paso 5 en instalaciones, 4 en reparaciones) y marca el paso al terminar.
+  Future<void> _abrirCierre(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CierreInstalacionScreen(ticket: widget.ticket)),
+    );
+    if (result == 'cierre_completed' && mounted) {
+      setState(() => _step5Completed = true);
+    }
+  }
   bool _isSubmitting = false;
 
   /// El paso 3 es una variante: instalación de cerca por defecto, o
@@ -738,6 +749,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                     setState(() {
                                       _step4Completed = true;
                                     });
+                                    // Sin volver a tocar: vinculado → cierre (Carlos, 2026-10-09).
+                                    if (context.mounted) await _abrirCierre(context);
                                   }
                                 }
                               : null,
@@ -752,19 +765,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         isActive: (_isReparacion ? _step3Completed : _step4Completed) && !_step5Completed,
                         isCompleted: _step5Completed,
                         onTap: ((_isReparacion ? _step3Completed : _step4Completed) && !_step5Completed)
-                            ? () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => CierreInstalacionScreen(ticket: widget.ticket),
-                                  ),
-                                );
-                                if (result == 'cierre_completed') {
-                                  setState(() {
-                                    _step5Completed = true;
-                                  });
-                                }
-                              }
+                            ? () => _abrirCierre(context)
                             : null,
                       ),
 

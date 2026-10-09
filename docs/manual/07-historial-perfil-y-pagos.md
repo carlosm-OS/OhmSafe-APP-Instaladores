@@ -53,6 +53,8 @@ Tus datos y tu foto solo los puede cambiar OhmSafe. «Si algún dato está mal, 
 
 ## Cotizar venta
 
+Fase 2: el botón «Cotizar venta» se retiró del Inicio en la build 34; esta sección describe cómo funcionará cuando vuelva.
+
 Si un vecino o conocido quiere una cerca, cotízala desde la app. La venta queda a tu nombre.
 
 1. En el inicio toca «Cotizar venta». Verás tus cotizaciones anteriores.

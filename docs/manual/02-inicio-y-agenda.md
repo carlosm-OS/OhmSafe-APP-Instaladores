@@ -7,9 +7,9 @@ Arriba ves el logo, el botón de modo claro/oscuro (sol o luna) y la campana de 
 Debajo de «SERVICIO» están las secciones:
 
 - «Instalaciones» — tus instalaciones asignadas.
-- «Mantenimientos» — tus mantenimientos asignados (ver [06](06-reparaciones-y-mantenimiento.md)).
-- «Reportar incidencias» — avisar a operaciones de un problema (ver [06](06-reparaciones-y-mantenimiento.md)).
-- «Cotizar venta» — cotizarle a un cliente nuevo (ver [07](07-historial-perfil-y-pagos.md)).
+- «Reportar incidencias» — avisar a operaciones de un problema o cancelar una instalación en sitio (ver [05](05-cancelar-en-sitio.md) y [06](06-reparaciones-y-mantenimiento.md)).
+
+«Mantenimientos» y «Cotizar venta» se retiraron del Inicio en la build 34 (serán de una fase 2).
 
 Jala la pantalla hacia abajo para actualizar contadores, foto y notificaciones.
 

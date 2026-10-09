@@ -26,6 +26,33 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
     'Letrero Precaución': 3,
   };
 
+  /// Metros que manda el servidor (el real de la inspección si ya se midió; si no, el agendado).
+  /// La copia de la orden que trae la pantalla puede venir de la lista cargada ANTES de la
+  /// inspección (bug visto con i45: se midieron 100 m y aquí salían los 90 agendados).
+  String? _metrosServidor;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarMetros();
+  }
+
+  Future<void> _cargarMetros() async {
+    final id = (widget.ticket['id'] ?? widget.ticket['ticket_id'] ?? '').toString();
+    if (id.isEmpty) return;
+    final r = await sl.get<OrdenesRepository>().getOrden(id);
+    if (!mounted) return;
+    r.fold((orden) {
+      final m = orden.metraje.trim();
+      if (m.isEmpty || m == '0') return;
+      final texto = RegExp(r'^[0-9.,]+$').hasMatch(m) ? '$m m' : m;
+      setState(() => _metrosServidor = texto);
+      // Que los pasos siguientes (vincular, cierre) usen el mismo dato.
+      final details = widget.ticket['details'];
+      if (details is Map) details['metraje'] = texto;
+    }, (_) {});
+  }
+
   void _increment(String material) {
     setState(() {
       _materials[material] = (_materials[material] ?? 0) + 1;
@@ -222,7 +249,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                                   ),
                                 ),
                                 Text(
-                                  details["metraje"] ?? "0m",
+                                  _metrosServidor ?? details["metraje"] ?? "0m",
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),

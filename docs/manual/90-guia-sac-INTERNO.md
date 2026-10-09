@@ -93,7 +93,15 @@ Los pagos nacen en borrador al cerrar («En revisión»). Validarlos en Compras.
 
 1. Marca la intervención como cancelada (`op_cancelada`, motivo y hora) y deja nota «Cancelada en sitio por el técnico» con motivo, técnico y ubicación; la foto queda adjunta.
 2. Si no había llegada, la regresa a borrador sin fecha. Si ya había iniciado, crea una **intervención nueva** «por planificar» sobre la misma línea de venta (hereda los datos de la llamada con el cliente) y la iniciada se conserva acortada a lo realmente ocupado.
-3. Abre al responsable de operaciones la actividad «Cancelada en sitio: llamar al cliente». Al cliente no le llega aviso automático.
+3. Abre un **ticket en Helpdesk › «Reagendamientos»** («Reagendar — cliente — motivo»), asignado a operaciones (auxservicios@), con contacto = cliente, teléfono, dirección, motivo, notas del técnico, fecha original, técnico, ubicación, la foto adjunta y la liga a la intervención (campo «Intervención»). Trae la actividad «Llamar al cliente para reagendar» (vence el mismo día) y manda un mensaje con el resumen a operaciones y a los seguidores (Santiago, Carlos). Al cliente no le llega aviso automático.
+4. Cuando operaciones vuelve a **publicar** la intervención con fecha e instalador, el ticket pasa solo a **«Reagendada»** y su actividad se cierra. Si el cliente desiste: mover el ticket a «Cliente desistió» y cancelar la venta.
+
+### Cómo trabaja operaciones la cola «Reagendamientos»
+
+- Helpdesk › Reagendamientos. Etapas: **Por contactar** (recién cancelada) → **Contactado** (ya hablé con el cliente; pon la nueva fecha en Planeación) → **Reagendada** (se cierra sola al publicar) · **Cliente desistió** (cerrada a mano).
+- Desde el ticket, el campo «Intervención» abre la intervención en Planeación; desde la intervención, el chatter tiene la nota «Cancelada en sitio por el técnico».
+- **Incidencias de la app** (Helpdesk › «Incidencias de campo»): desde el 7-oct llegan igual que las cancelaciones: asignadas a operaciones (auxservicios@), con resumen legible (tipo, qué pasó, cliente con teléfono, dirección y Maps) y actividad «Atender incidencia». El cliente no recibe nada; el instalador sí sigue su ticket.
+- Si falta el equipo «Reagendamientos» en Odoo (por ejemplo en una base nueva), la app cae al mecanismo anterior: actividad «Cancelada en sitio: llamar al cliente» sobre la intervención. Se crea con `scripts/setup-odoo-reagendamientos.mjs` del backend.
 
 ## Alta de un equipo nuevo en el dashboard (antes de la instalación)
 

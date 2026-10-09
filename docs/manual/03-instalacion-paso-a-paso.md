@@ -86,6 +86,7 @@ Si falta alguna foto: «Por favor, toma las 4 fotografías obligatorias.»
 2. En «ADDONS DEL SERVICIO» responde las dos:
    - «Instalé y dejé funcionando cámaras»: «Instalé y funciona» o «No aplica».
    - «Instalé y dejé funcionando sensores»: «Instalé y funciona» o «No aplica».
+   - «Instalé y dejé funcionando sirena»: «Instalé y funciona» o «No aplica» (por ahora es tu confirmación; más adelante el equipo lo validará solo).
 3. En «ESTADO DE LA ENTREGA» elige «Todo funcional» o «Con anomalías».
    - Con anomalías: marca el tipo («Daño físico en el equipo», «Falla de funcionamiento», «El control remoto no funcionó») o descríbelo en «DESCRIPCIÓN DE LA ANOMALÍA».
 4. Toca «Siguiente».
@@ -93,7 +94,7 @@ Si falta alguna foto: «Por favor, toma las 4 fotografías obligatorias.»
 No se pide foto ni número de serie en esta parte. Mensajes si falta algo:
 
 - «Confirma que entregaste el control remoto funcional.»
-- «Indica si instalaste cámaras y sensores, o marca «No aplica».»
+- «Indica si instalaste cámaras, sensores y sirena, o marca «No aplica».»
 - «Indica el tipo de anomalía o descríbela en los comentarios.»
 
 ### 5.3 Firma

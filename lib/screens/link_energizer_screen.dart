@@ -1,4 +1,5 @@
 import 'escanear_serie_screen.dart';
+import '../core/utils/serie_formato.dart';
 import '../core/error/failures.dart';
 import 'dart:async';
 import '../widgets/notification_bell.dart';
@@ -85,7 +86,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// Diagnóstico REAL por número de serie: lee la telemetría del equipo y pinta
   /// cada prueba. La tierra física no tiene telemetría → la confirma el instalador.
   Future<void> _startValidation(String serie) async {
-    final s = serie.trim();
+    final s = normalizarSerie(serie);
+    if (s.isNotEmpty && s != _macController.text) _macController.text = s;
     if (s.isEmpty) {
       setState(() => _currentState = LinkState.input);
       _triggerBanner(false, "Ingresa o escanea el número de serie del equipo");
@@ -214,17 +216,26 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           );
           if (!mounted) return;
         }
-        // Vinculado: se queda en la pantalla con «Vinculación exitosa» y la ficha del
-        // equipo; el botón pasa a «Continuar». La ficha se refresca por si el equipo
-        // acaba de darse de alta (serie, MAC, último reporte).
-        final casa = (dashboard['casa'] as Map?)?['nombre']?.toString();
+        // Vinculado: la app avanza sola al cierre (Carlos, 2026-10-09; hasta la build 36 se
+        // quedaba aquí con el botón «Continuar» y parecía que no había pasado nada). El
+        // resultado se muestra en un aviso sobre la pantalla de pasos.
+        final casaMap = (dashboard['casa'] as Map?)?.cast<String, dynamic>();
+        final casa = casaMap?['nombre']?.toString();
+        // Qué pasó con la suscripción de la venta al elegir casa (servicio nuevo): se dice tal cual.
+        final suscripcion = (casaMap?['suscripcion'] as Map?)?['detalle']?.toString();
         setState(() {
           _vinculado = true;
           _equipoNuevo = false;
           _isSending = false;
         });
-        _triggerBanner(true, casa != null ? "Vinculación exitosa · casa «$casa»" : "Vinculación exitosa");
-        await _refrescarFicha(serie);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text([
+            casa != null ? "Vinculación exitosa · casa «$casa»" : "Vinculación exitosa",
+            if (suscripcion != null && suscripcion.isNotEmpty) suscripcion,
+          ].join('\n')),
+          duration: const Duration(seconds: 5),
+        ));
+        Navigator.pop(context, 'device_linked');
       },
       (failure) {
         setState(() => _isSending = false);
@@ -244,8 +255,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     }, (_) {});
   }
 
-  /// Botón principal: primero «Vincular» (si el equipo es nuevo, eso lo da de alta);
-  /// una vez vinculado, «Continuar con cierre de instalación».
+  /// Botón principal: «Vincular» (si el equipo es nuevo, eso lo da de alta). Al vincular la
+  /// pantalla se cierra sola; «Continuar» sólo queda por si se regresa a ella ya vinculado.
   String get _ctaLabel => _vinculado
       ? "Continuar con cierre de instalación"
       : (_equipoNuevo ? "Vincular y dar de alta el equipo" : "Vincular energizador");
@@ -461,6 +472,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             TextField(
               controller: _macController,
               textCapitalization: TextCapitalization.characters,
+              // Los guiones se ponen solos (OSOBV010026 → OS-OBV01-0026); basta el número (26).
+              inputFormatters: [SerieInputFormatter()],
+              autocorrect: false,
+              enableSuggestions: false,
               textInputAction: TextInputAction.done,
               onSubmitted: (v) => _startValidation(v),
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
@@ -469,7 +484,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 labelStyle: TextStyle(
                   color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 ),
-                hintText: "Ej: OS-OBV01-0001 (o escanéalo del QR)",
+                hintText: "Ej: 26 u OS-OBV01-0026 (o escanéalo del QR)",
                 filled: true,
                 fillColor: ohm.surfaceContainer,
                 border: OutlineInputBorder(
