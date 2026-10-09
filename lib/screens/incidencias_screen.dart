@@ -160,7 +160,13 @@ class _NuevaIncidenciaScreenState extends State<NuevaIncidenciaScreen> {
     super.initState();
     sl.get<OrdenesRepository>().getOrdenes(tipo: 'instalacion').then((r) {
       if (!mounted) return;
-      r.fold((list) => setState(() => _ordenes = list.where((o) => o.estado != 'completo' && o.estado != 'cancelado').toList()), (_) {});
+      r.fold((list) {
+        setState(() => _ordenes = list.where((o) => o.estado != 'completo' && o.estado != 'cancelado').toList());
+        // La instalación EN CURSO va preseleccionada: casi siempre la incidencia es de esa visita.
+        // (La pregunta «¿reportar o cancelar?» ya se hizo en el Inicio.)
+        final enCurso = _ordenes.where((o) => o.estado == 'en_curso').toList();
+        if (enCurso.length == 1 && _ordenId == null) _ordenId = enCurso.first.id;
+      }, (_) {});
     });
   }
 

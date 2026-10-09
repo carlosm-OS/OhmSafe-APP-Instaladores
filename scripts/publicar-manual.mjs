@@ -128,9 +128,12 @@ async function odoo() {
   return (model, method, a = [], kw = {}) => rpc('object', 'execute_kw', [ODOO_DB, uid, ODOO_API_KEY, model, method, a, kw]);
 }
 
-async function upsert(x, nombre, vals, parentId) {
+async function upsert(x, nombre, vals, parentId, alias) {
+  // Las raíces se buscan también por `alias` (ilike): si alguien las renombra en Odoo (la interna
+  // pasó a «Manual Asignaciones… — Guía SAC (interno)» el 2026-10-06) no se crea una raíz duplicada.
   const dom = [['name', '=', nombre], ['parent_id', '=', parentId || false]];
-  const [ya] = await x('knowledge.article', 'search_read', [dom], { fields: ['id'], limit: 1 });
+  let [ya] = await x('knowledge.article', 'search_read', [dom], { fields: ['id'], limit: 1 });
+  if (!ya && alias) [ya] = await x('knowledge.article', 'search_read', [[['name', 'ilike', alias], ['parent_id', '=', false]]], { fields: ['id'], order: 'id asc', limit: 1 });
   if (ya) { await x('knowledge.article', 'write', [[ya.id], vals]); return ya.id; }
   return x('knowledge.article', 'create', [{ name: nombre, ...(parentId ? { parent_id: parentId } : {}), ...vals }]);
 }
@@ -147,8 +150,8 @@ async function main() {
   const x = await odoo();
   const readme = arts.find((a) => a.readme);
   // Raíz pública: su cuerpo es el README (índice).
-  const raiz = await upsert(x, RAIZ_PUBLICA, { body: readme ? readme.html : '<p></p>', internal_permission: 'write', is_published: true }, null);
-  const interna = await upsert(x, RAIZ_INTERNA, { body: '<p>Uso interno de soporte y SAC. No se publica en la web.</p>', internal_permission: 'write', is_published: false }, null);
+  const raiz = await upsert(x, RAIZ_PUBLICA, { body: readme ? readme.html : '<p></p>', internal_permission: 'write', is_published: true }, null, 'Manual App OHMSAFE INSTALLER');
+  const interna = await upsert(x, RAIZ_INTERNA, { body: '<p>Uso interno de soporte y SAC. No se publica en la web.</p>', internal_permission: 'write', is_published: false }, null, 'Guía SAC (interno)');
   let seq = 10;
   for (const a of arts.filter((y) => !y.readme)) {
     const id = await upsert(x, a.titulo, { body: a.html, sequence: seq, is_published: !a.interno }, a.interno ? interna : raiz);
