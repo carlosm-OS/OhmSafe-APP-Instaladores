@@ -71,6 +71,26 @@ class _DestinoSheetState extends State<_DestinoSheet> {
 
   bool get _listo => _seleccion != _kNueva || _nombre.text.trim().isNotEmpty;
 
+  /// Aviso (título, texto) cuando la elección no cuadra con lo vendido. No bloquea: el usuario decide.
+  (String, String)? get _avisoDestino {
+    final v = widget.opciones.venta;
+    if (v == null) return null;
+    if (v.esServicioNuevo && _seleccion != _kNueva) {
+      final casa = widget.opciones.casas.where((c) => c.id == _seleccion).map((c) => c.nombre).firstOrNull ?? 'esa casa';
+      return (
+        'Esta venta es un servicio nuevo',
+        'Normalmente un plan nuevo va en una casa nueva. Si lo sumas a «$casa», la suscripción de ${v.nombre} se ligará a esa casa (si ya tiene una, quedará pendiente para operaciones). Confírmalo con el cliente.',
+      );
+    }
+    if (!v.esServicioNuevo && _seleccion == _kNueva) {
+      return (
+        'Esta venta es equipo adicional',
+        'Normalmente se suma a una casa que el cliente ya tiene. Elige casa nueva sólo si el equipo va en otra propiedad.',
+      );
+    }
+    return null;
+  }
+
   void _confirmar() {
     if (!_listo) return;
     Navigator.pop(
@@ -101,6 +121,16 @@ class _DestinoSheetState extends State<_DestinoSheet> {
               'Elige si es una casa nueva (con la dirección de la compra) o se suma a una casa que el cliente ya tiene.',
               style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
             ),
+            if (o.venta != null) ...[
+              const SizedBox(height: 10),
+              // Qué se vendió: con esto a la vista el instalador decide (servicio nuevo → casa nueva; equipo adicional → se suma).
+              _Aviso(
+                icono: o.venta!.esServicioNuevo ? Icons.add_home_outlined : Icons.add_box_outlined,
+                titulo: 'Venta ${o.venta!.nombre}',
+                texto: o.venta!.resumen,
+                tono: _Tono.info,
+              ),
+            ],
             const SizedBox(height: 14),
 
             // 1) Casa nueva: primera opción. Nombre editable; dirección = la del ticket, sólo lectura.
@@ -176,6 +206,10 @@ class _DestinoSheetState extends State<_DestinoSheet> {
                 ),
                 const SizedBox(height: 8),
               ],
+            ],
+            if (_avisoDestino != null) ...[
+              const SizedBox(height: 4),
+              _Aviso(icono: Icons.warning_amber_rounded, titulo: _avisoDestino!.$1, texto: _avisoDestino!.$2, tono: _Tono.alerta),
             ],
             const SizedBox(height: 12),
             Row(
@@ -292,6 +326,49 @@ class _Dato extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+enum _Tono { info, alerta }
+
+/// Tarjeta de contexto («Venta S00255 · Servicio nuevo…») o de aviso (elección que no cuadra con lo vendido).
+class _Aviso extends StatelessWidget {
+  const _Aviso({required this.icono, required this.titulo, required this.texto, required this.tono});
+  final IconData icono;
+  final String titulo;
+  final String texto;
+  final _Tono tono;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final color = tono == _Tono.alerta ? cs.error : cs.primary;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icono, size: 20, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titulo, style: theme.textTheme.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(texto, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurface)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

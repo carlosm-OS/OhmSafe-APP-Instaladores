@@ -27,8 +27,42 @@ class CasaCliente {
   }
 }
 
+/// Qué se vendió en la venta de la intervención (backend `venta` de `GET /ordenes/:id/casas`, 2026-10-09):
+/// un servicio nuevo (plan) va normalmente en una casa nueva; el equipo adicional se suma a una casa.
+class VentaResumen {
+  const VentaResumen({required this.nombre, required this.esServicioNuevo, this.plan, this.equipos = const []});
+  final String nombre;
+  final bool esServicioNuevo;
+  final String? plan;
+  final List<({String nombre, int cantidad})> equipos;
+
+  /// «Servicio nuevo: Plan Hogar Seguro - Mensual · 1 Ohmbox» / «Equipo adicional · 2 Ohmbox».
+  String get resumen {
+    final cabeza = esServicioNuevo ? 'Servicio nuevo${plan != null ? ': $plan' : ''}' : 'Equipo adicional';
+    final lista = equipos.map((e) => '${e.cantidad} ${e.nombre}').join(', ');
+    return lista.isEmpty ? cabeza : '$cabeza · $lista';
+  }
+
+  static VentaResumen? fromJson(Object? j) {
+    if (j is! Map) return null;
+    final m = j.cast<String, dynamic>();
+    return VentaResumen(
+      nombre: (m['nombre'] ?? '').toString(),
+      esServicioNuevo: m['esServicioNuevo'] == true,
+      plan: m['plan']?.toString(),
+      equipos: ((m['equipos'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => (nombre: (e['nombre'] ?? '').toString(), cantidad: (e['cantidad'] as num?)?.toInt() ?? 0))
+          .toList(),
+    );
+  }
+}
+
 class OpcionesDestino {
-  const OpcionesDestino({required this.casas, this.sugerida, required this.nombreNueva, required this.direccionNueva, this.ventaNueva, this.latNueva, this.lngNueva});
+  const OpcionesDestino({required this.casas, this.sugerida, required this.nombreNueva, required this.direccionNueva, this.ventaNueva, this.latNueva, this.lngNueva, this.venta});
+
+  /// Qué se vendió (null con un backend anterior o una intervención sin venta).
+  final VentaResumen? venta;
   final List<CasaCliente> casas;
   final String? sugerida;
   final String nombreNueva;
@@ -67,6 +101,7 @@ class OpcionesDestino {
       ventaNueva: nueva['venta']?.toString(),
       latNueva: ((nueva['coordenadas'] as Map?)?['lat'] as num?)?.toDouble(),
       lngNueva: ((nueva['coordenadas'] as Map?)?['lng'] as num?)?.toDouble(),
+      venta: VentaResumen.fromJson(j['venta']),
     );
   }
 }

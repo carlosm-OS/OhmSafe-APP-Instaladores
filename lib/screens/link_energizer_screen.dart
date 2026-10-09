@@ -219,13 +219,19 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         // Vinculado: se queda en la pantalla con «Vinculación exitosa» y la ficha del
         // equipo; el botón pasa a «Continuar». La ficha se refresca por si el equipo
         // acaba de darse de alta (serie, MAC, último reporte).
-        final casa = (dashboard['casa'] as Map?)?['nombre']?.toString();
+        final casaMap = (dashboard['casa'] as Map?)?.cast<String, dynamic>();
+        final casa = casaMap?['nombre']?.toString();
+        // Qué pasó con la suscripción de la venta al elegir casa (servicio nuevo): se dice tal cual.
+        final suscripcion = (casaMap?['suscripcion'] as Map?)?['detalle']?.toString();
         setState(() {
           _vinculado = true;
           _equipoNuevo = false;
           _isSending = false;
         });
-        _triggerBanner(true, casa != null ? "Vinculación exitosa · casa «$casa»" : "Vinculación exitosa");
+        _triggerBanner(true, [
+          casa != null ? "Vinculación exitosa · casa «$casa»" : "Vinculación exitosa",
+          if (suscripcion != null && suscripcion.isNotEmpty) suscripcion,
+        ].join('\n'));
         await _refrescarFicha(serie);
       },
       (failure) {
