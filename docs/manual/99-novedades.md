@@ -5,6 +5,7 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 ## Build 36 — 9 de octubre de 2026
 
 - **Número de serie sin buscar el guion**: al escribir la serie los guiones se ponen solos (escribe `OSOBV010026` y queda `OS-OBV01-0026`). También basta con escribir sólo el número: `26` se completa como `OS-OBV01-0026`.
+- **«¿Dónde va este equipo?»**: sólo aparecen las casas del cliente que ya tienen algún equipo (energizador, cámaras, sensores…); las casas vacías no se ofrecen. En **Casa nueva** ves la **dirección de la compra** (con su número de venta) y **dónde estás tú ahora**; si estás lejos de la dirección de la compra, la app te avisa para que lo confirmes con el cliente.
 - **Metros a instalar** ahora muestra el metraje real que mediste en la inspección (antes, si volvías a entrar a la orden, mostraba el metraje agendado).
 
 ## Build 35 — 7 de octubre de 2026

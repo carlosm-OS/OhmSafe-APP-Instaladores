@@ -5,26 +5,43 @@
 /// pregunta cuando hay al menos una casa; con cero, el backend crea la casa
 /// como siempre.
 class CasaCliente {
-  const CasaCliente({required this.id, required this.nombre, this.direccion, this.energizadores = 0});
+  const CasaCliente({required this.id, required this.nombre, this.direccion, this.energizadores = 0, this.equipos = 0});
   final String id;
   final String nombre;
   final String? direccion;
   final int energizadores;
 
-  static CasaCliente fromJson(Map<String, dynamic> j) => CasaCliente(
-        id: (j['id'] ?? '').toString(),
-        nombre: (j['nombre'] ?? '').toString(),
-        direccion: j['direccion']?.toString(),
-        energizadores: (j['energizadores'] as num?)?.toInt() ?? 0,
-      );
+  /// Todos los equipos de la casa (energizadores, cámaras, sensores…). El backend sólo manda
+  /// casas con al menos uno (2026-10-09); con un backend anterior se cuentan los energizadores.
+  final int equipos;
+
+  static CasaCliente fromJson(Map<String, dynamic> j) {
+    final energizadores = (j['energizadores'] as num?)?.toInt() ?? 0;
+    return CasaCliente(
+      id: (j['id'] ?? '').toString(),
+      nombre: (j['nombre'] ?? '').toString(),
+      direccion: j['direccion']?.toString(),
+      energizadores: energizadores,
+      equipos: (j['equipos'] as num?)?.toInt() ?? energizadores,
+    );
+  }
 }
 
 class OpcionesDestino {
-  const OpcionesDestino({required this.casas, this.sugerida, required this.nombreNueva, required this.direccionNueva});
+  const OpcionesDestino({required this.casas, this.sugerida, required this.nombreNueva, required this.direccionNueva, this.ventaNueva, this.latNueva, this.lngNueva});
   final List<CasaCliente> casas;
   final String? sugerida;
   final String nombreNueva;
+
+  /// Dirección de la COMPRA (entrega de la venta en Odoo); es la que lleva la casa nueva.
   final String direccionNueva;
+
+  /// Venta de la que viene (S00…), para mostrarla junto a la dirección.
+  final String? ventaNueva;
+
+  /// Coordenadas de la dirección de la compra, si Odoo las tiene.
+  final double? latNueva;
+  final double? lngNueva;
 
   /// ¿Hay que preguntar? Sólo si el cliente ya tiene casas.
   bool get hayQuePreguntar => casas.isNotEmpty;
@@ -47,6 +64,9 @@ class OpcionesDestino {
       sugerida: j['sugerida']?.toString(),
       nombreNueva: (nueva['nombre'] ?? 'Casa nueva').toString(),
       direccionNueva: (nueva['direccion'] ?? '').toString(),
+      ventaNueva: nueva['venta']?.toString(),
+      latNueva: ((nueva['coordenadas'] as Map?)?['lat'] as num?)?.toDouble(),
+      lngNueva: ((nueva['coordenadas'] as Map?)?['lng'] as num?)?.toDouble(),
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'package:geolocator/geolocator.dart';
+import '../core/utils/ubicacion.dart';
 import 'package:flutter/material.dart';
 
 import '../core/utils/destino_equipo.dart';
@@ -28,6 +30,39 @@ class _DestinoSheetState extends State<_DestinoSheet> {
   late String _seleccion = widget.opciones.seleccionInicial;
   late final TextEditingController _nombre = TextEditingController(text: widget.opciones.nombreNueva);
 
+  /// Dónde está el técnico ahora (dirección escrita) y a qué distancia de la dirección de la compra.
+  bool _buscandoUbicacion = true;
+  String? _dondeEstas;
+  double? _distanciaMetros;
+
+  @override
+  void initState() {
+    super.initState();
+    _ubicarTecnico();
+  }
+
+  Future<void> _ubicarTecnico() async {
+    final pos = await ubicacionActual(limite: const Duration(seconds: 6));
+    if (pos == null) {
+      if (mounted) setState(() => _buscandoUbicacion = false);
+      return;
+    }
+    final o = widget.opciones;
+    final results = await Future.wait([
+      direccionDeCoordenadas(pos.latitude, pos.longitude),
+      o.latNueva != null && o.lngNueva != null
+          ? Future.value((lat: o.latNueva!, lng: o.lngNueva!))
+          : coordenadasDeDireccion(o.direccionNueva),
+    ]);
+    if (!mounted) return;
+    final compra = results[1] as ({double lat, double lng})?;
+    setState(() {
+      _buscandoUbicacion = false;
+      _dondeEstas = (results[0] as String?) ?? '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}';
+      _distanciaMetros = compra == null ? null : Geolocator.distanceBetween(pos.latitude, pos.longitude, compra.lat, compra.lng);
+    });
+  }
+
   @override
   void dispose() {
     _nombre.dispose();
@@ -41,7 +76,7 @@ class _DestinoSheetState extends State<_DestinoSheet> {
     Navigator.pop(
       context,
       _seleccion == _kNueva
-          // La dirección de la casa nueva es la del ticket de instalación: no se edita aquí.
+          // La dirección de la casa nueva es la de la compra (ticket de instalación): no se edita aquí.
           ? destinoCasaNueva(nombre: _nombre.text, direccion: widget.opciones.direccionNueva)
           : destinoCasaExistente(_seleccion),
     );
@@ -63,7 +98,7 @@ class _DestinoSheetState extends State<_DestinoSheet> {
             Text('¿Dónde va este equipo?', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text(
-              'Elige si es una casa nueva (con la dirección de esta instalación) o se suma a una casa que el cliente ya tiene.',
+              'Elige si es una casa nueva (con la dirección de la compra) o se suma a una casa que el cliente ya tiene.',
               style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 14),
@@ -86,8 +121,34 @@ class _DestinoSheetState extends State<_DestinoSheet> {
                             decoration: const InputDecoration(labelText: 'Nombre de la casa', border: OutlineInputBorder(), isDense: true),
                             onChanged: (_) => setState(() {}),
                           ),
+                          const SizedBox(height: 10),
+                          _Dato(
+                            icono: Icons.receipt_long_outlined,
+                            titulo: o.ventaNueva != null ? 'Dirección de la compra (${o.ventaNueva})' : 'Dirección de la compra',
+                            texto: o.direccionNueva.isNotEmpty ? o.direccionNueva : 'Sin dirección en la venta',
+                          ),
+                          const SizedBox(height: 8),
+                          _Dato(
+                            icono: Icons.my_location,
+                            titulo: 'Dónde estás ahora',
+                            texto: _buscandoUbicacion
+                                ? 'Buscando tu ubicación…'
+                                : (_dondeEstas ?? 'Sin ubicación (activa el GPS para verla)'),
+                          ),
+                          if (_distanciaMetros != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              _distanciaMetros! <= 300
+                                  ? 'Estás en la dirección de la compra.'
+                                  : 'Estás a ${distanciaLegible(_distanciaMetros!)} de la dirección de la compra. Confírmala con el cliente antes de continuar.',
+                              style: muted?.copyWith(
+                                color: _distanciaMetros! <= 300 ? cs.primary : cs.error,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 6),
-                          Text('Dirección: la de este ticket de instalación (no se edita aquí).', style: muted),
+                          Text('La dirección de la casa nueva es la de la compra; no se edita aquí.', style: muted),
                         ],
                       ),
                     )
@@ -109,7 +170,7 @@ class _DestinoSheetState extends State<_DestinoSheet> {
                   titulo: c.nombre,
                   subtitulo: [
                     if ((c.direccion ?? '').isNotEmpty) c.direccion!,
-                    c.energizadores == 1 ? '1 energizador' : '${c.energizadores} energizadores',
+                    c.equipos == 1 ? '1 equipo' : '${c.equipos} equipos',
                   ].join(' · '),
                   etiqueta: c.id == o.sugerida ? 'Coincide con la dirección' : null,
                 ),
@@ -200,6 +261,37 @@ class _Opcion extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Una fila «icono · título · texto» de sólo lectura dentro de la tarjeta de casa nueva.
+class _Dato extends StatelessWidget {
+  const _Dato({required this.icono, required this.titulo, required this.texto});
+  final IconData icono;
+  final String titulo;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icono, size: 18, color: cs.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(titulo, style: theme.textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant)),
+              const SizedBox(height: 2),
+              Text(texto, style: theme.textTheme.bodyMedium),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

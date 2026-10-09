@@ -24,4 +24,22 @@ void main() {
     expect(destinoCasaNueva(nombre: ' Casa B ', direccion: ' '), {'nueva': {'nombre': 'Casa B'}});
     expect(destinoCasaNueva(nombre: 'Casa C', direccion: 'Calle 3'), {'nueva': {'nombre': 'Casa C', 'direccion': 'Calle 3'}});
   });
+
+  test('casa nueva trae la dirección de la compra, la venta y sus coordenadas; las casas cuentan todos sus equipos', () {
+    final o = OpcionesDestino.fromJson({
+      'casas': [
+        {'id': 'a', 'nombre': 'Casa cámaras', 'direccion': 'Calle 2', 'equipos': 3, 'energizadores': 0},
+        {'id': 'b', 'nombre': 'Casa vieja', 'energizadores': 1},
+      ],
+      'sugerida': null,
+      'nueva': {'nombre': 'Nellie Campobello 12', 'direccion': 'Nellie Campobello 12, 01180, CDMX', 'venta': 'S00170', 'coordenadas': {'lat': 19.36, 'lng': -99.19}},
+    });
+    expect(o.direccionNueva, 'Nellie Campobello 12, 01180, CDMX');
+    expect(o.ventaNueva, 'S00170');
+    expect(o.latNueva, 19.36);
+    expect(o.lngNueva, -99.19);
+    expect(o.casas[0].equipos, 3);
+    // Backend anterior (sin «equipos»): cuenta los energizadores.
+    expect(o.casas[1].equipos, 1);
+  });
 }

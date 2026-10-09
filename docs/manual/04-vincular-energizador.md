@@ -126,3 +126,12 @@ Las pruebas de **batería auxiliar**, **conexión a línea** y la casilla de **t
 3. Verás **«Vinculación exitosa»** con la ficha; toca **«Continuar con cierre de instalación»**.
 
 Las secciones anteriores sobre pruebas en verde/rojo aplican a builds anteriores y se reactivarán cuando vuelvan las validaciones.
+
+## «¿Dónde va este equipo?»
+
+Aparece cuando el cliente ya tiene casas con algún equipo (energizador, cámaras, sensores…). Elige:
+
+- **Casa nueva** (primera opción): escribe sólo el nombre. Verás la **dirección de la compra** (la de la venta) y **dónde estás tú ahora**. Si estás lejos de la dirección de la compra, la app te lo marca en rojo: confírmalo con el cliente antes de continuar.
+- **Una casa que el cliente ya tiene**: si este energizador es para una propiedad donde ya hay equipos.
+
+Si el cliente no tiene ninguna casa con equipos (primera compra), la app no pregunta: crea la casa con la dirección de la compra.
