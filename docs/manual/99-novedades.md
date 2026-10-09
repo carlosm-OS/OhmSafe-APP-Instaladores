@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 37 — 9 de octubre de 2026
+
+- **Vincular energizador → cierre, sin toques extra**: al tocar «Vincular energizador» (o «Vincular y dar de alta el equipo») y quedar vinculado, la app ya no se queda en la ficha esperando «Continuar»: muestra «Vinculación exitosa · casa «…»» y abre sola el **Cierre de instalación**. Si regresas a la ficha, el botón sigue diciendo «Continuar con cierre de instalación».
+
 ## Build 36 — 9 de octubre de 2026
 
 - **Número de serie sin buscar el guion**: al escribir la serie los guiones se ponen solos (escribe `OSOBV010026` y queda `OS-OBV01-0026`). También basta con escribir sólo el número: `26` se completa como `OS-OBV01-0026`.

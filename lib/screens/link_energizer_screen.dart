@@ -216,9 +216,9 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           );
           if (!mounted) return;
         }
-        // Vinculado: se queda en la pantalla con «Vinculación exitosa» y la ficha del
-        // equipo; el botón pasa a «Continuar». La ficha se refresca por si el equipo
-        // acaba de darse de alta (serie, MAC, último reporte).
+        // Vinculado: la app avanza sola al cierre (Carlos, 2026-10-09; hasta la build 36 se
+        // quedaba aquí con el botón «Continuar» y parecía que no había pasado nada). El
+        // resultado se muestra en un aviso sobre la pantalla de pasos.
         final casaMap = (dashboard['casa'] as Map?)?.cast<String, dynamic>();
         final casa = casaMap?['nombre']?.toString();
         // Qué pasó con la suscripción de la venta al elegir casa (servicio nuevo): se dice tal cual.
@@ -228,11 +228,14 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           _equipoNuevo = false;
           _isSending = false;
         });
-        _triggerBanner(true, [
-          casa != null ? "Vinculación exitosa · casa «$casa»" : "Vinculación exitosa",
-          if (suscripcion != null && suscripcion.isNotEmpty) suscripcion,
-        ].join('\n'));
-        await _refrescarFicha(serie);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text([
+            casa != null ? "Vinculación exitosa · casa «$casa»" : "Vinculación exitosa",
+            if (suscripcion != null && suscripcion.isNotEmpty) suscripcion,
+          ].join('\n')),
+          duration: const Duration(seconds: 5),
+        ));
+        Navigator.pop(context, 'device_linked');
       },
       (failure) {
         setState(() => _isSending = false);
@@ -252,8 +255,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     }, (_) {});
   }
 
-  /// Botón principal: primero «Vincular» (si el equipo es nuevo, eso lo da de alta);
-  /// una vez vinculado, «Continuar con cierre de instalación».
+  /// Botón principal: «Vincular» (si el equipo es nuevo, eso lo da de alta). Al vincular la
+  /// pantalla se cierra sola; «Continuar» sólo queda por si se regresa a ella ya vinculado.
   String get _ctaLabel => _vinculado
       ? "Continuar con cierre de instalación"
       : (_equipoNuevo ? "Vincular y dar de alta el equipo" : "Vincular energizador");

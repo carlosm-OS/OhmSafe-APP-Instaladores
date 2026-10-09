@@ -117,6 +117,10 @@ Si al capturar la serie la app dice **«Equipo nuevo»**, es un equipo que todav
 
 Si la app dice que la serie **no tiene MAC registrada**, almacén debe capturar la MAC del equipo en su número de serie de Odoo (Inventario › Lotes/Números de serie, columna «MAC Address») antes de poder vincularlo.
 
+## Desde la build 37: al vincular, la app pasa sola al cierre
+
+Al tocar **«Vincular energizador»** (o «Vincular y dar de alta el equipo») y quedar vinculado, verás el aviso «Vinculación exitosa · casa «…»» y la app abre de inmediato el **Cierre de instalación** (paso 5). Ya no hay que tocar «Continuar». Si cancelas el cierre, el paso 4 queda marcado como hecho y puedes abrir el cierre desde la lista de pasos.
+
 ## Desde la build 31: sin validaciones por ahora
 
 Las pruebas de **batería auxiliar**, **conexión a línea** y la casilla de **tierra física** se retiraron temporalmente (los equipos actuales no reportan esos datos de forma confiable). Hoy la pantalla hace esto:
