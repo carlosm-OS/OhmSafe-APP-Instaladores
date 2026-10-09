@@ -42,7 +42,7 @@ Los correos se guardan en el **historial (chatter) de la intervención**, a la d
 2. Cambia a la vista **Lista** (icono de lista, arriba a la derecha) y busca la intervención por cliente o dirección.
 3. Da clic en la fila: se abre la **ficha completa**. El historial está a la derecha.
 
-La ventana rápida que aparece al dar clic en la agenda (vista de barras) sirve para editar fechas y personas; para revisar correos abre la ficha completa.
+La ventana rápida que aparece al dar clic en la agenda (vista de barras) y su botón «Editar» sirven para cambiar fechas y personas, pero no muestran el historial. Para revisar correos da clic en **«Intervención i…»**, arriba de esa ventana: te lleva a la ficha completa.
 
 ### Camino 2 — desde el contacto del cliente
 
@@ -54,7 +54,7 @@ La ventana rápida que aparece al dar clic en la agenda (vista de barras) sirve 
 
 Cada intervención tiene un número con la forma **«i45»**, el mismo que usan la app del instalador y el equipo de sistemas. Se ve en:
 
-- la **tarjeta** que aparece al dar clic en una barra de la agenda (primera línea, con el icono **#**);
+- la **tarjeta** que aparece al dar clic en una barra de la agenda (primera línea, con el icono **#**). **Da clic en «Intervención i45»** y se abre la ficha completa con el historial: es el camino más rápido para revisar correos desde la agenda;
 - la **ficha completa**, arriba: «Intervención i45»;
 - la **vista Lista**, en la primera columna «Núm.».
 
