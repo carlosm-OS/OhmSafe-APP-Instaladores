@@ -1,4 +1,5 @@
 import 'escanear_serie_screen.dart';
+import '../core/utils/serie_formato.dart';
 import '../core/error/failures.dart';
 import 'dart:async';
 import '../widgets/notification_bell.dart';
@@ -85,7 +86,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// Diagnóstico REAL por número de serie: lee la telemetría del equipo y pinta
   /// cada prueba. La tierra física no tiene telemetría → la confirma el instalador.
   Future<void> _startValidation(String serie) async {
-    final s = serie.trim();
+    final s = normalizarSerie(serie);
+    if (s.isNotEmpty && s != _macController.text) _macController.text = s;
     if (s.isEmpty) {
       setState(() => _currentState = LinkState.input);
       _triggerBanner(false, "Ingresa o escanea el número de serie del equipo");
@@ -461,6 +463,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             TextField(
               controller: _macController,
               textCapitalization: TextCapitalization.characters,
+              // Los guiones se ponen solos (OSOBV010026 → OS-OBV01-0026); basta el número (26).
+              inputFormatters: [SerieInputFormatter()],
+              autocorrect: false,
+              enableSuggestions: false,
               textInputAction: TextInputAction.done,
               onSubmitted: (v) => _startValidation(v),
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
@@ -469,7 +475,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 labelStyle: TextStyle(
                   color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 ),
-                hintText: "Ej: OS-OBV01-0001 (o escanéalo del QR)",
+                hintText: "Ej: 26 u OS-OBV01-0026 (o escanéalo del QR)",
                 filled: true,
                 fillColor: ohm.surfaceContainer,
                 border: OutlineInputBorder(

@@ -6,6 +6,10 @@ Este es el paso 4 de la instalación. Sirve para tres cosas:
 - comprobar con datos reales del equipo que funciona,
 - dejarlo en la cuenta del cliente para que lo vea en su app OhmSafe.
 
+## Escribir la serie
+
+Si no puedes escanear el QR, escribe la serie de la etiqueta. **Los guiones se ponen solos**: escribe `OSOBV010026` y queda `OS-OBV01-0026`. Si es un energizador OS-OBV01, basta con escribir el número (`26`) y la app completa la serie al pulsar «Vincular».
+
 ## Antes de empezar
 
 - El energizador debe estar instalado, encendido y conectado a la luz.
