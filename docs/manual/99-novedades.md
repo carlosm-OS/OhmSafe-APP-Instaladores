@@ -7,6 +7,9 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 - **Número de serie sin buscar el guion**: al escribir la serie los guiones se ponen solos (escribe `OSOBV010026` y queda `OS-OBV01-0026`). También basta con escribir sólo el número: `26` se completa como `OS-OBV01-0026`.
 - **«¿Dónde va este equipo?»**: sólo aparecen las casas del cliente que ya tienen algún equipo (energizador, cámaras, sensores…); las casas vacías no se ofrecen. En **Casa nueva** ves la **dirección de la compra** (con su número de venta) y **dónde estás tú ahora**; si estás lejos de la dirección de la compra, la app te avisa para que lo confirmes con el cliente.
 - **Metros a instalar** ahora muestra el metraje real que mediste en la inspección (antes, si volvías a entrar a la orden, mostraba el metraje agendado).
+- **«¿Dónde va este equipo?» te dice qué se vendió**: arriba de las opciones ves la venta (por ejemplo «Venta S00255 · Servicio nuevo: Plan Hogar Seguro - Mensual · 1 Ohmbox» o «Equipo adicional · 1 Ohmbox»). Si eliges una casa que no cuadra con lo vendido (un servicio nuevo en una casa que ya existe, o equipo adicional en casa nueva) la app te avisa, pero tú decides.
+- **La suscripción sigue a la casa que eliges**: cuando la venta es un servicio nuevo, al vincular la suscripción de esa venta queda ligada a la casa elegida; el mensaje de «Vinculación exitosa» te dice qué pasó (ligada, ya estaba ligada, o quedó pendiente para operaciones).
+- **Cierre, paso 2**: nueva casilla **«Instalé y dejé funcionando sirena»** junto a cámaras y sensores («Instalé y funciona» o «No aplica»). Por ahora es tu confirmación; más adelante el equipo lo validará solo.
 
 ## Build 35 — 7 de octubre de 2026
 

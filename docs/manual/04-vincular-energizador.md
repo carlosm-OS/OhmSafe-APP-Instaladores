@@ -129,9 +129,11 @@ Las secciones anteriores sobre pruebas en verde/rojo aplican a builds anteriores
 
 ## «¿Dónde va este equipo?»
 
-Aparece cuando el cliente ya tiene casas con algún equipo (energizador, cámaras, sensores…). Elige:
+Aparece cuando el cliente ya tiene casas con algún equipo (energizador, cámaras, sensores…). Arriba de las opciones ves **qué se vendió**: «Venta S00… · Servicio nuevo: <plan> · 1 Ohmbox» (una suscripción nueva, que normalmente va en casa nueva) o «Equipo adicional · …» (que normalmente se suma a una casa que ya existe). Elige:
 
 - **Casa nueva** (primera opción): escribe sólo el nombre. Verás la **dirección de la compra** (la de la venta) y **dónde estás tú ahora**. Si estás lejos de la dirección de la compra, la app te lo marca en rojo: confírmalo con el cliente antes de continuar.
 - **Una casa que el cliente ya tiene**: si este energizador es para una propiedad donde ya hay equipos.
 
 Si el cliente no tiene ninguna casa con equipos (primera compra), la app no pregunta: crea la casa con la dirección de la compra.
+
+Si tu elección no cuadra con lo vendido (servicio nuevo en una casa que ya existe, o equipo adicional en casa nueva), la app te lo avisa; puedes continuar, tú decides. Cuando la venta es un servicio nuevo, al vincular la **suscripción de esa venta queda ligada a la casa que elegiste**; el mensaje de «Vinculación exitosa» te dice qué pasó (ligada, ya estaba ligada, o quedó pendiente para que operaciones la ligue desde el dashboard).
