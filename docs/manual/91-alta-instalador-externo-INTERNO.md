@@ -15,11 +15,14 @@ El instalador externo es un **contacto** con la etiqueta «Instalador Externo-OS
 | Teléfono con lada | Sí | Formato `+52 55 1234 5678`. Odoo descarta números que no parecen válidos y la ficha queda «sin teléfono» |
 | CURP | Sí | |
 | Constancia de situación fiscal (PDF) | Sí | Se adjunta en la ficha |
-| RFC | Sólo si factura a OhmSafe | |
-| Foto | Recomendada | Es la foto oficial: la ve el cliente en la app |
+| Empresa | No | Sólo si trabaja para una empresa y quiere que se le facture/pague a ella. Elígela o créala en el campo **Empresa** de la ficha: sus pagos quedan a nombre de la empresa y su RFC pasa a ser el de la empresa (se edita en la ficha de la empresa) |
+| RFC | Sólo si factura a OhmSafe | Con empresa, es el de la empresa |
+| Foto | Sí | Es la foto oficial: la ve el cliente en la app |
 | Dirección | Recomendada | |
 
 Mientras falte alguno de los obligatorios, la barra superior de la ficha dice **«Faltan datos»** y el chatter lista cuáles.
+
+> **Temporal (pruebas, desde el 9 de octubre de 2026):** CURP y constancia no frenan el alta. El chatter los lista como «Pendientes (opcionales por ahora)» y el instalador ya puede entrar a la app.
 
 ## Paso a paso
 
