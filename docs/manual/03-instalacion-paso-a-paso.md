@@ -80,7 +80,25 @@ extenderlo de 15 en 15 hasta 2 horas). Mientras corre:
 
 La sirena, el pánico y los sensores se prueban en otro paso (próximamente «Agregar dispositivos»).
 
-## Paso 6 — Cierre de la instalación
+## Paso 6 — Agregar dispositivos (opcional, desde la build 39)
+
+Lo cableado al OhmBox se da de alta **probándolo en vivo**; la app sólo acepta lo que el equipo
+confirma. Necesitas firmware **2.10 o superior** y el equipo en línea.
+
+- **Entradas (puertas).** Toca «Probar» en la entrada. **Cierra la puerta** y espera a que el equipo
+  la vea cerrada 3 segundos; luego **ábrela**. Cuando la tarjeta diga «Verificada», ponle nombre y
+  «Dar de alta». Si no hay sensor conectado, la prueba nunca pasa y a los 3 minutos expira.
+  Si la alarma estaba armada, la app la desarma antes para que la prueba no haga sonar la sirena.
+- **Sirena.** «Probar 3 s»: el equipo la enciende y la apaga. Contesta «¿Sonó?».
+- **Salidas auxiliares.** «Encender 5 s»: el relé cierra y se suelta. Contesta «¿Se encendió?» y,
+  si sí, ponle nombre, di **qué es** (luz, bomba, portón, sirena externa, otro) y **cómo funciona**
+  (encendido/apagado, o pulso como el botón de un portón). Si no encendió, queda en el acta y no
+  se da de alta.
+
+Todo lo probado y dado de alta queda escrito en el acta de la instalación (Odoo), que es lo que
+soporte consulta después.
+
+## Paso 7 — Cierre de la instalación
 
 Toca «Cierre de la instalación». El cierre tiene 3 partes: «Evidencias», «Equipo» y «Firma».
 

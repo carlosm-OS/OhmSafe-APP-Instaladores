@@ -30,6 +30,15 @@ abstract class OrdenesDataSource {
   Future<Map<String, dynamic>> pruebaExtender(String id);
   Future<Map<String, dynamic>> pruebaAccion(String id, String accion);
   Future<Map<String, dynamic>> pruebaTerminar(String id);
+
+  /// «Agregar dispositivos» cableado con prueba en vivo (build 39): `GET/POST /instalador/ordenes/:id/cableado…`.
+  Future<Map<String, dynamic>> cableadoEstado(String id);
+  Future<Map<String, dynamic>> cableadoProbarEntrada(String id, int index);
+  Future<Map<String, dynamic>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono});
+  Future<Map<String, dynamic>> cableadoProbarSirena(String id);
+  Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono});
+  Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index);
+  Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Historial del instalador: intervenciones completadas y canceladas en sitio

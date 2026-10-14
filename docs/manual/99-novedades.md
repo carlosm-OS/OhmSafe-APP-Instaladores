@@ -5,7 +5,8 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 ## Build 39 — 13 de octubre de 2026
 
 - **Nuevo paso 5, «Prueba del energizador»** (opcional): al vincular, la app abre una ventana de 30 minutos (ampliable de 15 en 15 hasta 2 horas) para **encender y apagar la cerca** y mostrarle al cliente que el equipo trabaja (alto voltaje en la línea). Al tocar «Terminar prueba y cerrar» u «Omitir», el control del equipo se retira y sigue el cierre, que ahora es el paso 6. Mientras dura la prueba, lo que dispare el equipo (por ejemplo, tocar las líneas) no manda avisos ni llamadas a nadie.
-- La sirena, el pánico y los sensores se probarán en otro paso («Agregar dispositivos», próximamente).
+- **Nuevo paso 6, «Agregar dispositivos»** (opcional): puertas, sirena y salidas cableadas al OhmBox, probadas en vivo. Entradas: toca «Probar», cierra la puerta (el equipo debe verla cerrada 3 segundos), ábrela y, cuando diga «Verificada», ponle nombre y dala de alta; un lazo sin sensor nunca pasa. Sirena: «Probar 3 s» y contesta si sonó. Salidas: «Encender 5 s», contesta si se encendió y di qué es (luz, bomba, portón, sirena externa, otro) y cómo funciona (encendido/apagado o pulso). Todo queda en el acta de la instalación. Sólo con equipos de firmware 2.10 o superior.
+- El cierre pasa a ser el paso 7.
 
 ## Build 37 — 9 de octubre de 2026
 

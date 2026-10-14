@@ -183,6 +183,33 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> pruebaExtender(String id) async { await _ok(); return _prueba(cerca: _mockCerca); }
   @override
   Future<Map<String, dynamic>> pruebaAccion(String id, String accion) async { await _ok(); _mockCerca = accion == 'cerca_on'; return {..._prueba(cerca: _mockCerca), 'resultado': 'sent'}; }
+  Map<String, dynamic> _cableado() => {
+        'intervencion': 'i1',
+        'equipo': {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'firmware': '2.11.0.14', 'firmwareOk': true, 'firmwareMinimo': '2.10.0.0', 'enLinea': true, 'alarmaArmada': false, 'estadoEntradasEn': null},
+        'entradas': [
+          {'index': 1, 'nombre': 'Puerta 1', 'dadaDeAlta': false, 'enUso': true, 'abierta': true, 'prueba': null},
+          {'index': 2, 'nombre': 'Puerta 2', 'dadaDeAlta': false, 'enUso': true, 'abierta': true, 'prueba': null},
+        ],
+        'sirena': {'sonando': false, 'probada': false, 'sono': null},
+        'salidas': [
+          {'index': 1, 'nombre': null, 'dadaDeAlta': false, 'encendida': false, 'tipo': null, 'modo': null, 'probada': false, 'cerro': null},
+          {'index': 2, 'nombre': null, 'dadaDeAlta': false, 'encendida': false, 'tipo': null, 'modo': null, 'probada': false, 'cerro': null},
+        ],
+      };
+  @override
+  Future<Map<String, dynamic>> cableadoEstado(String id) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoProbarEntrada(String id, int index) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono}) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoProbarSirena(String id) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono}) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono}) async { await _ok(); return _cableado(); }
   @override
   Future<Map<String, dynamic>> pruebaTerminar(String id) async { await _ok(); return _prueba(abierta: false, cerca: _mockCerca); }
   @override

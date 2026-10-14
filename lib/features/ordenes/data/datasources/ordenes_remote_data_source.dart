@@ -121,6 +121,29 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
     return (res['data'] as Map<String, dynamic>?) ?? const {};
   }
 
+  Map<String, dynamic> _data(Map<String, dynamic> res) => (res['data'] as Map<String, dynamic>?) ?? const {};
+
+  @override
+  Future<Map<String, dynamic>> cableadoEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/cableado'));
+  @override
+  Future<Map<String, dynamic>> cableadoProbarEntrada(String id, int index) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/entradas/$index/probar', body: const {}));
+  @override
+  Future<Map<String, dynamic>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/entradas/$index/registrar', body: {'nombre': nombre, if (icono != null) 'icono': icono}));
+  @override
+  Future<Map<String, dynamic>> cableadoProbarSirena(String id) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/sirena/probar', body: const {}));
+  @override
+  Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/sirena/confirmar', body: {'sono': sono}));
+  @override
+  Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/salidas/$index/probar', body: const {}));
+  @override
+  Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/salidas/$index/registrar', body: {'nombre': nombre, 'tipo': tipo, 'modo': modo, if (pulsoSeg != null) 'pulsoSeg': pulsoSeg, 'funciono': funciono}));
+
   @override
   Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
     // `codigo` = MAC del energizador (Odoo x_mac_address). `serie` = número de

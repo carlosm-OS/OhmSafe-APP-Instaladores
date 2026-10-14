@@ -46,6 +46,15 @@ abstract class OrdenesRepository {
   Future<Result<Map<String, dynamic>>> pruebaExtender(String id);
   Future<Result<Map<String, dynamic>>> pruebaAccion(String id, String accion);
   Future<Result<Map<String, dynamic>>> pruebaTerminar(String id);
+
+  /// «Agregar dispositivos» cableado con prueba en vivo.
+  Future<Result<Map<String, dynamic>>> cableadoEstado(String id);
+  Future<Result<Map<String, dynamic>>> cableadoProbarEntrada(String id, int index);
+  Future<Result<Map<String, dynamic>>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono});
+  Future<Result<Map<String, dynamic>>> cableadoProbarSirena(String id);
+  Future<Result<Map<String, dynamic>>> cableadoConfirmarSirena(String id, {required bool sono});
+  Future<Result<Map<String, dynamic>>> cableadoProbarSalida(String id, int index);
+  Future<Result<Map<String, dynamic>>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 

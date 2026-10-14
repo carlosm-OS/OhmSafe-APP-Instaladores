@@ -12,6 +12,7 @@ import 'fence_installation_screen.dart';
 import 'reparacion_screen.dart';
 import 'link_energizer_screen.dart';
 import 'prueba_energizador_screen.dart';
+import 'agregar_dispositivos_screen.dart';
 import 'instalaciones_screen.dart';
 import 'reparaciones_screen.dart';
 import 'cierre_instalacion_screen.dart';
@@ -351,6 +352,20 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   bool _step4Completed = false;
   /// Prueba del energizador (build 39): paso opcional entre vincular y cierre; no lo guarda Odoo.
   bool _pruebaHecha = false;
+  /// «Agregar dispositivos» (build 39): cableado con prueba en vivo; opcional, antes del cierre.
+  bool _dispositivosHechos = false;
+
+  Future<void> _abrirDispositivos(BuildContext context, {bool luegoCierre = true}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => AgregarDispositivosScreen(ticket: widget.ticket)),
+    );
+    if (!mounted) return;
+    if (result == 'dispositivos_listos') {
+      setState(() => _dispositivosHechos = true);
+      if (luegoCierre && !_step5Completed && context.mounted) await _abrirCierre(context);
+    }
+  }
   bool _step5Completed = false;
 
   /// Abre la prueba del energizador (ventana para encender/apagar la cerca) y, al terminar u
@@ -363,7 +378,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     if (!mounted) return;
     if (result == 'prueba_terminada') {
       setState(() => _pruebaHecha = true);
-      if (luegoCierre && !_step5Completed && context.mounted) await _abrirCierre(context);
+      if (luegoCierre && !_step5Completed && context.mounted) await _abrirDispositivos(context);
     }
   }
 
@@ -782,11 +797,21 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           isCompleted: _pruebaHecha,
                           onTap: (_step4Completed && !_step5Completed) ? () => _abrirPrueba(context, luegoCierre: false) : null,
                         ),
-                      // Cierre: paso 4 en reparaciones (sin energizador) o 6 en
+                      if (!_isReparacion)
+                        _buildStepItem(
+                          context,
+                          number: "6",
+                          title: "Agregar dispositivos",
+                          subtitle: "Puertas, sirena y salidas cableadas, probadas en vivo (opcional)",
+                          isActive: _step4Completed && !_dispositivosHechos && !_step5Completed,
+                          isCompleted: _dispositivosHechos,
+                          onTap: (_step4Completed && !_step5Completed) ? () => _abrirDispositivos(context, luegoCierre: false) : null,
+                        ),
+                      // Cierre: paso 4 en reparaciones (sin energizador) o 7 en
                       // instalaciones. Se habilita tras el paso 3 en reparaciones.
                       _buildStepItem(
                         context,
-                        number: _isReparacion ? "4" : "6",
+                        number: _isReparacion ? "4" : "7",
                         title: _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
                         subtitle: "Configuración final",
                         isActive: (_isReparacion ? _step3Completed : _step4Completed) && !_step5Completed,
