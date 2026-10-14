@@ -36,6 +36,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   bool _cargando = true;
   bool _ocupado = false;
   Timer? _sondeo;
+  Timer? _ventana;
+  bool _saliendo = false;
 
   /// Energizadores de la casa (principal + OhmBox adicionales). `null` = aún no se lee o falló.
   Map<String, dynamic>? _ohmbox;
@@ -49,12 +51,15 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   @override
   void dispose() {
     _sondeo?.cancel();
+    _ventana?.cancel();
     super.dispose();
   }
 
   Future<void> _inicio() async {
-    // La ventana de instalación la abrió la prueba del energizador; si venció se reabre aquí.
+    // Ventana de control invisible (2026-10-14): se abre al entrar, se renueva sola mientras la
+    // pantalla está abierta y se cierra al salir; el instalador no se queda con control de la cerca.
     await _repo.pruebaAbrir(_id);
+    _ventana = Timer.periodic(const Duration(minutes: 1), (_) => _renovarVentana());
     await Future.wait([_cargar(), _cargarOhmbox()]);
     if (mounted) setState(() => _cargando = false);
   }
@@ -62,8 +67,38 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   Future<void> _cargar() async {
     final r = await _repo.cableadoEstado(_id);
     if (!mounted) return;
-    r.fold((d) => setState(() { _e = d; _error = null; }), (f) => setState(() => _error = f.message));
+    r.fold(
+      (d) => setState(() {
+        _e = d;
+        _error = null;
+      }),
+      (f) => setState(() => _error = f.message),
+    );
     _ajustarSondeo();
+  }
+
+  Future<void> _renovarVentana() async {
+    if (_saliendo) return;
+    final r = await _repo.pruebaEstado(_id);
+    if (r.isFailure) return;
+    final v = (r.successValue['ventana'] as Map?)?.cast<String, dynamic>();
+    if (v == null) return;
+    final restantes = (v['segundosRestantes'] as num?)?.toInt() ?? 0;
+    if (v['abierta'] != true) {
+      await _repo.pruebaAbrir(_id);
+    } else if (restantes < 5 * 60) {
+      await _repo.pruebaExtender(_id);
+    }
+  }
+
+  /// Sale a la lista de pasos y cierra la ventana de control.
+  Future<void> _salir() async {
+    if (_saliendo) return;
+    setState(() => _saliendo = true);
+    _ventana?.cancel();
+    _sondeo?.cancel();
+    await _repo.pruebaTerminar(_id);
+    if (mounted) Navigator.pop(context, 'dispositivos_listos');
   }
 
   Future<void> _cargarOhmbox() async {
@@ -84,13 +119,10 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final r = await _repo.ohmboxAgregar(_id, serie: serie);
     if (!mounted) return;
     setState(() => _ocupado = false);
-    r.fold(
-      (d) {
-        setState(() => _ohmbox = d);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('OhmBox $serie agregado a «$_casaNombre»')));
-      },
-      (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))),
-    );
+    r.fold((d) {
+      setState(() => _ohmbox = d);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('OhmBox $serie agregado a «$_casaNombre»')));
+    }, (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))));
   }
 
   Future<String?> _pedirSerie() async {
@@ -168,7 +200,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final r = await op();
     if (!mounted) return;
     // ignore: avoid_dynamic_calls
-    r.fold((d) => setState(() { _e = (d as Map).cast<String, dynamic>(); _error = null; }), (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_msg(f as Failure)))));
+    r.fold(
+      (d) => setState(() {
+        _e = (d as Map).cast<String, dynamic>();
+        _error = null;
+      }),
+      (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_msg(f as Failure)))),
+    );
     setState(() => _ocupado = false);
     _ajustarSondeo();
   }
@@ -209,17 +247,17 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
   // ---------------------------------------------------------------- diálogos
   Future<bool?> _preguntar(String titulo, String texto) => showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: Text(titulo),
-          content: Text(texto),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí')),
-          ],
-        ),
-      );
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      title: Text(titulo),
+      content: Text(texto),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí')),
+      ],
+    ),
+  );
 
   Future<String?> _pedirNombre(String titulo, String inicial, {required String ejemplo}) async {
     final c = TextEditingController(text: inicial);
@@ -227,7 +265,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(titulo),
-        content: TextField(controller: c, autofocus: true, textCapitalization: TextCapitalization.sentences, decoration: InputDecoration(hintText: ejemplo, border: const OutlineInputBorder())),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(hintText: ejemplo, border: const OutlineInputBorder()),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text('Dar de alta')),
@@ -251,7 +294,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(controller: nombre, autofocus: true, textCapitalization: TextCapitalization.sentences, decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Luz del jardín', border: OutlineInputBorder())),
+              TextField(
+                controller: nombre,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Luz del jardín', border: OutlineInputBorder()),
+              ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: tipo,
@@ -295,81 +343,99 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final cs = theme.colorScheme;
     final ohm = context.ohm;
     final muted = theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                children: [
-                  IconButton(onPressed: () => Navigator.pop(context, 'dispositivos_listos'), icon: const Icon(Icons.chevron_left, size: 30)),
-                  const Expanded(child: Text('Agregar dispositivos', textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600))),
-                  const NotificationBell(),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _cargando
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                      children: [
-                        if (_error != null) _Aviso(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo leer el equipo', texto: _error!),
-                        if (_e != null && !_firmwareOk)
-                          _Aviso(icono: Icons.system_update_alt, color: cs.error, titulo: 'Firmware ${_equipo['firmware'] ?? 'desconocido'}', texto: 'Esta app sólo instala con ${_equipo['firmwareMinimo'] ?? '2.10'} o superior. Actualiza el equipo antes de agregar dispositivos.'),
-                        if (_e != null && _firmwareOk && !_enLinea)
-                          _Aviso(icono: Icons.wifi_off, color: cs.error, titulo: 'El energizador no reporta', texto: 'Revisa que esté encendido y con señal.'),
-                        const SizedBox(height: 12),
-                        Text('Cada elemento se prueba en vivo; sólo se da de alta lo que el equipo confirma.', style: muted),
-                        const SizedBox(height: 16),
-
-                        // ---------------- OhmBox (energizadores de la casa)
-                        _Titulo('OHMBOX · ENERGIZADORES DE LA CASA'),
-                        for (final x in _energizadores)
-                          _Tarjeta(
-                            titulo: '${x['serie']}${x['principal'] == true ? ' · principal' : ''}',
-                            subtitulo: x['enLinea'] == true ? 'En línea' : 'Sin reporte todavía',
-                            color: x['enLinea'] == true ? ohm.success : null,
-                            accion: Icon(Icons.bolt, color: x['enLinea'] == true ? ohm.success : cs.onSurfaceVariant),
-                          ),
-                        _Tarjeta(
-                          titulo: 'Otro OhmBox en esta casa',
-                          subtitulo: 'Un segundo energizador es un complemento de la suscripción, no un paquete nuevo.',
-                          accion: OutlinedButton.icon(onPressed: _ocupado || _ohmbox == null ? null : _agregarOhmbox, icon: const Icon(Icons.add), label: const Text('Agregar')),
-                        ),
-                        const SizedBox(height: 10),
-
-                        // ---------------- Entradas
-                        _Titulo('ENTRADAS CABLEADAS (PUERTAS)'),
-                        for (final x in _entradas) _tarjetaEntrada(x, theme, cs, ohm),
-
-                        // ---------------- Sirena
-                        const SizedBox(height: 10),
-                        _Titulo('SIRENA'),
-                        _Tarjeta(
-                          titulo: 'Sirena del equipo',
-                          subtitulo: _sirena['sono'] == true
-                              ? 'Probada: sonó'
-                              : _sirena['sono'] == false
-                                  ? 'Probada: NO sonó (revisar conexión)'
-                                  : 'Sin probar',
-                          color: _sirena['sono'] == true ? ohm.success : (_sirena['sono'] == false ? cs.error : null),
-                          accion: OutlinedButton.icon(onPressed: _listo ? _probarSirena : null, icon: const Icon(Icons.campaign_outlined), label: const Text('Probar 3 s')),
-                        ),
-
-                        // ---------------- Salidas
-                        const SizedBox(height: 10),
-                        _Titulo('SALIDAS AUXILIARES'),
-                        for (final s in _salidas) _tarjetaSalida(s, theme, cs, ohm),
-
-                        const SizedBox(height: 24),
-                        OhmGradientButton(label: 'Listo, continuar al cierre', icon: Icons.check, onPressed: _ocupado ? null : () => Navigator.pop(context, 'dispositivos_listos')),
-                      ],
+    // Cualquier salida (botón, gesto o atrás del sistema) cierra la ventana de control.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _salir();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Row(
+                  children: [
+                    IconButton(onPressed: _salir, icon: const Icon(Icons.chevron_left, size: 30)),
+                    const Expanded(
+                      child: Text(
+                        'Agregar dispositivos',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                      ),
                     ),
-            ),
-            const AppBottomNav(),
-          ],
+                    const NotificationBell(),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _cargando
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                        children: [
+                          if (_error != null) _Aviso(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo leer el equipo', texto: _error!),
+                          if (_e != null && !_firmwareOk)
+                            _Aviso(
+                              icono: Icons.system_update_alt,
+                              color: cs.error,
+                              titulo: 'Firmware ${_equipo['firmware'] ?? 'desconocido'}',
+                              texto: 'Esta app sólo instala con ${_equipo['firmwareMinimo'] ?? '2.10'} o superior. Actualiza el equipo antes de agregar dispositivos.',
+                            ),
+                          if (_e != null && _firmwareOk && !_enLinea)
+                            _Aviso(icono: Icons.wifi_off, color: cs.error, titulo: 'El energizador no reporta', texto: 'Revisa que esté encendido y con señal.'),
+                          const SizedBox(height: 12),
+                          Text('Cada elemento se prueba en vivo; sólo se da de alta lo que el equipo confirma.', style: muted),
+                          const SizedBox(height: 16),
+
+                          // ---------------- OhmBox (energizadores de la casa)
+                          _Titulo('OHMBOX · ENERGIZADORES DE LA CASA'),
+                          for (final x in _energizadores)
+                            _Tarjeta(
+                              titulo: '${x['serie']}${x['principal'] == true ? ' · principal' : ''}',
+                              subtitulo: x['enLinea'] == true ? 'En línea' : 'Sin reporte todavía',
+                              color: x['enLinea'] == true ? ohm.success : null,
+                              accion: Icon(Icons.bolt, color: x['enLinea'] == true ? ohm.success : cs.onSurfaceVariant),
+                            ),
+                          _Tarjeta(
+                            titulo: 'Otro OhmBox en esta casa',
+                            subtitulo: 'Un segundo energizador es un complemento de la suscripción, no un paquete nuevo.',
+                            accion: OutlinedButton.icon(onPressed: _ocupado || _ohmbox == null ? null : _agregarOhmbox, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // ---------------- Entradas
+                          _Titulo('ENTRADAS CABLEADAS (PUERTAS)'),
+                          for (final x in _entradas) _tarjetaEntrada(x, theme, cs, ohm),
+
+                          // ---------------- Sirena
+                          const SizedBox(height: 10),
+                          _Titulo('SIRENA'),
+                          _Tarjeta(
+                            titulo: 'Sirena del equipo',
+                            subtitulo: _sirena['sono'] == true
+                                ? 'Probada: sonó'
+                                : _sirena['sono'] == false
+                                ? 'Probada: NO sonó (revisar conexión)'
+                                : 'Sin probar',
+                            color: _sirena['sono'] == true ? ohm.success : (_sirena['sono'] == false ? cs.error : null),
+                            accion: OutlinedButton.icon(onPressed: _listo ? _probarSirena : null, icon: const Icon(Icons.campaign_outlined), label: const Text('Probar 3 s')),
+                          ),
+
+                          // ---------------- Salidas
+                          const SizedBox(height: 10),
+                          _Titulo('SALIDAS AUXILIARES'),
+                          for (final s in _salidas) _tarjetaSalida(s, theme, cs, ohm),
+
+                          const SizedBox(height: 24),
+                          OhmGradientButton(label: 'Listo, volver a los pasos', icon: Icons.check, loading: _saliendo, onPressed: _ocupado || _saliendo ? null : _salir),
+                        ],
+                      ),
+              ),
+              const AppBottomNav(),
+            ],
+          ),
         ),
       ),
     );
@@ -386,7 +452,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     Color? color;
     Widget accion;
     if (alta) {
-      subtitulo = 'Dada de alta · ${abierta == true ? 'abierta' : abierta == false ? 'cerrada' : 'sin reporte'}';
+      subtitulo =
+          'Dada de alta · ${abierta == true
+              ? 'abierta'
+              : abierta == false
+              ? 'cerrada'
+              : 'sin reporte'}';
       color = ohm.success;
       accion = Icon(Icons.check_circle, color: ohm.success);
     } else if (fase == 'cerrar') {
@@ -406,7 +477,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       color = cs.error;
       accion = OutlinedButton(onPressed: _listo ? () => _probarEntrada(index) : null, child: const Text('Probar de nuevo'));
     } else {
-      subtitulo = 'Sin sensor dado de alta · ahora se lee ${abierta == true ? 'abierta' : abierta == false ? 'cerrada' : 'sin reporte'}';
+      subtitulo =
+          'Sin sensor dado de alta · ahora se lee ${abierta == true
+              ? 'abierta'
+              : abierta == false
+              ? 'cerrada'
+              : 'sin reporte'}';
       accion = OutlinedButton.icon(onPressed: _listo ? () => _probarEntrada(index) : null, icon: const Icon(Icons.sensor_door_outlined), label: const Text('Probar'));
     }
     return _Tarjeta(titulo: 'Entrada $index · $nombre', subtitulo: subtitulo, color: color, accion: accion);
@@ -422,7 +498,9 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       titulo: alta ? 'Salida $index · $nombre' : 'Salida $index',
       subtitulo: alta ? 'Dada de alta · ${tipo ?? ''} · ${modo == 'pulso' ? 'pulso' : 'encendido/apagado'}' : 'Sin dar de alta',
       color: alta ? ohm.success : null,
-      accion: alta ? Icon(Icons.check_circle, color: ohm.success) : OutlinedButton.icon(onPressed: _listo ? () => _probarSalida(index) : null, icon: const Icon(Icons.power), label: const Text('Encender 5 s')),
+      accion: alta
+          ? Icon(Icons.check_circle, color: ohm.success)
+          : OutlinedButton.icon(onPressed: _listo ? () => _probarSalida(index) : null, icon: const Icon(Icons.power), label: const Text('Encender 5 s')),
     );
   }
 }
@@ -443,7 +521,10 @@ class _Titulo extends StatelessWidget {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(texto, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w700)),
+      child: Text(
+        texto,
+        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w700),
+      ),
     );
   }
 }
@@ -461,7 +542,14 @@ class _Tarjeta extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(14), border: Border.all(color: (color ?? theme.dividerColor).withValues(alpha: color == null ? 0.6 : 0.8), width: color == null ? 1 : 1.4)),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: (color ?? theme.dividerColor).withValues(alpha: color == null ? 0.6 : 0.8),
+          width: color == null ? 1 : 1.4,
+        ),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -494,13 +582,29 @@ class _Aviso extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.35))),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icono, size: 20, color: color),
           const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(titulo, style: theme.textTheme.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w700)), const SizedBox(height: 2), Text(texto, style: theme.textTheme.bodySmall)])),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: theme.textTheme.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(texto, style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
         ],
       ),
     );
