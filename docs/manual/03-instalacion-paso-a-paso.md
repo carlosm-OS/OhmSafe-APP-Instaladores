@@ -82,6 +82,8 @@ La sirena, el pánico y los sensores se prueban en otro paso (próximamente «Ag
 
 ## Paso 6 — Agregar dispositivos (opcional, desde la build 39)
 
+**OhmBox adicional (desde la build 40).** Si el cliente tiene más de un energizador en la misma casa, el segundo se agrega aquí, en la sección **«OhmBox · energizadores de la casa»**: toca **«Agregar»**, escribe o escanea la serie y confirma. Va siempre a la casa del energizador principal y cuenta como complemento de su suscripción, no como un paquete nuevo. La lista muestra cada energizador y si ya reporta.
+
 Lo cableado al OhmBox se da de alta **probándolo en vivo**; la app sólo acepta lo que el equipo
 confirma. Necesitas firmware **2.10 o superior** y el equipo en línea.
 

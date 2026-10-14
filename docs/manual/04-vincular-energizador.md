@@ -96,7 +96,20 @@ El equipo **sí** quedó vinculado a la instalación, pero no llegó a la app de
 
 - «Cancelar instalación» (en «Identifica el energizador») abre la cancelación en sitio. Ver [05](05-cancelar-en-sitio.md).
 
-## ¿Dónde va este equipo? (desde la build 28)
+## A dónde va el equipo (desde la build 40)
+
+**Ya no eliges casa.** La decide la venta, con una regla de negocio: **una casa = una suscripción**.
+
+- **Plan nuevo** (la venta es una suscripción nueva): el equipo va a una **casa nueva** con la dirección de la compra, aunque el cliente ya tenga otras casas. Cada dirección del cliente es una casa con su propio plan.
+- **Equipo adicional** (un complemento sobre un contrato que ya existe): el equipo va a la **casa de ese contrato**.
+
+Al tocar **«Vincular»** verás una hoja de confirmación con la venta, la casa y el motivo. Toca **«Vincular»** para seguir o **«Cancelar»** para quedarte en la pantalla.
+
+Si la hoja dice **«No se puede vincular todavía»**, la venta es equipo adicional pero no dice a qué casa va. Avisa a operaciones para que la ligue a su contrato en Odoo y vuelve a intentarlo.
+
+**¿Un segundo energizador en la misma casa?** No se vincula aquí como si fuera otra instalación: después de vincular el principal, ve a **Agregar dispositivos → OhmBox → Agregar** (paso 6). Ahí queda como complemento de la misma suscripción.
+
+## ¿Dónde va este equipo? (desde la build 28) — hasta la build 39
 
 Al tocar **«Vincular»**, si el cliente **ya tiene casas** en su app OhmSafe aparece una hoja con sus casas (nombre, dirección y cuántos energizadores tiene cada una) y la opción **«Casa nueva»**.
 
@@ -131,7 +144,7 @@ Las pruebas de **batería auxiliar**, **conexión a línea** y la casilla de **t
 
 Las secciones anteriores sobre pruebas en verde/rojo aplican a builds anteriores y se reactivarán cuando vuelvan las validaciones.
 
-## «¿Dónde va este equipo?»
+## «¿Dónde va este equipo?» — hasta la build 39 (retirada en la build 40)
 
 Aparece cuando el cliente ya tiene casas con algún equipo (energizador, cámaras, sensores…). Arriba de las opciones ves **qué se vendió**: «Venta S00… · Servicio nuevo: <plan> · 1 Ohmbox» (una suscripción nueva, que normalmente va en casa nueva) o «Equipo adicional · …» (que normalmente se suma a una casa que ya existe). Elige:
 

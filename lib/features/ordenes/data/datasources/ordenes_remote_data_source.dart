@@ -145,7 +145,13 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
       _data(await dioClient.post('/instalador/ordenes/$id/cableado/salidas/$index/registrar', body: {'nombre': nombre, 'tipo': tipo, 'modo': modo, if (pulsoSeg != null) 'pulsoSeg': pulsoSeg, 'funciono': funciono}));
 
   @override
-  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
+  Future<Map<String, dynamic>> ohmboxEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/ohmbox'));
+  @override
+  Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/ohmbox', body: {'serie': serie, if (mac != null && mac.isNotEmpty) 'mac': mac}));
+
+  @override
+  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
     // `codigo` = MAC del energizador (Odoo x_mac_address). `serie` = número de
     // serie del inventario de Ohmbox en Odoo (OS-OBV01-####).
     final res = await dioClient.post('/instalador/ordenes/$id/vincular-energizador',
@@ -154,7 +160,6 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
           'mac': codigo,
           if (serie != null) 'serial': serie,
           if (tierraConfirmada != null) 'tierraConfirmada': tierraConfirmada,
-          if (destino != null) 'destino': destino,
         });
     final data = (res['data'] as Map<String, dynamic>?) ?? const {};
     return (data['dashboard'] as Map<String, dynamic>?) ?? const {'ligado': true};

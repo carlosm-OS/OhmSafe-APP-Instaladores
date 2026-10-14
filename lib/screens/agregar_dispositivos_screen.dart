@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import '../core/di/injection_container.dart';
 import '../core/error/failures.dart';
 import '../core/theme/app_theme_extension.dart';
+import '../core/utils/serie_formato.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/ohm_gradient_button.dart';
+import 'escanear_serie_screen.dart';
 
 /// «Agregar dispositivos» · cableado con prueba en vivo (build 39, Carlos 2026-10-13).
 /// Cada elemento se comprueba físicamente y la app sólo acepta lo que el equipo confirma:
@@ -35,6 +37,9 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   bool _ocupado = false;
   Timer? _sondeo;
 
+  /// Energizadores de la casa (principal + OhmBox adicionales). `null` = aún no se lee o falló.
+  Map<String, dynamic>? _ohmbox;
+
   @override
   void initState() {
     super.initState();
@@ -50,7 +55,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   Future<void> _inicio() async {
     // La ventana de instalación la abrió la prueba del energizador; si venció se reabre aquí.
     await _repo.pruebaAbrir(_id);
-    await _cargar();
+    await Future.wait([_cargar(), _cargarOhmbox()]);
     if (mounted) setState(() => _cargando = false);
   }
 
@@ -59,6 +64,81 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (!mounted) return;
     r.fold((d) => setState(() { _e = d; _error = null; }), (f) => setState(() => _error = f.message));
     _ajustarSondeo();
+  }
+
+  Future<void> _cargarOhmbox() async {
+    final r = await _repo.ohmboxEstado(_id);
+    if (!mounted) return;
+    r.fold((d) => setState(() => _ohmbox = d), (_) {});
+  }
+
+  List<Map<String, dynamic>> get _energizadores => ((_ohmbox?['energizadores'] as List?) ?? const []).whereType<Map>().map((x) => x.cast<String, dynamic>()).toList();
+  String get _casaNombre => ((_ohmbox?['casa'] as Map?)?['nombre'] ?? 'la casa').toString();
+
+  /// OhmBox adicional (2026-10-14): un segundo energizador en la misma casa es un complemento
+  /// de su suscripción, nunca un paquete nuevo. Va siempre a la casa del energizador principal.
+  Future<void> _agregarOhmbox() async {
+    final serie = await _pedirSerie();
+    if (serie == null || !mounted) return;
+    setState(() => _ocupado = true);
+    final r = await _repo.ohmboxAgregar(_id, serie: serie);
+    if (!mounted) return;
+    setState(() => _ocupado = false);
+    r.fold(
+      (d) {
+        setState(() => _ohmbox = d);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('OhmBox $serie agregado a «$_casaNombre»')));
+      },
+      (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))),
+    );
+  }
+
+  Future<String?> _pedirSerie() async {
+    final ctrl = TextEditingController();
+    final r = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('OhmBox adicional'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Se suma a «$_casaNombre» como complemento de su suscripción.', style: Theme.of(ctx).textTheme.bodySmall),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [SerieInputFormatter()],
+              decoration: InputDecoration(
+                labelText: 'Número de serie',
+                hintText: 'OS-OBV01-0000',
+                suffixIcon: IconButton(
+                  tooltip: 'Escanear QR',
+                  icon: const Icon(Icons.qr_code_scanner),
+                  onPressed: () async {
+                    final leida = await Navigator.of(ctx).push<String>(MaterialPageRoute(builder: (_) => const EscanearSerieScreen()));
+                    if (leida != null && leida.isNotEmpty) ctrl.text = leida;
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () {
+              final s = normalizarSerie(ctrl.text);
+              if (s.isNotEmpty) Navigator.pop(ctx, s);
+            },
+            child: const Text('Agregar'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return r;
   }
 
   /// Mientras hay una prueba de entrada en curso, se consulta el equipo cada 2 s.
@@ -243,6 +323,22 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                         const SizedBox(height: 12),
                         Text('Cada elemento se prueba en vivo; sólo se da de alta lo que el equipo confirma.', style: muted),
                         const SizedBox(height: 16),
+
+                        // ---------------- OhmBox (energizadores de la casa)
+                        _Titulo('OHMBOX · ENERGIZADORES DE LA CASA'),
+                        for (final x in _energizadores)
+                          _Tarjeta(
+                            titulo: '${x['serie']}${x['principal'] == true ? ' · principal' : ''}',
+                            subtitulo: x['enLinea'] == true ? 'En línea' : 'Sin reporte todavía',
+                            color: x['enLinea'] == true ? ohm.success : null,
+                            accion: Icon(Icons.bolt, color: x['enLinea'] == true ? ohm.success : cs.onSurfaceVariant),
+                          ),
+                        _Tarjeta(
+                          titulo: 'Otro OhmBox en esta casa',
+                          subtitulo: 'Un segundo energizador es un complemento de la suscripción, no un paquete nuevo.',
+                          accion: OutlinedButton.icon(onPressed: _ocupado || _ohmbox == null ? null : _agregarOhmbox, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                        ),
+                        const SizedBox(height: 10),
 
                         // ---------------- Entradas
                         _Titulo('ENTRADAS CABLEADAS (PUERTAS)'),

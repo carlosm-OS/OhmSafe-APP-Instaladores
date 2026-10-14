@@ -34,10 +34,10 @@ abstract class OrdenesRepository {
 
   /// Vincula el energizador (por QR o número de serie).
   /// Devuelve el resultado del ligado a la cuenta del cliente (`ligado`, `motivo`).
-  /// `destino`: casa existente (`{'casaId'}`) o casa nueva (`{'nueva': {...}}`); sin él, como siempre.
-  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino});
+  /// La casa la decide la venta en el backend (2026-10-14); la app ya no manda `destino`.
+  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
 
-  /// Casas del cliente de la orden en el dashboard, para decidir dónde va el equipo.
+  /// A dónde va el equipo (`destino`, decidido por la venta) y qué se vendió; ya no hay casas que elegir.
   Future<Result<Map<String, dynamic>>> casasParaVincular(String id);
 
   /// Prueba en sitio del energizador (ventana temporal para encender/apagar la cerca).
@@ -55,6 +55,9 @@ abstract class OrdenesRepository {
   Future<Result<Map<String, dynamic>>> cableadoConfirmarSirena(String id, {required bool sono});
   Future<Result<Map<String, dynamic>>> cableadoProbarSalida(String id, int index);
   Future<Result<Map<String, dynamic>>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
+  /// OhmBox adicional en la misma casa (add-on de su suscripción, 2026-10-14).
+  Future<Result<Map<String, dynamic>>> ohmboxEstado(String id);
+  Future<Result<Map<String, dynamic>>> ohmboxAgregar(String id, {required String serie, String? mac});
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 

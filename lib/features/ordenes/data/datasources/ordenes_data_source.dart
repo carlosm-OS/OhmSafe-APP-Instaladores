@@ -20,7 +20,7 @@ abstract class OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo);
   /// Devuelve el resultado del ligado a la cuenta del cliente (`dashboard`:
   /// `ligado`, y si no, `motivo` CLIENTE_SIN_CUENTA | EQUIPO_DE_OTRO_TITULAR | SIN_SERIE).
-  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino});
+  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
   Future<Map<String, dynamic>> casasParaVincular(String id);
 
   /// Prueba en sitio del energizador (build 39): ventana temporal para encender/apagar la cerca.
@@ -39,6 +39,9 @@ abstract class OrdenesDataSource {
   Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono});
   Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index);
   Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
+  /// OhmBox adicional en la misma casa (2026-10-14): `GET/POST /instalador/ordenes/:id/ohmbox`.
+  Future<Map<String, dynamic>> ohmboxEstado(String id);
+  Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac});
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Historial del instalador: intervenciones completadas y canceladas en sitio

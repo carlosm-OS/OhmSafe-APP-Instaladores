@@ -153,7 +153,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) => _ok();
 
   @override
-  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
+  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
     await _ok();
     return {'ligado': true};
   }
@@ -162,12 +162,23 @@ class OrdenesMockDataSource implements OrdenesDataSource {
     await _ok();
     return {
       'clienteConCuenta': true,
-      'casas': [
-        {'id': 'casa-1', 'nombre': 'Casa Mock', 'direccion': 'Av. Insurgentes Sur 1234, CDMX', 'energizadores': 1},
-      ],
-      'sugerida': 'casa-1',
+      'casas': [],
+      'sugerida': null,
       'nueva': {'nombre': 'Av. Insurgentes Sur 1234', 'direccion': 'Av. Insurgentes Sur 1234, CDMX'},
+      'venta': {'nombre': 'S00170', 'esServicioNuevo': true, 'plan': 'Plan Hogar Seguro - Mensual', 'equipos': [{'nombre': 'Ohmbox/Energizador', 'cantidad': 1}]},
+      'destino': {'tipo': 'nueva', 'nombre': 'Av. Insurgentes Sur 1234', 'direccion': 'Av. Insurgentes Sur 1234, CDMX', 'motivo': 'S00170 es un plan nuevo: va a una casa nueva con la dirección de la compra.', 'aviso': null},
     };
+  }
+  final List<Map<String, dynamic>> _mockOhmbox = [
+    {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'nombre': 'Cerca', 'enLinea': true, 'principal': true},
+  ];
+  @override
+  Future<Map<String, dynamic>> ohmboxEstado(String id) async { await _ok(); return {'casa': {'id': 'casa-1', 'nombre': 'Casa Mock'}, 'energizadores': _mockOhmbox}; }
+  @override
+  Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac}) async {
+    await _ok();
+    _mockOhmbox.add({'id': 'dev-${_mockOhmbox.length + 1}', 'serie': serie, 'nombre': 'Cerca', 'enLinea': false, 'principal': false});
+    return {'casa': {'id': 'casa-1', 'nombre': 'Casa Mock'}, 'energizadores': _mockOhmbox};
   }
   Map<String, dynamic> _prueba({bool abierta = true, bool cerca = false}) => {
         'intervencion': 'i1',

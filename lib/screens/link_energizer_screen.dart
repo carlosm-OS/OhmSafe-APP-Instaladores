@@ -6,7 +6,7 @@ import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
 
 import '../core/utils/destino_equipo.dart';
-import '../widgets/destino_equipo_sheet.dart';
+import '../widgets/destino_equipo_confirmacion.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
@@ -176,20 +176,19 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     setState(() => _isSending = true);
     final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     final serie = _macController.text.trim();
-    // ¿Dónde va el equipo? Sólo se pregunta si el cliente ya tiene casas en su
-    // app (si no, el backend crea la casa como siempre). Si falla la consulta,
-    // se vincula sin destino: nunca bloquea la instalación.
+    // A dónde va el equipo lo decide la venta (2026-10-14, una vivienda = una suscripción):
+    // la app sólo lo muestra para confirmar. Si la consulta falla o el backend es anterior,
+    // se vincula sin confirmar y el backend decide igual: nunca bloquea por la red.
     final repo = sl.get<OrdenesRepository>();
-    Map<String, dynamic>? destino;
     final casas = await repo.casasParaVincular(id);
     if (!mounted) return;
-    OpcionesDestino? opciones;
-    casas.fold((d) => opciones = OpcionesDestino.fromJson(d), (_) {});
-    if (opciones != null && opciones!.hayQuePreguntar) {
-      destino = await elegirDestinoEquipo(context, opciones!);
+    DestinoDecidido? destino;
+    casas.fold((d) => destino = DestinoDecidido.fromCasas(d), (_) {});
+    if (destino != null && destino!.tipo != 'sin_cuenta') {
+      final ok = await confirmarDestinoEquipo(context, destino!);
       if (!mounted) return;
-      if (destino == null) {
-        setState(() => _isSending = false); // canceló: se queda en la pantalla
+      if (!ok) {
+        setState(() => _isSending = false); // canceló o la venta no dice a qué casa va
         return;
       }
     }
@@ -197,7 +196,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           id,
           codigo: _macDetectada.isNotEmpty ? _macDetectada : serie,
           serie: serie,
-          destino: destino,
         );
     if (!mounted) return;
     result.fold(
@@ -221,7 +219,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         // resultado se muestra en un aviso sobre la pantalla de pasos.
         final casaMap = (dashboard['casa'] as Map?)?.cast<String, dynamic>();
         final casa = casaMap?['nombre']?.toString();
-        // Qué pasó con la suscripción de la venta al elegir casa (servicio nuevo): se dice tal cual.
+        // Qué pasó con la suscripción de la venta (plan nuevo): se dice tal cual.
         final suscripcion = (casaMap?['suscripcion'] as Map?)?['detalle']?.toString();
         setState(() {
           _vinculado = true;
