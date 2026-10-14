@@ -42,6 +42,14 @@ abstract class OrdenesDataSource {
   /// OhmBox adicional en la misma casa (2026-10-14): `GET/POST /instalador/ordenes/:id/ohmbox`.
   Future<Map<String, dynamic>> ohmboxEstado(String id);
   Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac});
+  /// Sensores 433, Wi‑Fi y cámaras (2026-10-14): `/instalador/ordenes/:id/{dispositivos,rf/aprender…,sensores-wifi,camaras}`.
+  Future<Map<String, dynamic>> dispositivosEstado(String id);
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre});
+  Future<Map<String, dynamic>> rfSesion(String id, String sid);
+  Future<Map<String, dynamic>> rfTerminar(String id, String sid, {required String nombre});
+  Future<Map<String, dynamic>> rfCancelar(String id, String sid);
+  Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo});
+  Future<Map<String, dynamic>> camaraAgregar(String id, {required String proveedor, required String serie, required String codigo, required String nombre});
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Historial del instalador: intervenciones completadas y canceladas en sitio

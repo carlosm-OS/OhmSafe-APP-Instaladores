@@ -169,6 +169,34 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       'destino': {'tipo': 'nueva', 'nombre': 'Av. Insurgentes Sur 1234', 'direccion': 'Av. Insurgentes Sur 1234, CDMX', 'motivo': 'S00170 es un plan nuevo: va a una casa nueva con la dirección de la compra.', 'aviso': null},
     };
   }
+  final List<Map<String, dynamic>> _mockRf = [];
+  final List<Map<String, dynamic>> _mockWifi = [];
+  final List<Map<String, dynamic>> _mockCams = [];
+  int _mockPaso = 0;
+  @override
+  Future<Map<String, dynamic>> dispositivosEstado(String id) async {
+    await _ok();
+    return {
+      'equipo': {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'firmware': '2.11.0.14'},
+      'rf': {'soportado': true, 'dispositivos': _mockRf, 'limites': {}, 'aprendizaje': null},
+      'wifi': {'sensores': _mockWifi, 'limites': {}, 'usados': {}},
+      'camaras': {'habilitadas': true, 'proveedores': {'ezviz': true, 'imou': true}, 'lista': _mockCams, 'max': 32},
+    };
+  }
+  Map<String, dynamic> _sesion(String tipo, {String status = 'listening'}) => {'sid': 'mock1', 'kind': tipo, 'status': status, 'phase': tipo == 'door' ? (_mockPaso == 0 ? 'open' : 'close') : 'btn', 'step': _mockPaso + 1, 'steps': tipo == 'door' ? 2 : 1, 'frames': 0, 'need': 2, 'addr': status == 'listening' ? null : 'A1B2C3', 'captured': []};
+  String _mockTipo = 'door';
+  @override
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre}) async { await _ok(); _mockTipo = tipo; _mockPaso = 0; return {'sesion': _sesion(tipo)}; }
+  @override
+  Future<Map<String, dynamic>> rfSesion(String id, String sid) async { await _ok(); _mockPaso++; return {'sesion': _sesion(_mockTipo, status: _mockPaso >= 2 ? 'done' : 'listening')}; }
+  @override
+  Future<Map<String, dynamic>> rfTerminar(String id, String sid, {required String nombre}) async { await _ok(); _mockRf.add({'id': 'rf${_mockRf.length}', 'tipo': _mockTipo, 'nombre': nombre}); return {'device': {'name': nombre}}; }
+  @override
+  Future<Map<String, dynamic>> rfCancelar(String id, String sid) async { await _ok(); return {'sesion': _sesion(_mockTipo, status: 'cancelled')}; }
+  @override
+  Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo}) async { await _ok(); _mockWifi.add({'id': externalId, 'tipo': tipo, 'nombre': nombre, 'externalId': externalId}); return {'sensor': {'name': nombre}}; }
+  @override
+  Future<Map<String, dynamic>> camaraAgregar(String id, {required String proveedor, required String serie, required String codigo, required String nombre}) async { await _ok(); _mockCams.add({'id': serie, 'proveedor': proveedor, 'nombre': nombre, 'serie': serie, 'estado': 'online'}); return {'camara': {'name': nombre}}; }
   final List<Map<String, dynamic>> _mockOhmbox = [
     {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'nombre': 'Cerca', 'enLinea': true, 'principal': true},
   ];

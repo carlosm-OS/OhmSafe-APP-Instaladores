@@ -145,6 +145,25 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
       _data(await dioClient.post('/instalador/ordenes/$id/cableado/salidas/$index/registrar', body: {'nombre': nombre, 'tipo': tipo, 'modo': modo, if (pulsoSeg != null) 'pulsoSeg': pulsoSeg, 'funciono': funciono}));
 
   @override
+  Future<Map<String, dynamic>> dispositivosEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/dispositivos'));
+  @override
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender', body: {'tipo': tipo, if (nombre != null && nombre.isNotEmpty) 'nombre': nombre}));
+  @override
+  Future<Map<String, dynamic>> rfSesion(String id, String sid) async => _data(await dioClient.get('/instalador/ordenes/$id/rf/aprender/$sid'));
+  @override
+  Future<Map<String, dynamic>> rfTerminar(String id, String sid, {required String nombre}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender/$sid/terminar', body: {'nombre': nombre}));
+  @override
+  Future<Map<String, dynamic>> rfCancelar(String id, String sid) async => _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender/$sid/cancelar', body: const {}));
+  @override
+  Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/sensores-wifi', body: {'externalId': externalId, 'nombre': nombre, 'tipo': tipo}));
+  @override
+  Future<Map<String, dynamic>> camaraAgregar(String id, {required String proveedor, required String serie, required String codigo, required String nombre}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/camaras', body: {'proveedor': proveedor, 'serie': serie, 'codigo': codigo, 'nombre': nombre}));
+
+  @override
   Future<Map<String, dynamic>> ohmboxEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/ohmbox'));
   @override
   Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac}) async =>

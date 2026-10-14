@@ -5,6 +5,7 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 ## Build 40 — 14 de octubre de 2026
 
 - **Ya no eliges la casa al vincular.** Se retira «¿Dónde va este equipo?». La venta decide: plan nuevo va a una casa nueva con la dirección de la compra y equipo adicional va a la casa de su contrato. Ves una hoja de confirmación antes de vincular.
+- **Sensores 433, sensores Wi‑Fi y cámaras** en «Agregar dispositivos», además de las entradas cableadas, sirena y salidas.
 - **OhmBox adicional** en «Agregar dispositivos»: el segundo energizador de una casa se agrega ahí y queda como complemento de la misma suscripción.
 - En la lista de instalaciones y reparaciones, cada tarjeta muestra su número de intervención («i69») junto al cliente.
 - **Prueba del energizador sin reloj**: el control del equipo dura lo que estés en la pantalla y se retira al salir. Al terminar regresas a la lista de pasos.

@@ -11,6 +11,7 @@ import '../widgets/app_bottom_nav.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/ohm_gradient_button.dart';
 import 'escanear_serie_screen.dart';
+import '../widgets/aprender_rf_sheet.dart';
 
 /// «Agregar dispositivos» · cableado con prueba en vivo (build 39, Carlos 2026-10-13).
 /// Cada elemento se comprueba físicamente y la app sólo acepta lo que el equipo confirma:
@@ -42,6 +43,9 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   /// Energizadores de la casa (principal + OhmBox adicionales). `null` = aún no se lee o falló.
   Map<String, dynamic>? _ohmbox;
 
+  /// Sensores 433, Wi‑Fi y cámaras ya dados de alta (2026-10-14).
+  Map<String, dynamic>? _disp;
+
   @override
   void initState() {
     super.initState();
@@ -60,7 +64,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     // pantalla está abierta y se cierra al salir; el instalador no se queda con control de la cerca.
     await _repo.pruebaAbrir(_id);
     _ventana = Timer.periodic(const Duration(minutes: 1), (_) => _renovarVentana());
-    await Future.wait([_cargar(), _cargarOhmbox()]);
+    await Future.wait([_cargar(), _cargarOhmbox(), _cargarDisp()]);
     if (mounted) setState(() => _cargando = false);
   }
 
@@ -99,6 +103,170 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     _sondeo?.cancel();
     await _repo.pruebaTerminar(_id);
     if (mounted) Navigator.pop(context, 'dispositivos_listos');
+  }
+
+  Future<void> _cargarDisp() async {
+    final r = await _repo.dispositivosEstado(_id);
+    if (!mounted) return;
+    r.fold((d) => setState(() => _disp = d), (_) {});
+  }
+
+  Map<String, dynamic> _sec(String k) => (_disp?[k] as Map?)?.cast<String, dynamic>() ?? const {};
+  List<Map<String, dynamic>> _lista(String k, String campo) => ((_sec(k)[campo] as List?) ?? const []).whereType<Map>().map((x) => x.cast<String, dynamic>()).toList();
+  bool get _rfSoportado => _sec('rf')['soportado'] != false;
+  bool get _camarasOn => _sec('camaras')['habilitadas'] == true;
+  Map<String, dynamic> get _proveedores => (_sec('camaras')['proveedores'] as Map?)?.cast<String, dynamic>() ?? const {};
+  bool get _hayProveedor => _camarasOn && (_proveedores['ezviz'] == true || _proveedores['imou'] == true);
+
+  static const _tipoRfTexto = {'door': 'Puerta', 'pir': 'Movimiento', 'smoke': 'Humo', 'panic_button': 'Botón de pánico', 'fob': 'Control remoto'};
+  static const _tipoWifiTexto = {'door': 'Puerta', 'motion': 'Movimiento', 'smoke': 'Humo'};
+
+  void _aviso(String texto) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
+
+  // ---------------------------------------------------------------- 433
+  Future<void> _agregarRf() async {
+    final tipo = await showModalBottomSheet<({String id, String etiqueta, IconData icono})>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text('¿Qué sensor 433 vas a agregar?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            ),
+            for (final t in tiposRf) ListTile(leading: Icon(t.icono), title: Text(t.etiqueta), onTap: () => Navigator.pop(ctx, t)),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (tipo == null || !mounted) return;
+    final nombre = await aprenderSensorRf(context, ordenId: _id, tipo: tipo.id, etiqueta: tipo.etiqueta);
+    if (!mounted) return;
+    if (nombre != null) _aviso('Sensor 433 «$nombre» dado de alta');
+    await _cargarDisp();
+  }
+
+  // ---------------------------------------------------------------- Wi‑Fi
+  Future<void> _agregarWifi() async {
+    final idCtrl = TextEditingController();
+    final nombreCtrl = TextEditingController();
+    String tipo = 'door';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, set) => AlertDialog(
+          title: const Text('Sensor Wi‑Fi (Tuya)'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Se registra por su id de Tuya; el emparejamiento se hace en la app Tuya del cliente.', style: Theme.of(ctx).textTheme.bodySmall),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: tipo,
+                  decoration: const InputDecoration(labelText: 'Tipo'),
+                  items: [for (final e in _tipoWifiTexto.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+                  onChanged: (v) => set(() => tipo = v ?? 'door'),
+                ),
+                TextField(
+                  controller: idCtrl,
+                  decoration: const InputDecoration(labelText: 'Id del sensor en Tuya'),
+                ),
+                TextField(
+                  controller: nombreCtrl,
+                  maxLength: 40,
+                  decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ventana de la sala'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, idCtrl.text.trim().isNotEmpty && nombreCtrl.text.trim().isNotEmpty), child: const Text('Registrar')),
+          ],
+        ),
+      ),
+    );
+    final externalId = idCtrl.text.trim();
+    final nombre = nombreCtrl.text.trim();
+    idCtrl.dispose();
+    nombreCtrl.dispose();
+    if (ok != true || !mounted) return;
+    setState(() => _ocupado = true);
+    final r = await _repo.sensorWifiAgregar(_id, externalId: externalId, nombre: nombre, tipo: tipo);
+    if (!mounted) return;
+    setState(() => _ocupado = false);
+    r.fold((_) => _aviso('Sensor Wi‑Fi «$nombre» registrado'), (f) => _aviso(f.message));
+    await _cargarDisp();
+  }
+
+  // ---------------------------------------------------------------- Cámaras
+  Future<void> _agregarCamara() async {
+    final serieCtrl = TextEditingController();
+    final codigoCtrl = TextEditingController();
+    final nombreCtrl = TextEditingController();
+    final opciones = [if (_proveedores['ezviz'] == true) 'ezviz', if (_proveedores['imou'] == true) 'imou'];
+    String proveedor = opciones.isNotEmpty ? opciones.first : 'ezviz';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, set) => AlertDialog(
+          title: const Text('Agregar cámara'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('La cámara debe estar encendida y con internet. Los datos vienen en su etiqueta.', style: Theme.of(ctx).textTheme.bodySmall),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: proveedor,
+                  decoration: const InputDecoration(labelText: 'Marca'),
+                  items: [for (final o in opciones) DropdownMenuItem(value: o, child: Text(o == 'ezviz' ? 'EZVIZ' : 'Imou'))],
+                  onChanged: (v) => set(() => proveedor = v ?? proveedor),
+                ),
+                TextField(
+                  controller: serieCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(labelText: 'Número de serie (S/N)'),
+                ),
+                TextField(
+                  controller: codigoCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(labelText: 'Código de verificación'),
+                ),
+                TextField(
+                  controller: nombreCtrl,
+                  maxLength: 40,
+                  decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Cochera'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, serieCtrl.text.trim().isNotEmpty && codigoCtrl.text.trim().isNotEmpty && nombreCtrl.text.trim().isNotEmpty), child: const Text('Agregar')),
+          ],
+        ),
+      ),
+    );
+    final serie = serieCtrl.text.trim();
+    final codigo = codigoCtrl.text.trim();
+    final nombre = nombreCtrl.text.trim();
+    serieCtrl.dispose();
+    codigoCtrl.dispose();
+    nombreCtrl.dispose();
+    if (ok != true || !mounted) return;
+    setState(() => _ocupado = true);
+    final r = await _repo.camaraAgregar(_id, proveedor: proveedor, serie: serie, codigo: codigo, nombre: nombre);
+    if (!mounted) return;
+    setState(() => _ocupado = false);
+    r.fold((_) => _aviso('Cámara «$nombre» agregada'), (f) => _aviso(f.message));
+    await _cargarDisp();
   }
 
   Future<void> _cargarOhmbox() async {
@@ -381,7 +549,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               icono: Icons.system_update_alt,
                               color: cs.error,
                               titulo: 'Firmware ${_equipo['firmware'] ?? 'desconocido'}',
-                              texto: 'Esta app sólo instala con ${_equipo['firmwareMinimo'] ?? '2.10'} o superior. Actualiza el equipo antes de agregar dispositivos.',
+                              texto:
+                                  'Las entradas cableadas, la sirena y las salidas piden ${_equipo['firmwareMinimo'] ?? '2.10'} o superior. Los sensores, las cámaras y el OhmBox sí se pueden agregar.',
                             ),
                           if (_e != null && _firmwareOk && !_enLinea)
                             _Aviso(icono: Icons.wifi_off, color: cs.error, titulo: 'El energizador no reporta', texto: 'Revisa que esté encendido y con señal.'),
@@ -427,6 +596,60 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                           const SizedBox(height: 10),
                           _Titulo('SALIDAS AUXILIARES'),
                           for (final s in _salidas) _tarjetaSalida(s, theme, cs, ohm),
+
+                          // ---------------- Sensores 433
+                          const SizedBox(height: 10),
+                          _Titulo('SENSORES 433 (INALÁMBRICOS)'),
+                          for (final x in _lista('rf', 'dispositivos'))
+                            _Tarjeta(
+                              titulo: (x['nombre'] ?? '').toString(),
+                              subtitulo: _tipoRfTexto[x['tipo']] ?? 'Sensor 433',
+                              color: ohm.success,
+                              accion: Icon(Icons.check_circle, color: ohm.success),
+                            ),
+                          _Tarjeta(
+                            titulo: 'Agregar sensor 433',
+                            subtitulo: !_rfSoportado
+                                ? 'El firmware de este energizador no maneja 433.'
+                                : (_enLinea ? 'Puerta, movimiento, humo o botón de pánico. El equipo lo aprende en vivo.' : 'El energizador debe estar en línea para aprender.'),
+                            accion: OutlinedButton.icon(
+                              onPressed: _ocupado || _disp == null || !_rfSoportado || !_enLinea ? null : _agregarRf,
+                              icon: const Icon(Icons.add),
+                              label: const Text('Agregar'),
+                            ),
+                          ),
+
+                          // ---------------- Sensores Wi‑Fi
+                          const SizedBox(height: 10),
+                          _Titulo('SENSORES WI‑FI'),
+                          for (final x in _lista('wifi', 'sensores'))
+                            _Tarjeta(
+                              titulo: (x['nombre'] ?? '').toString(),
+                              subtitulo: '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · Tuya ${x['externalId'] ?? ''}',
+                              color: ohm.success,
+                              accion: Icon(Icons.check_circle, color: ohm.success),
+                            ),
+                          _Tarjeta(
+                            titulo: 'Registrar sensor Wi‑Fi',
+                            subtitulo: 'Tuya: se registra por id; se empareja en la app Tuya.',
+                            accion: OutlinedButton.icon(onPressed: _ocupado || _disp == null ? null : _agregarWifi, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                          ),
+
+                          // ---------------- Cámaras
+                          const SizedBox(height: 10),
+                          _Titulo('CÁMARAS'),
+                          for (final x in _lista('camaras', 'lista'))
+                            _Tarjeta(
+                              titulo: (x['nombre'] ?? '').toString(),
+                              subtitulo: '${(x['proveedor'] ?? '').toString().toUpperCase()} ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}',
+                              color: x['estado'] == 'online' ? ohm.success : null,
+                              accion: Icon(Icons.videocam_outlined, color: x['estado'] == 'online' ? ohm.success : cs.onSurfaceVariant),
+                            ),
+                          _Tarjeta(
+                            titulo: 'Agregar cámara',
+                            subtitulo: _hayProveedor ? 'EZVIZ o Imou, por la nube del fabricante.' : 'Las cámaras no están disponibles en este ambiente.',
+                            accion: OutlinedButton.icon(onPressed: _ocupado || !_hayProveedor ? null : _agregarCamara, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                          ),
 
                           const SizedBox(height: 24),
                           OhmGradientButton(label: 'Listo, volver a los pasos', icon: Icons.check, loading: _saliendo, onPressed: _ocupado || _saliendo ? null : _salir),
