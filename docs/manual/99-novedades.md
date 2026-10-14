@@ -2,6 +2,11 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 39 — 13 de octubre de 2026
+
+- **Nuevo paso 5, «Prueba del energizador»** (opcional): al vincular, la app abre una ventana de 30 minutos (ampliable de 15 en 15 hasta 2 horas) para **encender y apagar la cerca** y mostrarle al cliente que el equipo trabaja (alto voltaje en la línea). Al tocar «Terminar prueba y cerrar» u «Omitir», el control del equipo se retira y sigue el cierre, que ahora es el paso 6. Mientras dura la prueba, lo que dispare el equipo (por ejemplo, tocar las líneas) no manda avisos ni llamadas a nadie.
+- La sirena, el pánico y los sensores se probarán en otro paso («Agregar dispositivos», próximamente).
+
 ## Build 37 — 9 de octubre de 2026
 
 - **Vincular energizador → cierre, sin toques extra**: al tocar «Vincular energizador» (o «Vincular y dar de alta el equipo») y quedar vinculado, la app ya no se queda en la ficha esperando «Continuar»: muestra «Vinculación exitosa · casa «…»» y abre sola el **Cierre de instalación**. Si regresas a la ficha, el botón sigue diciendo «Continuar con cierre de instalación».

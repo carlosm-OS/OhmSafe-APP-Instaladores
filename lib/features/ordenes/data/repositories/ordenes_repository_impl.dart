@@ -141,6 +141,81 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
+  Future<Result<Map<String, dynamic>>> pruebaEstado(String id) async {
+    try {
+      return Success(await dataSource.pruebaEstado(id));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> pruebaAbrir(String id) async {
+    try {
+      return Success(await dataSource.pruebaAbrir(id));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> pruebaExtender(String id) async {
+    try {
+      return Success(await dataSource.pruebaExtender(id));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> pruebaAccion(String id, String accion) async {
+    try {
+      return Success(await dataSource.pruebaAccion(id, accion));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> pruebaTerminar(String id) async {
+    try {
+      return Success(await dataSource.pruebaTerminar(id));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
     try {
       return Success(await dataSource.vincularEnergizador(id, codigo: codigo, serie: serie, tierraConfirmada: tierraConfirmada, destino: destino));

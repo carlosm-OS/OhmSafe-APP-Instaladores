@@ -39,6 +39,13 @@ abstract class OrdenesRepository {
 
   /// Casas del cliente de la orden en el dashboard, para decidir dónde va el equipo.
   Future<Result<Map<String, dynamic>>> casasParaVincular(String id);
+
+  /// Prueba en sitio del energizador (ventana temporal para encender/apagar la cerca).
+  Future<Result<Map<String, dynamic>>> pruebaEstado(String id);
+  Future<Result<Map<String, dynamic>>> pruebaAbrir(String id);
+  Future<Result<Map<String, dynamic>>> pruebaExtender(String id);
+  Future<Result<Map<String, dynamic>>> pruebaAccion(String id, String accion);
+  Future<Result<Map<String, dynamic>>> pruebaTerminar(String id);
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 

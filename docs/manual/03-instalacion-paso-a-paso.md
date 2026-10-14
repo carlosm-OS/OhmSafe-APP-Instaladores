@@ -63,7 +63,24 @@ El metraje real queda como «Metros a instalar» en el paso 3 y en la tarjeta de
 
 Ver el procedimiento completo en [04 — Vincular energizador](04-vincular-energizador.md). Al terminar regresas a la lista de pasos.
 
-## Paso 5 — Cierre de la instalación
+## Paso 5 — Prueba del energizador (opcional, desde la build 39)
+
+Al vincular el energizador la app abre sola esta pantalla con un reloj de **30 minutos** (puedes
+extenderlo de 15 en 15 hasta 2 horas). Mientras corre:
+
+- **Encender cerca** pone alto voltaje en la línea; **Apagar cerca** lo quita. Úsalo las veces que
+  haga falta para mostrarle al cliente que el equipo trabaja. El equipo debe estar **en línea**;
+  si no reporta, la app te lo dice y los botones se bloquean.
+- Lo que dispare el equipo durante la prueba (por ejemplo, tocar las líneas) **no manda avisos
+  ni llamadas** a nadie: queda registrado como prueba.
+- **Terminar prueba y cerrar**: el control del equipo se retira en ese momento y pasas al cierre.
+  Si la cerca queda encendida, la app te lo pregunta antes.
+- **Omitir la prueba** hace lo mismo sin probar. Si sales con la flecha también se retira el
+  permiso.
+
+La sirena, el pánico y los sensores se prueban en otro paso (próximamente «Agregar dispositivos»).
+
+## Paso 6 — Cierre de la instalación
 
 Toca «Cierre de la instalación». El cierre tiene 3 partes: «Evidencias», «Equipo» y «Firma».
 

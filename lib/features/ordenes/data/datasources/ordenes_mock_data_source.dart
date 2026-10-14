@@ -169,6 +169,22 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       'nueva': {'nombre': 'Av. Insurgentes Sur 1234', 'direccion': 'Av. Insurgentes Sur 1234, CDMX'},
     };
   }
+  Map<String, dynamic> _prueba({bool abierta = true, bool cerca = false}) => {
+        'intervencion': 'i1',
+        'ventana': {'abierta': abierta, 'vence': DateTime.now().add(const Duration(minutes: 30)).toIso8601String(), 'segundosRestantes': abierta ? 1800 : 0, 'propia': abierta},
+        'equipo': {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'nombre': 'Cerca', 'enLinea': true, 'ultimoReporte': DateTime.now().toIso8601String(), 'cercaEncendida': cerca, 'alarmaActiva': false, 'sirenaSonando': false},
+      };
+  bool _mockCerca = false;
+  @override
+  Future<Map<String, dynamic>> pruebaEstado(String id) async { await _ok(); return _prueba(cerca: _mockCerca); }
+  @override
+  Future<Map<String, dynamic>> pruebaAbrir(String id) async { await _ok(); return _prueba(cerca: _mockCerca); }
+  @override
+  Future<Map<String, dynamic>> pruebaExtender(String id) async { await _ok(); return _prueba(cerca: _mockCerca); }
+  @override
+  Future<Map<String, dynamic>> pruebaAccion(String id, String accion) async { await _ok(); _mockCerca = accion == 'cerca_on'; return {..._prueba(cerca: _mockCerca), 'resultado': 'sent'}; }
+  @override
+  Future<Map<String, dynamic>> pruebaTerminar(String id) async { await _ok(); return _prueba(abierta: false, cerca: _mockCerca); }
   @override
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion}) async => {'estado': 'cancelado'};
 

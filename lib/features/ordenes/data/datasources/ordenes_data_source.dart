@@ -22,6 +22,14 @@ abstract class OrdenesDataSource {
   /// `ligado`, y si no, `motivo` CLIENTE_SIN_CUENTA | EQUIPO_DE_OTRO_TITULAR | SIN_SERIE).
   Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino});
   Future<Map<String, dynamic>> casasParaVincular(String id);
+
+  /// Prueba en sitio del energizador (build 39): ventana temporal para encender/apagar la cerca.
+  /// `GET/POST /instalador/ordenes/:id/prueba[/abrir|extender|accion|terminar]`.
+  Future<Map<String, dynamic>> pruebaEstado(String id);
+  Future<Map<String, dynamic>> pruebaAbrir(String id);
+  Future<Map<String, dynamic>> pruebaExtender(String id);
+  Future<Map<String, dynamic>> pruebaAccion(String id, String accion);
+  Future<Map<String, dynamic>> pruebaTerminar(String id);
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Historial del instalador: intervenciones completadas y canceladas en sitio

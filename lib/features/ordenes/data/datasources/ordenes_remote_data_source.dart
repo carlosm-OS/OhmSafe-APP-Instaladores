@@ -92,6 +92,36 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> pruebaEstado(String id) async {
+    final res = await dioClient.get('/instalador/ordenes/$id/prueba');
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pruebaAbrir(String id) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/prueba/abrir', body: const {});
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pruebaExtender(String id) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/prueba/extender', body: const {});
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pruebaAccion(String id, String accion) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/prueba/accion', body: {'accion': accion});
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pruebaTerminar(String id) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/prueba/terminar', body: const {});
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
   Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
     // `codigo` = MAC del energizador (Odoo x_mac_address). `serie` = número de
     // serie del inventario de Ohmbox en Odoo (OS-OBV01-####).
