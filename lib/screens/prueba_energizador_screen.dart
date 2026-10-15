@@ -10,6 +10,7 @@ import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/ohm_gradient_button.dart';
+import '../widgets/ayuda.dart';
 
 /// Prueba del energizador (build 39, Carlos 2026-10-13): después de vincular, el instalador tiene
 /// una ventana de tiempo para ENCENDER y APAGAR la cerca y enseñarle al cliente que el equipo
@@ -34,6 +35,12 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
   bool _cargando = true;
   bool _enviando = false;
   Timer? _refresco;
+
+  /// Lo que el instalador ya le enseñó al cliente en esta prueba (guía la pantalla: al tener las
+  /// dos, «Terminar prueba» pasa a ser la acción principal).
+  bool _vioEncendida = false;
+  bool _vioApagada = false;
+  bool get _demostrada => _vioEncendida && _vioApagada;
 
   /// La ventana de control existe pero no se muestra (Carlos, 2026-10-14): se abre al entrar, se
   /// renueva sola mientras la pantalla está abierta y se cierra al salir, para que el instalador no
@@ -104,7 +111,11 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
       if (a.isSuccess) r = await _repo.pruebaAccion(_id, accion);
     }
     if (!mounted) return;
-    r.fold(_aplicar, (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_msg(f)))));
+    r.fold((e) {
+      _aplicar(e);
+      if (accion == 'cerca_on') _vioEncendida = true;
+      if (accion == 'cerca_off') _vioApagada = true;
+    }, (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_msg(f)))));
     setState(() => _enviando = false);
   }
 
@@ -114,11 +125,11 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('La cerca queda encendida'),
-          content: const Text('Al terminar la prueba el permiso para controlar el energizador se retira y la cerca se queda como está ahora: encendida. ¿Así la dejas?'),
+          title: const Text('¿Dejas la cerca encendida?'),
+          content: const Text('Al terminar ya no podrás encenderla ni apagarla desde tu app. Se queda encendida y el control lo tiene sólo el cliente.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Revisar')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí, terminar')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Volver')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí, dejarla así')),
           ],
         ),
       );
@@ -147,6 +158,14 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
     final serie = (_equipo['serie'] ?? '').toString();
 
     // Cualquier salida (botón, gesto o atrás del sistema) cierra la ventana de control.
+    final puedeMandar = _estado != null && _enLinea && !_enviando;
+    final acento = _cercaEncendida ? cs.primary : cs.onSurfaceVariant;
+    final alternar = _enviando
+        ? 'Enviando al energizador…'
+        : (_cercaEncendida ? 'Apagar la cerca' : 'Encender la cerca');
+    final iconoAlternar = _cercaEncendida ? Icons.power_settings_new_rounded : Icons.bolt_rounded;
+    // Mientras envía, el botón sigue con color y spinner (loading ya ignora los toques).
+    final accionAlternar = puedeMandar || (_enviando && _enLinea) ? () => _accion(_cercaEncendida ? 'cerca_off' : 'cerca_on') : null;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -163,7 +182,7 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: Row(
                       children: [
-                        IconButton(onPressed: () => _terminar(omitir: true), icon: const Icon(Icons.chevron_left, size: 30)),
+                        IconButton(onPressed: () => _terminar(omitir: true), icon: const Icon(Icons.chevron_left, size: 30), tooltip: 'Salir de la prueba'),
                         const Expanded(
                           child: Text(
                             'Prueba del energizador',
@@ -175,6 +194,8 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                       ],
                     ),
                   ),
+                  const PasoDeInstalacion(paso: 5),
+                  const SizedBox(height: 6),
                   Expanded(
                     child: _cargando
                         ? const Center(child: CircularProgressIndicator())
@@ -182,86 +203,118 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                             padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
                             children: [
                               if (_error != null) ...[
-                                _Aviso(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo preparar el equipo', texto: _error!),
-                                const SizedBox(height: 10),
-                                OutlinedButton.icon(onPressed: _abrir, icon: const Icon(Icons.refresh), label: const Text('Intentar de nuevo')),
+                                AvisoEnLinea(
+                                  icono: Icons.error_outline,
+                                  color: cs.error,
+                                  titulo: 'No pudimos conectar con el equipo',
+                                  texto: _error!,
+                                  accion: OutlinedButton.icon(onPressed: _abrir, icon: const Icon(Icons.refresh), label: const Text('Intentar de nuevo')),
+                                ),
                                 const SizedBox(height: 16),
                               ],
-                              Text('Enciende y apaga la cerca con el cliente las veces que haga falta. Al terminar, el control del equipo se retira.', style: muted),
+                              Text('Enciende y apaga la cerca frente al cliente para que vea que funciona.', style: theme.textTheme.bodyLarge?.copyWith(height: 1.4)),
                               const SizedBox(height: 16),
 
-                              // Estado del equipo
-                              Text(
-                                'EQUIPO',
-                                style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.all(14),
+                              // Estado actual, grande: es lo que el cliente está mirando.
+                              AnimatedContainer(
+                                key: const Key('prueba-estado-cerca'),
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeOutCubic,
+                                padding: const EdgeInsets.all(18),
                                 decoration: BoxDecoration(
-                                  color: theme.cardColor,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+                                  color: acento.withValues(alpha: _cercaEncendida ? 0.10 : 0.06),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: acento.withValues(alpha: _cercaEncendida ? 0.6 : 0.25), width: 1.5),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                child: Row(
                                   children: [
-                                    _Fila(etiqueta: 'Serie', valor: serie.isEmpty ? '—' : serie),
-                                    const SizedBox(height: 8),
-                                    _Fila(etiqueta: 'Conexión', valor: _enLinea ? 'En línea' : 'Sin conexión', color: _enLinea ? ohm.success : cs.error),
-                                    const SizedBox(height: 8),
-                                    _Fila(etiqueta: 'Cerca', valor: _cercaEncendida ? 'Encendida (alto voltaje)' : 'Apagada', color: _cercaEncendida ? cs.secondary : cs.onSurfaceVariant),
+                                    Container(
+                                      width: 56,
+                                      height: 56,
+                                      decoration: BoxDecoration(color: acento.withValues(alpha: 0.15), shape: BoxShape.circle),
+                                      child: Icon(_cercaEncendida ? Icons.bolt_rounded : Icons.power_off_rounded, size: 32, color: acento),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _cercaEncendida ? 'La cerca está encendida' : 'La cerca está apagada',
+                                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: _cercaEncendida ? cs.primary : null),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Container(width: 8, height: 8, decoration: BoxDecoration(color: _enLinea ? ohm.success : cs.error, shape: BoxShape.circle)),
+                                              const SizedBox(width: 6),
+                                              Flexible(
+                                                child: Text(
+                                                  '${_enLinea ? 'En línea' : 'Sin señal'}${serie.isEmpty ? '' : ' · $serie'}',
+                                                  style: muted,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                               if (!_enLinea) ...[
                                 const SizedBox(height: 10),
-                                _Aviso(
-                                  icono: Icons.wifi_off,
+                                AvisoEnLinea(
+                                  icono: Icons.wifi_off_rounded,
                                   color: cs.error,
-                                  titulo: 'El energizador no reporta',
-                                  texto: 'Revisa que esté encendido y con señal; el comando no se puede mandar hasta que esté en línea.',
+                                  titulo: 'El energizador no tiene señal',
+                                  texto: 'Revisa que esté conectado a la corriente y con señal. Esta pantalla se actualiza sola.',
                                 ),
                               ],
+                              const SizedBox(height: 16),
+                              if (!_demostrada)
+                                OhmGradientButton(key: const Key('prueba-alternar'), label: alternar, icon: iconoAlternar, loading: _enviando, onPressed: accionAlternar)
+                              else
+                                OutlinedButton.icon(key: const Key('prueba-alternar'), onPressed: accionAlternar, icon: Icon(iconoAlternar), label: Text(alternar)),
                               const SizedBox(height: 20),
 
-                              // Controles
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _BotonGrande(
-                                      etiqueta: 'Encender cerca',
-                                      icono: Icons.bolt,
-                                      activo: _cercaEncendida,
-                                      color: cs.secondary,
-                                      habilitado: _estado != null && _enLinea && !_enviando && !_cercaEncendida,
-                                      onTap: () => _accion('cerca_on'),
+                              // Qué falta enseñarle al cliente.
+                              Container(
+                                padding: const EdgeInsets.fromLTRB(16, 6, 6, 12),
+                                decoration: BoxDecoration(
+                                  color: theme.cardColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    TituloSeccion(
+                                      'MUÉSTRALE AL CLIENTE · ${(_vioEncendida ? 1 : 0) + (_vioApagada ? 1 : 0)} DE 2',
+                                      ayuda: const InfoAyuda(
+                                        titulo: 'Control temporal de la cerca',
+                                        puntos: [
+                                          'Sólo puedes controlar la cerca del cliente mientras esta pantalla está abierta.',
+                                          'Al terminar (o salir), ese control se retira y queda sólo en manos del cliente.',
+                                          'La cerca se queda como esté en ese momento: encendida o apagada.',
+                                          'La sirena y los sensores se prueban en el siguiente paso.',
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _BotonGrande(
-                                      etiqueta: 'Apagar cerca',
-                                      icono: Icons.power_settings_new,
-                                      activo: !_cercaEncendida,
-                                      color: cs.onSurfaceVariant,
-                                      habilitado: _estado != null && _enLinea && !_enviando && _cercaEncendida,
-                                      onTap: () => _accion('cerca_off'),
-                                    ),
-                                  ),
-                                ],
+                                    _Check(hecho: _vioEncendida, texto: 'Encendiste la cerca'),
+                                    const SizedBox(height: 8),
+                                    _Check(hecho: _vioApagada, texto: 'La apagaste'),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'Muéstrale al cliente: con la cerca encendida hay alto voltaje en la línea. La sirena y los sensores se prueban en el siguiente paso.',
-                                style: muted,
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 28),
+                              const SizedBox(height: 24),
 
-                              OhmGradientButton(label: 'Terminar prueba', icon: Icons.check, loading: _enviando, onPressed: _enviando ? null : () => _terminar(omitir: false)),
+                              if (_demostrada)
+                                OhmGradientButton(label: 'Terminar prueba', icon: Icons.check, loading: _enviando, onPressed: () => _terminar(omitir: false))
+                              else
+                                OutlinedButton.icon(onPressed: _enviando ? null : () => _terminar(omitir: false), icon: const Icon(Icons.check), label: const Text('Terminar prueba')),
                               const SizedBox(height: 8),
-                              TextButton(onPressed: _enviando ? null : () => _terminar(omitir: true), child: const Text('Omitir la prueba')),
+                              TextButton(onPressed: _enviando ? null : () => _terminar(omitir: true), child: const Text('Salir sin probar')),
                             ],
                           ),
                   ),
@@ -277,109 +330,27 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
   }
 }
 
-class _Fila extends StatelessWidget {
-  const _Fila({required this.etiqueta, required this.valor, this.color});
-  final String etiqueta;
-  final String valor;
-  final Color? color;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(etiqueta, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        Text(
-          valor,
-          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: color),
-        ),
-      ],
-    );
-  }
-}
-
-class _BotonGrande extends StatelessWidget {
-  const _BotonGrande({required this.etiqueta, required this.icono, required this.activo, required this.color, required this.habilitado, required this.onTap});
-  final String etiqueta;
-  final IconData icono;
-  final bool activo;
-  final Color color;
-  final bool habilitado;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final fondo = activo ? color.withValues(alpha: 0.12) : theme.cardColor;
-    return Opacity(
-      opacity: habilitado || activo ? 1 : 0.45,
-      child: Material(
-        color: fondo,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: habilitado ? onTap : null,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            height: 112,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: activo ? color : theme.dividerColor.withValues(alpha: 0.6), width: activo ? 1.5 : 1),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icono, size: 34, color: activo ? color : cs.onSurfaceVariant),
-                const SizedBox(height: 8),
-                Text(
-                  etiqueta,
-                  style: TextStyle(fontWeight: FontWeight.w700, color: activo ? color : cs.onSurface),
-                ),
-                if (activo) Text('estado actual', style: theme.textTheme.labelSmall?.copyWith(color: color)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Aviso extends StatelessWidget {
-  const _Aviso({required this.icono, required this.color, required this.titulo, required this.texto});
-  final IconData icono;
-  final Color color;
-  final String titulo;
+class _Check extends StatelessWidget {
+  const _Check({required this.hecho, required this.texto});
+  final bool hecho;
   final String texto;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icono, size: 20, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: theme.textTheme.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 2),
-                Text(texto, style: theme.textTheme.bodySmall),
-              ],
-            ),
+    final ohm = context.ohm;
+    return Row(
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Icon(
+            hecho ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            key: ValueKey(hecho),
+            color: hecho ? ohm.success : theme.colorScheme.outline,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Text(texto, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: hecho ? FontWeight.w600 : FontWeight.w400))),
+      ],
     );
   }
 }

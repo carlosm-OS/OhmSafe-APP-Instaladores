@@ -12,6 +12,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
+import '../widgets/ayuda.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/theme/app_motion.dart';
@@ -500,6 +501,13 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     return true;
   }
 
+  /// Lo que falta para poder terminar, en palabras del instalador.
+  List<String> _faltantesCierre() => [
+        if (!_evidenciasCompletas()) 'las fotos',
+        if (!_validateStep2()) 'la entrega',
+        if (_signaturePoints.isEmpty) 'la firma del cliente' else if (!_signatureConfirmed) 'tocar «Confirmar firma»',
+      ];
+
   // Helper to validate all conditions for the final submit button
   bool _canSubmitCierre() {
     // a) Las evidencias fotográficas estén completas (4 categorías en
@@ -528,8 +536,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (!_validateStep1()) {
         setState(() {
           _step1Error = _isReparacion
-              ? "Agrega al menos una foto de la reparación (sin dejar fotos pendientes de captura)."
-              : "Por favor, toma las 4 fotografías obligatorias.";
+              ? "Falta al menos una foto de la reparación (o hay un espacio sin foto)."
+              : "Faltan fotos: toma las 4 para seguir.";
         });
         return;
       }
@@ -540,10 +548,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (!_validateStep2()) {
         setState(() {
           _step2Error = !_controlEntregado
-            ? "Confirma que entregaste el control remoto funcional."
+            ? "Falta confirmar la entrega del control remoto."
             : (_camaras == null || _sensores == null || _sirena == null)
-                ? "Indica si instalaste cámaras, sensores y sirena, o marca «No aplica»."
-                : "Indica el tipo de anomalía o descríbela en los comentarios.";
+                ? "Responde cámaras, sensores y sirena (o marca «No aplica»)."
+                : "Marca qué pasó o descríbelo abajo.";
         });
         return;
       }
@@ -660,7 +668,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 // Screen Subtitle
                 Center(
                   child: Text(
-                    _isReparacion ? "Cierre de la reparación" : "Cierre de instalación",
+                    _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -668,7 +676,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 6),
+                PasoDeInstalacion(paso: _isReparacion ? 4 : 7, total: _isReparacion ? 4 : 7),
+                const SizedBox(height: 20),
 
                 // Wizard Steps Navigation Indicator
                 Padding(
@@ -678,8 +688,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildStepIndicatorLabel(1, "Evidencias", brandOrange),
-                          _buildStepIndicatorLabel(2, "Equipo", brandOrange),
+                          _buildStepIndicatorLabel(1, "Fotos", brandOrange),
+                          _buildStepIndicatorLabel(2, "Entrega", brandOrange),
                           _buildStepIndicatorLabel(3, "Firma", brandOrange),
                         ],
                       ),
@@ -738,7 +748,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final bool isActive = _currentStep == step;
     final bool isCompleted = _currentStep > step;
     return Text(
-      "Paso $step: $title",
+      "$step · $title",
       style: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.bold,
@@ -773,22 +783,32 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          _isReparacion
-              ? "EVIDENCIAS DE LA REPARACIÓN"
-              : "EVIDENCIAS FOTOGRÁFICAS OBLIGATORIAS",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+        TituloSeccion(
+          _isReparacion ? "FOTOS DE LA REPARACIÓN" : "FOTOS OBLIGATORIAS",
+          ayuda: _isReparacion
+              ? const InfoAyuda(
+                  titulo: 'Fotos de la reparación',
+                  puntos: [
+                    'Toma al menos una foto del trabajo terminado.',
+                    'Si necesitas más, toca «Agregar foto».',
+                    'Cada foto guarda la ubicación donde la tomaste.',
+                  ],
+                )
+              : const InfoAyuda(
+                  titulo: 'Qué debe verse en cada foto',
+                  puntos: [
+                    'Perfil izquierdo y derecho: la cerca vista desde cada extremo, completa.',
+                    'Energizador: el equipo ya instalado, con sus cables.',
+                    'Letrero OhmSafe: el letrero de advertencia colocado.',
+                    'Tómalas en el domicilio: cada foto guarda su ubicación.',
+                  ],
+                ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           _isReparacion
-              ? "Agrega las fotografías de la reparación realizada. Toma la primera y, si necesitas otra, pulsa \"Agregar foto\". El sistema verifica las coordenadas de cada captura."
-              : "Captura las fotografías requeridas en el lugar de la instalación. El sistema verificará de forma segura las coordenadas de localización.",
+              ? "Toma al menos una foto del trabajo. Cada foto guarda su ubicación."
+              : "Toma las 4 fotos en el domicilio. Cada foto guarda su ubicación.",
           style: TextStyle(
             fontSize: 13,
             color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
@@ -827,7 +847,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "¡Alerta de geolocalización!",
+                        "Una foto no se tomó en el domicilio",
                         style: TextStyle(
                           color: Colors.redAccent,
                           fontWeight: FontWeight.bold,
@@ -836,7 +856,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Se detectó que alguna de las fotografías no fue tomada en la dirección registrada del cliente. Justifica la anomalía a continuación para continuar.",
+                        "Explica abajo por qué (por ejemplo, no había señal de GPS).",
                         style: TextStyle(
                           color: Colors.red.shade900,
                           fontSize: 12,
@@ -854,10 +874,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         // Anomaly Justification TextField
         const SizedBox(height: 24),
         Text(
-          "COMENTARIOS Y JUSTIFICACIÓN DE ANOMALÍAS",
+          anyGeoMismatch ? "¿POR QUÉ NO COINCIDE LA UBICACIÓN?" : "COMENTARIOS (OPCIONAL)",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
@@ -868,8 +889,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           style: TextStyle(color: theme.textTheme.bodyLarge?.color),
           decoration: InputDecoration(
             hintText: anyGeoMismatch 
-              ? "Explica la causa del desfase de GPS (Ej: Instalación atípica, barda delgada, sin señal)..."
-              : "Registra observaciones adicionales de la instalación...",
+              ? "Ej. no había señal de GPS, la barda da a otra calle…"
+              : "Algo que operaciones deba saber de esta instalación",
             filled: true,
             fillColor: context.ohm.surfaceContainer,
             border: OutlineInputBorder(
@@ -899,7 +920,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         // Siguiente Button
         const SizedBox(height: 32),
         OhmGradientButton(
-          label: "Siguiente Paso",
+          label: "Siguiente",
           icon: Icons.arrow_forward_rounded,
           onPressed: _nextStep,
         ),
@@ -943,7 +964,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   Icon(Icons.cloud_off_rounded, size: 13, color: Colors.redAccent),
                   SizedBox(width: 4),
                   Text(
-                    "No se subió · Reintentar",
+                    "No se subió · Toca para reintentar",
                     style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.redAccent),
                   ),
                 ],
@@ -1024,7 +1045,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isMismatched ? "Desfase GPS (>200m)" : "Verificado",
+                        isMismatched ? "Lejos del domicilio" : "En el domicilio",
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -1134,7 +1155,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isMismatched ? "Desfase GPS (>200m)" : "Verificado",
+                        isMismatched ? "Lejos del domicilio" : "En el domicilio",
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -1145,7 +1166,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   ),
                 ] else
                   Text(
-                    "Pendiente de captura",
+                    "Falta tomarla",
                     style: TextStyle(fontSize: 11, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                   ),
               ],
@@ -1225,7 +1246,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          "ENTREGA DE EQUIPO",
+          "ENTREGA AL CLIENTE",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -1235,7 +1256,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          "Confirma lo que entregaste e instalaste. Si el servicio no incluye un addon, márcalo como «No aplica». No se requiere foto ni número de serie.",
+          "Confirma lo que le dejaste funcionando al cliente.",
           style: TextStyle(
             fontSize: 13,
             color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
@@ -1249,7 +1270,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           theme,
           isDark,
           value: _controlEntregado,
-          label: "Entregué funcional el control remoto",
+          label: "Le entregué el control remoto y funciona",
           onChanged: (v) => setState(() {
             _controlEntregado = v;
             _step2Error = null;
@@ -1258,20 +1279,22 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 20),
 
-        // Addons del servicio: cámaras, sensores y sirena
-        Text(
-          "ADDONS DEL SERVICIO",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurfaceVariant,
+        // Extras del servicio: cámaras, sensores y sirena
+        const TituloSeccion(
+          "EXTRAS DEL SERVICIO",
+          ayuda: InfoAyuda(
+            titulo: 'Extras del servicio',
+            puntos: [
+              '«Instalé y funciona»: lo instalaste y lo probaste con el cliente.',
+              '«No aplica»: no venía en lo que compró.',
+              'Si venía pero no lo pudiste dejar funcionando, marca «Con problemas» abajo y cuéntanos qué pasó.',
+            ],
           ),
         ),
-        const SizedBox(height: 8),
         _addonRow(
           theme,
           brandOrange,
-          label: "Instalé y dejé funcionando cámaras",
+          label: "Cámaras",
           value: _camaras,
           onChanged: (v) => setState(() {
             _camaras = v;
@@ -1282,7 +1305,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         _addonRow(
           theme,
           brandOrange,
-          label: "Instalé y dejé funcionando sensores",
+          label: "Sensores",
           value: _sensores,
           onChanged: (v) => setState(() {
             _sensores = v;
@@ -1293,7 +1316,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         _addonRow(
           theme,
           brandOrange,
-          label: "Instalé y dejé funcionando sirena",
+          label: "Sirena",
           value: _sirena,
           onChanged: (v) => setState(() {
             _sirena = v;
@@ -1304,7 +1327,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
         // Estado de la entrega
         Text(
-          "ESTADO DE LA ENTREGA",
+          "¿CÓMO QUEDÓ TODO?",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -1318,7 +1341,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         if (_entregaConAnomalias) ...[
           const SizedBox(height: 20),
           Text(
-            "TIPO DE ANOMALÍA",
+            "¿QUÉ PASÓ?",
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -1330,7 +1353,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             theme,
             isDark,
             value: _anomFisica,
-            label: "Daño físico en el equipo",
+            label: "El equipo está dañado",
             onChanged: (v) => setState(() {
               _anomFisica = v;
               _step2Error = null;
@@ -1342,7 +1365,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             theme,
             isDark,
             value: _anomFuncionamiento,
-            label: "Falla de funcionamiento",
+            label: "Algo no funciona",
             onChanged: (v) => setState(() {
               _anomFuncionamiento = v;
               _step2Error = null;
@@ -1363,7 +1386,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            "DESCRIPCIÓN DE LA ANOMALÍA",
+            "CUÉNTANOS QUÉ PASÓ",
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -1377,7 +1400,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             style: TextStyle(color: theme.textTheme.bodyLarge?.color),
             onChanged: (_) => setState(() => _step2Error = null),
             decoration: InputDecoration(
-              hintText: "Describe la anomalía (obligatorio si no marcaste un tipo arriba)...",
+              hintText: "Obligatorio si no marcaste nada arriba",
               filled: true,
               fillColor: context.ohm.surfaceContainer,
               border: OutlineInputBorder(
@@ -1568,7 +1591,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   // Segmentado: Todo funcional / Con anomalías.
   Widget _entregaSegmented(ThemeData theme, Color brandDark, Color brandOrange) {
     final cs = theme.colorScheme;
-    final opciones = ['Todo funcional', 'Con anomalías'];
+    final opciones = ['Todo funciona', 'Con problemas'];
     final selected = _entregaConAnomalias ? 1 : 0;
     return Row(
       children: opciones.asMap().entries.map((e) {
@@ -1739,7 +1762,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          "CIERRE Y FIRMA DIGITAL",
+          "FIRMA DEL CLIENTE",
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -1749,7 +1772,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          "Pide al cliente que firme de conformidad en el espacio a continuación. Al confirmar la firma, se bloqueará la pantalla y se habilitará la conclusión del servicio.",
+          "Pide al cliente que firme con el dedo para confirmar que recibió el servicio. Luego toca «Confirmar firma».",
           
           style: TextStyle(
             fontSize: 13,
@@ -1810,6 +1833,25 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               ),
             ),
             
+            // Indicación dentro del recuadro vacío (no captura toques).
+            if (!_signatureConfirmed && _signaturePoints.isEmpty)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.draw_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Firma aquí con el dedo",
+                          style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             // Signature Locked Overlay Banner
             if (_signatureConfirmed)
               Positioned.fill(
@@ -1831,7 +1873,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                           Icon(Icons.lock_rounded, color: Colors.white, size: 16),
                           SizedBox(width: 8),
                           Text(
-                            "Firma Registrada",
+                            "Firma guardada",
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -1876,7 +1918,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                     }
                   : null,
                 icon: const Icon(Icons.check_rounded, size: 16),
-                label: const Text("Confirmar Firma"),
+                label: const Text("Confirmar firma"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade600,
                   foregroundColor: Colors.white,
@@ -1903,7 +1945,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   });
                 },
                 icon: const Icon(Icons.lock_open_rounded, size: 18),
-                label: const Text("Modificar"),
+                label: const Text("Volver a firmar"),
                 style: TextButton.styleFrom(foregroundColor: brandOrange),
               ),
           ],
@@ -1918,8 +1960,26 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           ),
         ],
 
+        // Por qué el botón final sigue apagado (sin adivinar).
+        if (!_canSubmitCierre()) ...[
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Para terminar falta: ${_faltantesCierre().join(', ')}.",
+                  style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ],
+
         // Final Button & Previous Step navigation
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
         Row(
           children: [
             Expanded(
@@ -1943,7 +2003,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             Expanded(
               flex: 3,
               child: OhmGradientButton(
-                label: _isReparacion ? "TERMINAR REPARACIÓN" : "TERMINAR INSTALACIÓN",
+                label: _isReparacion ? "Terminar reparación" : "Terminar instalación",
                 icon: Icons.check_circle_rounded,
                 onPressed: _canSubmitCierre() ? _submitCierreInstalacion : null,
               ),
@@ -1979,7 +2039,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               ),
               const SizedBox(height: 20),
               const Text(
-                "Enviando Cierre...",
+                "Enviando el cierre…",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1987,7 +2047,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                "Verificando localización y firmas",
+                "Subiendo fotos, ubicación y firma",
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey,

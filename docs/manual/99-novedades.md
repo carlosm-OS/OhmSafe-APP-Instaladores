@@ -2,6 +2,15 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 43 — 15 de octubre de 2026
+
+- **Barra de progreso** arriba de la pantalla cuando la app espera al servidor o al GPS; si tarda más de 6 segundos dice «Sigue cargando… la señal está lenta». Ya no parece trabada.
+- **Ayuda en pantalla**: los pasos 4 a 7 dicen «Paso N de 7» y tienen íconos ⓘ que explican cada parte (cómo se prueba una puerta, qué debe verse en cada foto, por qué esa casa, etc.).
+- **Vincular**: «Escanear QR» es la acción principal; «Buscar equipo» para la serie escrita; la ficha pregunta «¿Es este el equipo?» y los datos técnicos van plegados. Los avisos salen dentro de la pantalla.
+- **Prueba del energizador**: un solo botón que enciende o apaga, y una lista «Muéstrale al cliente · 1 de 2».
+- **Agregar dispositivos**: secciones con nombres claros (Puertas con cable, Luces y portón, Sensores inalámbricos…), la prueba de puertas va «1 de 2 / 2 de 2» y el OhmBox adicional pasa al final.
+- **Cierre**: textos más simples, indicación «Firma aquí con el dedo» y, si el botón final está apagado, «Para terminar falta: …».
+
 ## Build 42 — 14 de octubre de 2026
 
 - «Agregar dispositivos» ya no muestra marcas. Las cámaras se agregan sólo con número de serie, código de verificación y nombre; los sensores Wi‑Fi con su id.

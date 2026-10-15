@@ -6,6 +6,7 @@ import '../core/di/injection_container.dart';
 import '../core/network/actividad.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import 'ayuda.dart';
 
 /// Tipos de sensor 433 que el instalador da de alta en sitio (2026-10-14). El control remoto
 /// (llavero) se queda en el dashboard por ahora: necesita asignar función a cada botón.
@@ -133,7 +134,7 @@ class _AprenderRfState extends State<_AprenderRf> {
 
     Widget estado;
     if (_error != null) {
-      estado = _Caja(color: cs.error, icono: Icons.error_outline, titulo: 'No se pudo abrir el aprendizaje', texto: _error!);
+      estado = _Caja(color: cs.error, icono: Icons.error_outline, titulo: 'No pudimos empezar', texto: _error!);
     } else if (_s == null) {
       estado = const Padding(
         padding: EdgeInsets.all(16),
@@ -144,7 +145,7 @@ class _AprenderRfState extends State<_AprenderRf> {
         color: cs.primary,
         icono: Icons.wifi_tethering,
         titulo: 'Paso $paso de $pasos: $fase',
-        texto: _status == 'captured' ? '¡Capturado! Sigue con el siguiente paso.' : 'El energizador está escuchando. Señales recibidas: $frames de $need.',
+        texto: _status == 'captured' ? '¡Lo captó! Sigue con lo que dice arriba.' : 'El energizador está escuchando ($frames de $need señales). Si tarda, acércate con el sensor.',
         cargando: true,
       );
     } else if (_status == 'done') {
@@ -152,16 +153,16 @@ class _AprenderRfState extends State<_AprenderRf> {
         color: ohm.success,
         icono: Icons.check_circle,
         titulo: 'Aprendido',
-        texto: 'El equipo ya reconoce el sensor${_s?['openOnly'] == true ? ' (sólo manda apertura)' : ''}. Ponle nombre y guarda.',
+        texto: 'El energizador ya reconoce el sensor.${_s?['openOnly'] == true ? ' Este sensor sólo avisa cuando se abre.' : ''} Ponle nombre y guárdalo.',
       );
     } else if (_status == 'duplicate') {
-      estado = _Caja(color: cs.error, icono: Icons.copy_all, titulo: 'Ya estaba aprendido', texto: 'Es «${(_s?['duplicateOf'] as Map?)?['name'] ?? 'otro sensor'}». No se agrega dos veces.');
+      estado = _Caja(color: cs.error, icono: Icons.copy_all, titulo: 'Ya estaba aprendido', texto: 'Es «${(_s?['duplicateOf'] as Map?)?['name'] ?? 'otro sensor'}». No hace falta agregarlo otra vez.');
     } else if (_status == 'timeout') {
-      estado = _Caja(color: cs.error, icono: Icons.timer_off_outlined, titulo: 'Se acabó el tiempo', texto: 'No llegó ninguna señal. Acércate al sensor y vuelve a intentar.');
+      estado = _Caja(color: cs.error, icono: Icons.timer_off_outlined, titulo: 'Se acabó el tiempo', texto: 'No llegó ninguna señal. Acércate al energizador con el sensor y vuelve a intentar.');
     } else if (_status == 'full') {
-      estado = _Caja(color: cs.error, icono: Icons.block, titulo: 'Sin cupo', texto: 'El energizador ya no tiene lugar para este tipo de sensor.');
+      estado = _Caja(color: cs.error, icono: Icons.block, titulo: 'Ya no caben más', texto: 'El energizador llegó al máximo de sensores de este tipo.');
     } else {
-      estado = _Caja(color: cs.error, icono: Icons.error_outline, titulo: 'Aprendizaje detenido', texto: (_s?['error'] ?? 'Se canceló.').toString());
+      estado = _Caja(color: cs.error, icono: Icons.error_outline, titulo: 'Se detuvo', texto: (_s?['error'] ?? 'Se canceló.').toString());
     }
 
     return SafeArea(
@@ -171,7 +172,20 @@ class _AprenderRfState extends State<_AprenderRf> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Agregar ${widget.etiqueta.toLowerCase()} 433', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            Row(
+              children: [
+                Expanded(child: Text('Agregar ${widget.etiqueta.toLowerCase()}', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
+                const InfoAyuda(
+                  titulo: 'Cómo se agrega un sensor inalámbrico',
+                  puntos: [
+                    'El energizador escucha la señal del sensor por radio.',
+                    'Haz lo que diga la pantalla: abrir la puerta, pasar frente al sensor o apretar su botón.',
+                    'Cuando lo reconoce, le pones nombre y se guarda.',
+                    'Si tarda, acércate al energizador con el sensor.',
+                  ],
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             estado,
             if (_puedeGuardar) ...[
@@ -179,7 +193,7 @@ class _AprenderRfState extends State<_AprenderRf> {
               TextField(
                 controller: _nombre,
                 maxLength: 40,
-                decoration: const InputDecoration(labelText: 'Nombre del sensor', hintText: 'Puerta de la cocina'),
+                decoration: const InputDecoration(labelText: 'Nombre del sensor', hintText: 'Ej. Puerta de la cocina'),
               ),
             ],
             const SizedBox(height: 16),

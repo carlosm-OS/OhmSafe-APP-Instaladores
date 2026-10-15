@@ -11,6 +11,7 @@ import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/ohm_gradient_button.dart';
+import '../widgets/ayuda.dart';
 import 'escanear_serie_screen.dart';
 import '../widgets/aprender_rf_sheet.dart';
 
@@ -121,6 +122,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
   static const _tipoRfTexto = {'door': 'Puerta', 'pir': 'Movimiento', 'smoke': 'Humo', 'panic_button': 'Botón de pánico', 'fob': 'Control remoto'};
   static const _tipoWifiTexto = {'door': 'Puerta', 'motion': 'Movimiento', 'smoke': 'Humo'};
+  static const _tipoSalidaTexto = {'luz': 'luz', 'bomba': 'bomba', 'porton': 'portón', 'sirena': 'sirena externa', 'otro': 'otro'};
 
   void _aviso(String texto) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
 
@@ -135,7 +137,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
           children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('¿Qué sensor 433 vas a agregar?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              child: Text('¿Qué sensor vas a agregar?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             ),
             for (final t in tiposRf) ListTile(leading: Icon(t.icono), title: Text(t.etiqueta), onTap: () => Navigator.pop(ctx, t)),
             const SizedBox(height: 8),
@@ -146,7 +148,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (tipo == null || !mounted) return;
     final nombre = await aprenderSensorRf(context, ordenId: _id, tipo: tipo.id, etiqueta: tipo.etiqueta);
     if (!mounted) return;
-    if (nombre != null) _aviso('Sensor 433 «$nombre» dado de alta');
+    if (nombre != null) _aviso('Sensor «$nombre» guardado');
     await _cargarDisp();
   }
 
@@ -165,7 +167,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Se registra con el id del sensor; el cliente lo empareja desde su app.', style: Theme.of(ctx).textTheme.bodySmall),
+                Text('Escribe el ID del sensor. El cliente termina de conectarlo desde su app.', style: Theme.of(ctx).textTheme.bodySmall),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: tipo,
@@ -173,21 +175,23 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                   items: [for (final e in _tipoWifiTexto.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
                   onChanged: (v) => set(() => tipo = v ?? 'door'),
                 ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: idCtrl,
-                  decoration: const InputDecoration(labelText: 'Id del sensor'),
+                  decoration: const InputDecoration(labelText: 'ID del sensor', helperText: 'Viene en la etiqueta o en la app del sensor.', helperMaxLines: 2),
                 ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: nombreCtrl,
                   maxLength: 40,
-                  decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ventana de la sala'),
+                  decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Ventana de la sala'),
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, idCtrl.text.trim().isNotEmpty && nombreCtrl.text.trim().isNotEmpty), child: const Text('Registrar')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, idCtrl.text.trim().isNotEmpty && nombreCtrl.text.trim().isNotEmpty), child: const Text('Guardar')),
           ],
         ),
       ),
@@ -201,7 +205,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final r = await _repo.sensorWifiAgregar(_id, externalId: externalId, nombre: nombre, tipo: tipo);
     if (!mounted) return;
     setState(() => _ocupado = false);
-    r.fold((_) => _aviso('Sensor Wi‑Fi «$nombre» registrado'), (f) => _aviso(f.message));
+    r.fold((_) => _aviso('Sensor Wi‑Fi «$nombre» guardado'), (f) => _aviso(f.message));
     await _cargarDisp();
   }
 
@@ -219,11 +223,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('La cámara debe estar encendida y con internet. La serie y el código vienen en su etiqueta.', style: Theme.of(ctx).textTheme.bodySmall),
+              Text('La cámara debe estar encendida y con internet.', style: Theme.of(ctx).textTheme.bodySmall),
               const SizedBox(height: 12),
-              TextField(controller: serieCtrl, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Número de serie (S/N)')),
-              TextField(controller: codigoCtrl, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Código de verificación')),
-              TextField(controller: nombreCtrl, maxLength: 40, decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Cochera')),
+              TextField(controller: serieCtrl, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Número de serie', helperText: 'En la etiqueta, como S/N.')),
+              const SizedBox(height: 12),
+              TextField(controller: codigoCtrl, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Código de verificación', helperText: 'En la misma etiqueta.')),
+              const SizedBox(height: 12),
+              TextField(controller: nombreCtrl, maxLength: 40, decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Cochera')),
             ],
           ),
         ),
@@ -248,7 +254,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final r = await _repo.camaraAgregar(_id, serie: serie, codigo: codigo, nombre: nombre);
     if (!mounted) return;
     setState(() => _ocupado = false);
-    r.fold((_) => _aviso('Cámara «$nombre» agregada'), (f) => _aviso(f.message));
+    r.fold((_) => _aviso('Cámara «$nombre» guardada'), (f) => _aviso(f.message));
     await _cargarDisp();
   }
 
@@ -272,7 +278,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     setState(() => _ocupado = false);
     r.fold((d) {
       setState(() => _ohmbox = d);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('OhmBox $serie agregado a «$_casaNombre»')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Energizador $serie agregado a «$_casaNombre»')));
     }, (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))));
   }
 
@@ -281,12 +287,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final r = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('OhmBox adicional'),
+        title: const Text('Otro energizador'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Se suma a «$_casaNombre» como complemento de su suscripción.', style: Theme.of(ctx).textTheme.bodySmall),
+            Text('Se suma a «$_casaNombre» como complemento. No crea otra suscripción.', style: Theme.of(ctx).textTheme.bodySmall),
             const SizedBox(height: 12),
             TextField(
               controller: ctrl,
@@ -295,7 +301,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
               inputFormatters: [SerieInputFormatter()],
               decoration: InputDecoration(
                 labelText: 'Número de serie',
-                hintText: 'OS-OBV01-0000',
+                hintText: 'Ej. 26 u OS-OBV01-0026',
                 suffixIcon: IconButton(
                   tooltip: 'Escanear QR',
                   icon: const Icon(Icons.qr_code_scanner),
@@ -366,7 +372,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   Future<void> _probarEntrada(int index) => _run(() => _repo.cableadoProbarEntrada(_id, index));
 
   Future<void> _registrarEntrada(int index, String nombreActual) async {
-    final nombre = await _pedirNombre('Nombre de la entrada $index', nombreActual, ejemplo: 'Puerta principal');
+    final nombre = await _pedirNombre('¿Qué puerta es?', nombreActual.startsWith('Entrada ') ? '' : nombreActual, ejemplo: 'Ej. Puerta principal');
     if (nombre == null || !mounted) return;
     await _run(() => _repo.cableadoRegistrarEntrada(_id, index, nombre: nombre));
   }
@@ -375,7 +381,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   Future<void> _probarSirena() async {
     await _run(() => _repo.cableadoProbarSirena(_id));
     if (!mounted || _sirena['probada'] != true || _sirena['sono'] != null) return;
-    final sono = await _preguntar('¿Sonó la sirena?', 'El equipo activó la sirena 3 segundos.');
+    final sono = await _preguntar('¿Sonó la sirena?', 'El equipo la hizo sonar 3 segundos.');
     if (sono == null || !mounted) return;
     await _run(() => _repo.cableadoConfirmarSirena(_id, sono: sono));
   }
@@ -386,13 +392,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (!mounted) return;
     final fila = _salidas.firstWhere((s) => s['index'] == index, orElse: () => const {});
     if (fila['probada'] != true) return;
-    final funciono = await _preguntar('¿Se encendió?', 'El relé de la salida $index cerró 5 segundos.');
+    final funciono = await _preguntar('¿Se encendió?', 'El equipo encendió la salida $index durante 5 segundos. ¿Lo que está conectado (luz, portón, bomba) respondió?');
     if (funciono == null || !mounted) return;
     final alta = await _formSalida(index);
     if (alta == null || !mounted) return;
     await _run(() => _repo.cableadoRegistrarSalida(_id, index, nombre: alta.nombre, tipo: alta.tipo, modo: alta.modo, pulsoSeg: alta.modo == 'pulso' ? alta.pulsoSeg : null, funciono: funciono));
     if (!funciono && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quedó en el acta que la salida no encendió; no se dio de alta.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se guardó: la salida no encendió. Quedó anotado en el reporte.')));
     }
   }
 
@@ -424,7 +430,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text('Dar de alta')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text('Guardar')),
         ],
       ),
     );
@@ -440,7 +446,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
-          title: Text('Salida $index'),
+          title: Text('¿Qué conectaste a la salida $index?'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -449,7 +455,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                 controller: nombre,
                 autofocus: true,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Luz del jardín', border: OutlineInputBorder()),
+                decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Luz del jardín', border: OutlineInputBorder()),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -470,7 +476,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                 decoration: const InputDecoration(labelText: '¿Cómo funciona?', border: OutlineInputBorder()),
                 items: const [
                   DropdownMenuItem(value: 'on_off', child: Text('Encendido / apagado')),
-                  DropdownMenuItem(value: 'pulso', child: Text('Pulso (cierra y suelta, como un portón)')),
+                  DropdownMenuItem(value: 'pulso', child: Text('Pulso (como un portón)')),
                 ],
                 onChanged: (v) => setLocal(() => modo = v ?? 'on_off'),
               ),
@@ -493,7 +499,6 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
-    final muted = theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
     // Cualquier salida (botón, gesto o atrás del sistema) cierra la ventana de control.
     return PopScope(
       canPop: false,
@@ -523,81 +528,107 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                       ],
                     ),
                   ),
+                  const PasoDeInstalacion(paso: 6, opcional: true),
+                  const SizedBox(height: 6),
                   Expanded(
                     child: _cargando
                         ? const Center(child: CircularProgressIndicator())
                         : ListView(
                             padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
                             children: [
-                              if (_error != null) _Aviso(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo leer el equipo', texto: _error!),
+                              if (_error != null) _Aviso(icono: Icons.error_outline, color: cs.error, titulo: 'No pudimos leer el equipo', texto: _error!),
                               if (_e != null && !_firmwareOk)
                                 _Aviso(
                                   icono: Icons.system_update_alt,
                                   color: cs.error,
-                                  titulo: 'Firmware ${_equipo['firmware'] ?? 'desconocido'}',
+                                  titulo: 'Este energizador necesita actualizarse',
                                   texto:
-                                      'Las entradas cableadas, la sirena y las salidas piden ${_equipo['firmwareMinimo'] ?? '2.10'} o superior. Los sensores, las cámaras y el OhmBox sí se pueden agregar.',
+                                      'Las puertas con cable, la sirena y las salidas piden la versión ${_equipo['firmwareMinimo'] ?? '2.10'} o más nueva (tiene ${_equipo['firmware'] ?? 'una desconocida'}). Lo demás sí lo puedes agregar.',
                                 ),
                               if (_e != null && _firmwareOk && !_enLinea)
-                                _Aviso(icono: Icons.wifi_off, color: cs.error, titulo: 'El energizador no reporta', texto: 'Revisa que esté encendido y con señal.'),
-                              const SizedBox(height: 12),
-                              Text('Cada elemento se prueba en vivo; sólo se da de alta lo que el equipo confirma.', style: muted),
-                              const SizedBox(height: 16),
-
-                              // ---------------- OhmBox (energizadores de la casa)
-                              _Titulo('OHMBOX · ENERGIZADORES DE LA CASA'),
-                              for (final x in _energizadores)
-                                _Tarjeta(
-                                  titulo: '${x['serie']}${x['principal'] == true ? ' · principal' : ''}',
-                                  subtitulo: x['enLinea'] == true ? 'En línea' : 'Sin reporte todavía',
-                                  color: x['enLinea'] == true ? ohm.success : null,
-                                  accion: Icon(Icons.bolt, color: x['enLinea'] == true ? ohm.success : cs.onSurfaceVariant),
-                                ),
-                              _Tarjeta(
-                                titulo: 'Otro OhmBox en esta casa',
-                                subtitulo: 'Un segundo energizador es un complemento de la suscripción, no un paquete nuevo.',
-                                accion: OutlinedButton.icon(onPressed: _ocupado || _ohmbox == null ? null : _agregarOhmbox, icon: const Icon(Icons.add), label: const Text('Agregar')),
-                              ),
-                              const SizedBox(height: 10),
+                                _Aviso(icono: Icons.wifi_off, color: cs.error, titulo: 'El energizador no tiene señal', texto: 'Revisa que esté conectado a la corriente y con señal.'),
+                              const SizedBox(height: 8),
+                              Text('Agrega sólo lo que el cliente compró. Cada cosa se prueba en vivo y sólo se guarda si funciona.', style: theme.textTheme.bodyMedium?.copyWith(height: 1.4)),
+                              const SizedBox(height: 18),
 
                               // ---------------- Entradas
-                              _Titulo('ENTRADAS CABLEADAS (PUERTAS)'),
+                              const TituloSeccion(
+                                'PUERTAS CON CABLE',
+                                ayuda: InfoAyuda(
+                                  titulo: 'Puertas con cable',
+                                  puntos: [
+                                    'Son sensores de puerta conectados con cable a las entradas del energizador.',
+                                    'Toca «Probar», cierra la puerta y espera; luego ábrela.',
+                                    'Cuando el equipo ve las dos cosas, le pones nombre y se guarda.',
+                                  ],
+                                ),
+                              ),
                               for (final x in _entradas) _tarjetaEntrada(x, theme, cs, ohm),
 
                               // ---------------- Sirena
-                              const SizedBox(height: 10),
-                              _Titulo('SIRENA'),
+                              const SizedBox(height: 14),
+                              const TituloSeccion(
+                                'SIRENA',
+                                ayuda: InfoAyuda(
+                                  titulo: 'Sirena',
+                                  puntos: [
+                                    'Al probarla, la sirena suena 3 segundos.',
+                                    'Avísale al cliente antes: es fuerte.',
+                                    'Después la app te pregunta si sonó.',
+                                  ],
+                                ),
+                              ),
                               _Tarjeta(
-                                titulo: 'Sirena del equipo',
+                                titulo: 'Sirena del energizador',
                                 subtitulo: _sirena['sono'] == true
-                                    ? 'Probada: sonó'
+                                    ? 'Funciona: sí sonó'
                                     : _sirena['sono'] == false
-                                    ? 'Probada: NO sonó (revisar conexión)'
-                                    : 'Sin probar',
+                                    ? 'No sonó. Revisa el cable y vuelve a probar.'
+                                    : 'Suena 3 segundos al probarla',
                                 color: _sirena['sono'] == true ? ohm.success : (_sirena['sono'] == false ? cs.error : null),
-                                accion: OutlinedButton.icon(onPressed: _listo ? _probarSirena : null, icon: const Icon(Icons.campaign_outlined), label: const Text('Probar 3 s')),
+                                accion: OutlinedButton.icon(onPressed: _listo ? _probarSirena : null, icon: const Icon(Icons.campaign_outlined), label: const Text('Probar')),
                               ),
 
                               // ---------------- Salidas
-                              const SizedBox(height: 10),
-                              _Titulo('SALIDAS AUXILIARES'),
-                              for (final s in _salidas) _tarjetaSalida(s, theme, cs, ohm),
+                              const SizedBox(height: 14),
+                              const TituloSeccion(
+                                'LUCES, PORTÓN Y OTROS (SALIDAS)',
+                                ayuda: InfoAyuda(
+                                  titulo: 'Salidas',
+                                  puntos: [
+                                    'Son las conexiones del energizador para encender algo: una luz, un portón, una bomba.',
+                                    'Al probarla, la salida se enciende 5 segundos.',
+                                    'Si funcionó, le pones nombre y eliges qué es.',
+                                  ],
+                                ),
+                              ),
+                              for (final x in _salidas) _tarjetaSalida(x, theme, cs, ohm),
 
                               // ---------------- Sensores 433
-                              const SizedBox(height: 10),
-                              _Titulo('SENSORES 433 (INALÁMBRICOS)'),
+                              const SizedBox(height: 14),
+                              const TituloSeccion(
+                                'SENSORES INALÁMBRICOS',
+                                ayuda: InfoAyuda(
+                                  titulo: 'Sensores inalámbricos',
+                                  puntos: [
+                                    'Puerta, movimiento, humo o botón de pánico que se ligan al energizador por radio, sin cable.',
+                                    'El energizador los «aprende» en vivo: la app te dice qué hacer con el sensor (abrir la puerta, pasar frente a él…).',
+                                    'El energizador debe tener señal.',
+                                  ],
+                                ),
+                              ),
                               for (final x in _lista('rf', 'dispositivos'))
                                 _Tarjeta(
                                   titulo: (x['nombre'] ?? '').toString(),
-                                  subtitulo: _tipoRfTexto[x['tipo']] ?? 'Sensor 433',
+                                  subtitulo: _tipoRfTexto[x['tipo']] ?? 'Sensor inalámbrico',
                                   color: ohm.success,
                                   accion: Icon(Icons.check_circle, color: ohm.success),
                                 ),
                               _Tarjeta(
-                                titulo: 'Agregar sensor 433',
+                                titulo: 'Sensor inalámbrico',
                                 subtitulo: !_rfSoportado
-                                    ? 'El firmware de este energizador no maneja 433.'
-                                    : (_enLinea ? 'Puerta, movimiento, humo o botón de pánico. El equipo lo aprende en vivo.' : 'El energizador debe estar en línea para aprender.'),
+                                    ? 'Este energizador no maneja sensores inalámbricos.'
+                                    : (_enLinea ? 'Puerta, movimiento, humo o botón de pánico' : 'El energizador necesita señal para aprenderlo.'),
                                 accion: OutlinedButton.icon(
                                   onPressed: _ocupado || _disp == null || !_rfSoportado || !_enLinea ? null : _agregarRf,
                                   icon: const Icon(Icons.add),
@@ -606,24 +637,44 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               ),
 
                               // ---------------- Sensores Wi‑Fi
-                              const SizedBox(height: 10),
-                              _Titulo('SENSORES WI‑FI'),
+                              const SizedBox(height: 14),
+                              const TituloSeccion(
+                                'SENSORES WI‑FI',
+                                ayuda: InfoAyuda(
+                                  titulo: 'Sensores Wi‑Fi',
+                                  puntos: [
+                                    'Se conectan al internet de la casa, no al energizador.',
+                                    'Aquí sólo registras su ID; el cliente termina de conectarlo desde su app.',
+                                    'El ID viene en la etiqueta o en la app del sensor.',
+                                  ],
+                                ),
+                              ),
                               for (final x in _lista('wifi', 'sensores'))
                                 _Tarjeta(
                                   titulo: (x['nombre'] ?? '').toString(),
-                                  subtitulo: '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · id ${x['externalId'] ?? ''}',
+                                  subtitulo: '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · ID ${x['externalId'] ?? ''}',
                                   color: ohm.success,
                                   accion: Icon(Icons.check_circle, color: ohm.success),
                                 ),
                               _Tarjeta(
-                                titulo: 'Registrar sensor Wi‑Fi',
-                                subtitulo: 'Se registra con el id del sensor; el cliente lo empareja desde su app.',
+                                titulo: 'Sensor Wi‑Fi',
+                                subtitulo: 'Puerta, movimiento o humo',
                                 accion: OutlinedButton.icon(onPressed: _ocupado || _disp == null ? null : _agregarWifi, icon: const Icon(Icons.add), label: const Text('Agregar')),
                               ),
 
                               // ---------------- Cámaras
-                              const SizedBox(height: 10),
-                              _Titulo('CÁMARAS'),
+                              const SizedBox(height: 14),
+                              const TituloSeccion(
+                                'CÁMARAS',
+                                ayuda: InfoAyuda(
+                                  titulo: 'Cámaras',
+                                  puntos: [
+                                    'La cámara debe estar encendida y conectada al internet de la casa.',
+                                    'Escribe el número de serie y el código de verificación: los dos vienen en su etiqueta.',
+                                    'Al guardarla, el cliente la ve en su app.',
+                                  ],
+                                ),
+                              ),
                               for (final x in _lista('camaras', 'lista'))
                                 _Tarjeta(
                                   titulo: (x['nombre'] ?? '').toString(),
@@ -632,13 +683,38 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   accion: Icon(Icons.videocam_outlined, color: x['estado'] == 'online' ? ohm.success : cs.onSurfaceVariant),
                                 ),
                               _Tarjeta(
-                                titulo: 'Agregar cámara',
-                                subtitulo: _hayProveedor ? 'Con el número de serie y el código de verificación de la etiqueta.' : 'Las cámaras no están disponibles en este ambiente.',
+                                titulo: 'Cámara',
+                                subtitulo: _hayProveedor ? 'Con la serie y el código de su etiqueta' : 'Las cámaras no están disponibles por ahora.',
                                 accion: OutlinedButton.icon(onPressed: _ocupado || !_hayProveedor ? null : _agregarCamara, icon: const Icon(Icons.add), label: const Text('Agregar')),
                               ),
 
+                              // ---------------- OhmBox (energizadores de la casa): lo menos común, al final.
+                              const SizedBox(height: 14),
+                              const TituloSeccion(
+                                'OTRO ENERGIZADOR EN ESTA CASA',
+                                ayuda: InfoAyuda(
+                                  titulo: 'Otro energizador (OhmBox)',
+                                  puntos: [
+                                    'Úsalo si el cliente compró un segundo energizador para la misma casa.',
+                                    'Se suma como complemento de su suscripción; no crea una nueva.',
+                                    'Para otra casa u otra dirección se hace una venta aparte.',
+                                  ],
+                                ),
+                              ),
+                              for (final x in _energizadores)
+                                _Tarjeta(
+                                  titulo: '${x['serie']}${x['principal'] == true ? ' · principal' : ''}',
+                                  subtitulo: x['enLinea'] == true ? 'En línea' : 'Sin señal todavía',
+                                  color: x['enLinea'] == true ? ohm.success : null,
+                                  accion: Icon(Icons.bolt, color: x['enLinea'] == true ? ohm.success : cs.onSurfaceVariant),
+                                ),
+                              _Tarjeta(
+                                titulo: 'OhmBox adicional',
+                                subtitulo: 'Escanea su QR o escribe su serie',
+                                accion: OutlinedButton.icon(onPressed: _ocupado || _ohmbox == null ? null : _agregarOhmbox, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                              ),
                               const SizedBox(height: 24),
-                              OhmGradientButton(label: 'Listo, volver a los pasos', icon: Icons.check, loading: _saliendo, onPressed: _ocupado || _saliendo ? null : _salir),
+                              OhmGradientButton(label: 'Listo, volver a los pasos', icon: Icons.check, loading: _saliendo, onPressed: _ocupado ? null : _salir),
                             ],
                           ),
                   ),
@@ -665,7 +741,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     Widget accion;
     if (alta) {
       subtitulo =
-          'Dada de alta · ${abierta == true
+          'Guardada · ahora está ${abierta == true
               ? 'abierta'
               : abierta == false
               ? 'cerrada'
@@ -673,31 +749,30 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       color = ohm.success;
       accion = Icon(Icons.check_circle, color: ohm.success);
     } else if (fase == 'cerrar') {
-      subtitulo = 'Cierra la puerta y espera: el equipo debe verla cerrada 3 segundos…';
+      subtitulo = '1 de 2 · Cierra la puerta y espera 3 segundos…';
       color = cs.secondary;
       accion = const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2));
     } else if (fase == 'abrir') {
-      subtitulo = 'Cerrada confirmada. Ahora ábrela…';
+      subtitulo = '2 de 2 · ¡Bien! Ahora ábrela…';
       color = cs.secondary;
       accion = const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2));
     } else if (fase == 'verificada') {
-      subtitulo = 'Verificada: cerró y abrió. Ponle nombre para darla de alta.';
+      subtitulo = '¡Funciona! Ponle nombre para guardarla.';
       color = ohm.success;
-      accion = FilledButton(onPressed: _ocupado ? null : () => _registrarEntrada(index, nombre), child: const Text('Dar de alta'));
+      accion = FilledButton(onPressed: _ocupado ? null : () => _registrarEntrada(index, nombre), child: const Text('Guardar'));
     } else if (fase == 'expirada') {
-      subtitulo = 'Se acabó el tiempo sin ver la puerta cerrar y abrir. ¿Hay sensor conectado? Prueba de nuevo.';
+      subtitulo = 'No vimos la puerta cerrar y abrir. Revisa el cable del sensor y vuelve a probar.';
       color = cs.error;
-      accion = OutlinedButton(onPressed: _listo ? () => _probarEntrada(index) : null, child: const Text('Probar de nuevo'));
+      accion = OutlinedButton(onPressed: _listo ? () => _probarEntrada(index) : null, child: const Text('Reintentar'));
     } else {
-      subtitulo =
-          'Sin sensor dado de alta · ahora se lee ${abierta == true
-              ? 'abierta'
-              : abierta == false
-              ? 'cerrada'
-              : 'sin reporte'}';
+      subtitulo = 'Sin probar · ahora marca ${abierta == true
+          ? 'abierta'
+          : abierta == false
+          ? 'cerrada'
+          : 'sin reporte'}';
       accion = OutlinedButton.icon(onPressed: _listo ? () => _probarEntrada(index) : null, icon: const Icon(Icons.sensor_door_outlined), label: const Text('Probar'));
     }
-    return _Tarjeta(titulo: 'Entrada $index · $nombre', subtitulo: subtitulo, color: color, accion: accion);
+    return _Tarjeta(titulo: alta && nombre != 'Entrada $index' ? 'Entrada $index · $nombre' : 'Entrada $index', subtitulo: subtitulo, color: color, accion: accion);
   }
 
   Widget _tarjetaSalida(Map<String, dynamic> s, ThemeData theme, ColorScheme cs, OhmColors ohm) {
@@ -708,11 +783,11 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final modo = s['modo']?.toString();
     return _Tarjeta(
       titulo: alta ? 'Salida $index · $nombre' : 'Salida $index',
-      subtitulo: alta ? 'Dada de alta · ${tipo ?? ''} · ${modo == 'pulso' ? 'pulso' : 'encendido/apagado'}' : 'Sin dar de alta',
+      subtitulo: alta ? 'Guardada · ${_tipoSalidaTexto[tipo] ?? tipo ?? ''} · ${modo == 'pulso' ? 'pulso' : 'encendido/apagado'}' : 'Se enciende 5 segundos al probarla',
       color: alta ? ohm.success : null,
       accion: alta
           ? Icon(Icons.check_circle, color: ohm.success)
-          : OutlinedButton.icon(onPressed: _listo ? () => _probarSalida(index) : null, icon: const Icon(Icons.power), label: const Text('Encender 5 s')),
+          : OutlinedButton.icon(onPressed: _listo ? () => _probarSalida(index) : null, icon: const Icon(Icons.power), label: const Text('Probar')),
     );
   }
 }
@@ -723,22 +798,6 @@ class _AltaSalida {
   final String tipo;
   final String modo;
   final int pulsoSeg;
-}
-
-class _Titulo extends StatelessWidget {
-  const _Titulo(this.texto);
-  final String texto;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        texto,
-        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
 }
 
 const _compacto = ButtonStyle(minimumSize: WidgetStatePropertyAll(Size(0, 44)), padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 14)));

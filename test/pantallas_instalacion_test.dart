@@ -75,7 +75,8 @@ void main() {
         await t.pumpWidget(_app(const PruebaEnergizadorScreen(ticket: {'id': 'i69'})));
         await t.pump(const Duration(seconds: 1));
         expect(find.textContaining('TIEMPO DE PRUEBA'), findsNothing, reason: 'sin reloj visible');
-        await _ver(t, find.text('Encender cerca'));
+        await _ver(t, find.text('Encender la cerca'));
+        await _ver(t, find.textContaining('MUÉSTRALE AL CLIENTE'));
         await _ver(t, find.text('Terminar prueba'));
       });
     });
@@ -84,10 +85,10 @@ void main() {
       await _sinErrores(t, tamano, () async {
         await t.pumpWidget(_app(const AgregarDispositivosScreen(ticket: {'id': 'i69'})));
         await t.pump(const Duration(seconds: 2));
-        for (final seccion in ['OHMBOX', 'ENTRADAS CABLEADAS', 'SIRENA', 'SALIDAS', 'SENSORES 433', 'SENSORES WI', 'CÁMARAS']) {
+        for (final seccion in ['PUERTAS CON CABLE', 'SIRENA', 'LUCES, PORTÓN', 'SENSORES INALÁMBRICOS', 'SENSORES WI', 'CÁMARAS', 'OTRO ENERGIZADOR']) {
           await _ver(t, find.textContaining(seccion));
         }
-        for (final titulo in ['Otro OhmBox en esta casa', 'Registrar sensor Wi‑Fi', 'Agregar cámara', 'Agregar sensor 433']) {
+        for (final titulo in ['OhmBox adicional', 'Sensor Wi‑Fi', 'Cámara', 'Sensor inalámbrico']) {
           // Cada «Agregar» abre su diálogo u hoja; se busca desde arriba de la lista.
           await t.drag(find.byType(ListView), const Offset(0, 6000));
           await t.pump(const Duration(milliseconds: 600));
@@ -102,6 +103,26 @@ void main() {
       });
     });
   }
+
+  testWidgets('Cada ⓘ de «Agregar dispositivos» abre su ayuda y se cierra con «Entendido»', (t) async {
+    await _sinErrores(t, const Size(1206, 2622), () async {
+      await t.pumpWidget(_app(const AgregarDispositivosScreen(ticket: {'id': 'i69'})));
+      await t.pump(const Duration(seconds: 2));
+      final infos = find.byIcon(Icons.info_outline_rounded);
+      expect(infos, findsWidgets);
+      await t.tap(infos.first);
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 600));
+      expect(find.text('Puertas con cable'), findsOneWidget);
+      await t.ensureVisible(find.text('Entendido'));
+      await t.pump();
+      await t.tap(find.text('Entendido'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 600));
+      await t.pump(const Duration(milliseconds: 600));
+      expect(find.text('Entendido'), findsNothing);
+    });
+  });
 
   testWidgets('Hojas: confirmación de casa y asistente 433 se pintan sin errores', (t) async {
     await _sinErrores(t, const Size(1206, 2622), () async {
@@ -124,7 +145,7 @@ void main() {
       )));
       await t.tap(find.text('casa'));
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Este equipo va a una casa nueva'), findsOneWidget);
+      expect(find.text('El equipo va a una casa nueva'), findsOneWidget);
       await t.tap(find.text('Cancelar'));
       await t.pump(const Duration(seconds: 1));
     });

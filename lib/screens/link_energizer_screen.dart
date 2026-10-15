@@ -11,6 +11,7 @@ import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
 import '../widgets/ohm_gradient_button.dart';
+import '../widgets/ayuda.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/utils/fechas_odoo.dart';
@@ -90,7 +91,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     if (s.isNotEmpty && s != _macController.text) _macController.text = s;
     if (s.isEmpty) {
       setState(() => _currentState = LinkState.input);
-      _triggerBanner(false, "Ingresa o escanea el número de serie del equipo");
+      _triggerBanner(false, "Escanea el QR o escribe el número de serie.");
       return;
     }
     setState(() {
@@ -117,7 +118,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             _equipoNuevo = true;
             _redLteStatus = 'Gris';
             _retornoStatus = 'Gris';
-            _triggerBanner(true, "Equipo nuevo. Al vincular se dará de alta y se ligará al cliente.");
+            _triggerBanner(true, "Equipo nuevo: se da de alta al vincularlo.");
             return;
           }
           // De vuelta al input: sin equipo no hay nada que diagnosticar. Antes
@@ -129,8 +130,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           _triggerBanner(
               false,
               d['motivo'] == 'SIN_ALTA'
-                  ? "El equipo $s no tiene MAC registrada en su lote de Odoo. Pide a almacén que la capture y vuelve a escanear."
-                  : "No se encontró un equipo con la serie \"$s\"");
+                  ? "Al equipo $s le falta un dato en almacén (su MAC). Pide a almacén que lo capture y vuelve a escanear."
+                  : "No encontramos el equipo $s. Revisa el número o escanea el QR.");
           return;
         }
         _diag = Map<String, dynamic>.from(d);
@@ -144,13 +145,13 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         // La prueba de alto voltaje (cerca energizada) se retiró por ahora: los equipos
         // todavía no traen ese sensor en la telemetría (Carlos, 2026-10-06). El estado de
         // la cerca sigue visible como dato informativo más abajo.
-        _triggerBanner(true, "Equipo identificado. Revisa la ficha y vincúlalo.");
+        _showBanner = false; // la ficha ya dice «¿Es este el equipo?»
       });
     }, (f) {
       setState(() {
         _isLoading = false;
         _currentState = LinkState.input;
-        _triggerBanner(false, _mensajeError(f, "No se pudo leer el equipo"));
+        _triggerBanner(false, _mensajeError(f, "No pudimos leer el equipo"));
       });
     });
   }
@@ -207,7 +208,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           await showDialog<void>(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: const Text('Equipo vinculado, falta la cuenta del cliente'),
+              title: const Text('Vinculado, pero falta la cuenta del cliente'),
               content: Text(aviso),
               actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
             ),
@@ -228,7 +229,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text([
-            casa != null ? "Vinculación exitosa · casa «$casa»" : "Vinculación exitosa",
+            casa != null ? "Energizador vinculado a «$casa»" : "Energizador vinculado",
             if (suscripcion != null && suscripcion.isNotEmpty) suscripcion,
           ].join('\n')),
           duration: const Duration(seconds: 5),
@@ -238,7 +239,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       (failure) {
         setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_mensajeError(failure, "No se pudo vincular el energizador"))),
+          SnackBar(content: Text(_mensajeError(failure, "No pudimos vincular el energizador"))),
         );
       },
     );
@@ -256,9 +257,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// Botón principal: «Vincular» (si el equipo es nuevo, eso lo da de alta). Al vincular la
   /// pantalla se cierra sola; «Continuar» sólo queda por si se regresa a ella ya vinculado.
   String get _ctaLabel => _vinculado
-      ? "Continuar con cierre de instalación"
-      : (_equipoNuevo ? "Vincular y dar de alta el equipo" : "Vincular energizador");
-  bool get _ctaHabilitado => !_isSending && _diag != null;
+      ? "Continuar"
+      : (_equipoNuevo ? "Dar de alta y vincular" : "Vincular a esta instalación");
+  // Mientras envía, el botón sigue naranja con su spinner (loading ya ignora los toques).
+  bool get _ctaHabilitado => _diag != null;
   void _onCta() {
     if (_vinculado) {
       Navigator.pop(context, 'device_linked');
@@ -332,7 +334,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                             width: double.infinity,
                             alignment: Alignment.center,
                             child: Text(
-                              _currentState == LinkState.input ? "Vincular energizador" : "Vincular energizador",
+                              "Vincular energizador",
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 18,
@@ -369,6 +371,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                     ),
                   ),
 
+                const PasoDeInstalacion(paso: 4),
+                const SizedBox(height: 4),
                 // State Content
                 Expanded(
                   child: _buildStateContent(context),
@@ -377,8 +381,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             ),
           ),
 
-          // Banner notification at the top (under SafeArea)
-          _buildNotificationBanner(),
 
           // Shared bottom navigation bar
           const AppBottomNav(),
@@ -391,82 +393,57 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
+    final muted = theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, height: 1.4);
 
     switch (_currentState) {
       case LinkState.input:
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
           physics: const BouncingScrollPhysics(),
           children: [
             const SizedBox(height: 12),
-            Text(
-              "Identifica el energizador",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: theme.textTheme.bodyLarge?.color,
-              ),
-            ),
+            Text("Busca el energizador", textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
-            Text(
-              "Escribe el número de serie del energizador OhmSafe o escanea su código QR",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 32),
+            Text("Debe estar encendido. Escanea el QR de su etiqueta.", textAlign: TextAlign.center, style: muted),
+            const SizedBox(height: 20),
+            if (_showBanner) ...[_avisoBusqueda(), const SizedBox(height: 16)],
 
-            // QR Illustration Box with horizontal scan line
-            Center(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: theme.dividerColor.withValues(alpha: 0.3),
+            // Acción principal: escanear (lo más rápido en sitio).
+            Material(
+              color: cs.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(20),
+              child: InkWell(
+                key: const Key('vincular-escanear'),
+                onTap: _startScanning,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: cs.primary.withValues(alpha: 0.5), width: 1.5),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.qr_code_scanner_rounded, size: 56, color: cs.primary),
+                      const SizedBox(height: 10),
+                      Text("Escanear QR", style: theme.textTheme.titleMedium?.copyWith(color: cs.primary, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text("Abre la cámara", style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                    ],
                   ),
                 ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Mock QR Image/Icon
-                    Icon(
-                      Icons.qr_code_2_rounded,
-                      size: 130,
-                      color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-                    ),
-                    // Red/Orange Scan Line moving vertically or static
-                    Positioned(
-                      left: 15,
-                      right: 15,
-                      child: Container(
-                        height: 2,
-                        color: cs.primary,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
-            const SizedBox(height: 32),
-
-            Text(
-              "Asegúrate de que el energizador esté encendido y mantente cerca del equipo para iniciar la vinculación",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                height: 1.4,
-              ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: Divider(color: theme.dividerColor)),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text("o escribe la serie", style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant))),
+                Expanded(child: Divider(color: theme.dividerColor)),
+              ],
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 16),
 
-            // Input número de serie del equipo
             TextField(
               controller: _macController,
               textCapitalization: TextCapitalization.characters,
@@ -474,39 +451,34 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               inputFormatters: [SerieInputFormatter()],
               autocorrect: false,
               enableSuggestions: false,
-              textInputAction: TextInputAction.done,
+              textInputAction: TextInputAction.search,
               onSubmitted: (v) => _startValidation(v),
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
-                labelText: "Número de serie del equipo",
-                labelStyle: TextStyle(
-                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                ),
-                hintText: "Ej: 26 u OS-OBV01-0026 (o escanéalo del QR)",
+                labelText: "Número de serie",
+                hintText: "Ej. 26 u OS-OBV01-0026",
+                helperText: "Basta con el número final.",
                 filled: true,
                 fillColor: ohm.surfaceContainer,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                suffixIcon: const InfoAyuda(
+                  titulo: '¿Dónde está la serie?',
+                  puntos: [
+                    'En la etiqueta del energizador, junto al código QR.',
+                    'Empieza con OS-OBV01 (por ejemplo OS-OBV01-0026).',
+                    'Puedes escribir sólo el número final: 26. Los guiones se ponen solos.',
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Vincular con la serie escrita; o escanear el QR con la cámara.
-            OhmGradientButton(
-              label: "Vincular",
-              icon: Icons.link_rounded,
-              onPressed: () => _startValidation(_macController.text),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: _startScanning,
-                icon: const Icon(Icons.qr_code_scanner_rounded),
-                label: const Text("Escanear QR", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                onPressed: () => _startValidation(_macController.text),
+                icon: const Icon(Icons.search_rounded),
+                label: const Text("Buscar equipo", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: cs.primary,
                   side: BorderSide(color: cs.primary, width: 1.5),
@@ -515,128 +487,134 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => showCancellationFlow(context, widget.ticket),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.textTheme.bodyLarge?.color,
-                  side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text(
-                  "Cancelar instalación",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
+            const SizedBox(height: 28),
+            TextButton.icon(
+              onPressed: () => showCancellationFlow(context, widget.ticket),
+              icon: const Icon(Icons.report_gmailerrorred_rounded, size: 20),
+              label: const Text("¿Algo salió mal? Reportar o cancelar"),
+              style: TextButton.styleFrom(foregroundColor: cs.onSurfaceVariant),
             ),
           ],
         );
 
       case LinkState.validating:
+        final enLinea = _diag?['enLinea'] == true;
+        final cerca = _diag?['cercaActiva'] == true;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
           physics: const BouncingScrollPhysics(),
           children: [
             const SizedBox(height: 12),
             Text(
-              _vinculado ? "Equipo vinculado" : "Ficha del equipo",
+              _isLoading ? "Buscando el equipo…" : (_vinculado ? "Equipo vinculado" : "¿Es este el equipo?"),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: theme.textTheme.bodyLarge?.color,
-              ),
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
             Text(
-              _vinculado
-                  ? "Vinculación exitosa. Continúa con el cierre de la instalación."
-                  : "Revisa la ficha del equipo y vincúlalo a esta instalación.",
+              _isLoading
+                  ? "Leyendo los datos del energizador."
+                  : (_vinculado ? "Ya quedó ligado a esta instalación." : "Revisa que la serie coincida con la etiqueta y vincúlalo."),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-              ),
+              style: muted,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            if (_showBanner && !_isLoading) ...[_avisoBusqueda(), const SizedBox(height: 16)],
 
-            // Validaciones de batería, línea y tierra RETIRADAS por ahora (Carlos, 2026-10-06):
-            // los equipos aún no reportan esos sensores de forma confiable. Se vuelven a poner
-            // cuando la telemetría esté lista. Queda sólo la ficha del equipo y «Vincular».
-            // Energizer Details Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: theme.dividerColor.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                children: [
-                  _buildDetailRow("Número de serie", _diag?['serie']?.toString() ?? '—'),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("MAC", _diag?['mac']?.toString() ?? '—'),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("Estado de la cerca", _diag?['cercaActiva'] == true ? "Activa" : "Desarmada"),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("Equipo en línea", _diag?['enLinea'] == true ? "Sí" : "Sin reporte reciente"),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("Firmware", _diag?['firmware']?.toString() ?? '—'),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("Último reporte", _formatUltimoReporte(_diag?['ultimoReporte'])),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Main CTA Button
             if (_isLoading)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-                  ),
-                ),
-              )
+              const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
             else ...[
+              // Ficha: lo que importa arriba; lo técnico, plegado.
+              Container(
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.4)),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                      child: Column(
+                        children: [
+                          _buildDetailRow("Serie", _diag?['serie']?.toString() ?? '—', fuerte: true),
+                          const SizedBox(height: 12),
+                          _buildDetailRow("Conexión", enLinea ? "En línea" : "Sin señal reciente", punto: enLinea ? ohm.success : cs.error),
+                          const SizedBox(height: 12),
+                          _buildDetailRow("Cerca", cerca ? "Encendida" : "Apagada", punto: cerca ? cs.primary : cs.outline),
+                          const SizedBox(height: 12),
+                          _buildDetailRow("Último reporte", _formatUltimoReporte(_diag?['ultimoReporte'])),
+                        ],
+                      ),
+                    ),
+                    Theme(
+                      data: theme.copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(horizontal: 20),
+                        childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                        title: Text("Datos técnicos", style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
+                        children: [
+                          _buildDetailRow("MAC", _diag?['mac']?.toString() ?? '—'),
+                          const SizedBox(height: 10),
+                          _buildDetailRow("Firmware", _diag?['firmware']?.toString() ?? '—'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!enLinea && !_vinculado) ...[
+                const SizedBox(height: 12),
+                AvisoEnLinea(
+                  icono: Icons.wifi_off_rounded,
+                  color: cs.tertiary,
+                  titulo: "Puedes vincularlo aunque no tenga señal",
+                  texto: "Para la prueba del siguiente paso sí necesita estar conectado a la corriente y con señal.",
+                ),
+              ],
+              const SizedBox(height: 28),
               OhmGradientButton(
                 label: _ctaLabel,
+                icon: _vinculado ? Icons.arrow_forward_rounded : Icons.link_rounded,
+                loading: _isSending,
                 onPressed: _ctaHabilitado ? _onCta : null,
               ),
-              const SizedBox(height: 12),
-
-              // Report Incidences / Cancel button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => showCancellationFlow(context, widget.ticket),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.textTheme.bodyLarge?.color,
-                    side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    "Reportar incidencias (opcional)",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+              if (!_vinculado) ...[
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: _isSending
+                      ? null
+                      : () => setState(() {
+                            _currentState = LinkState.input;
+                            _showBanner = false;
+                            _diag = null;
+                          }),
+                  child: const Text("No es este, buscar otro"),
                 ),
+              ],
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () => showCancellationFlow(context, widget.ticket),
+                icon: const Icon(Icons.report_gmailerrorred_rounded, size: 20),
+                label: const Text("¿Algo salió mal? Reportar o cancelar"),
+                style: TextButton.styleFrom(foregroundColor: cs.onSurfaceVariant),
               ),
             ],
           ],
         );
     }
+  }
+
+  /// Resultado de la búsqueda, en su lugar (antes era un cartel flotante que tapaba el encabezado
+  /// y nunca se iba).
+  Widget _avisoBusqueda() {
+    final cs = Theme.of(context).colorScheme;
+    final ohm = context.ohm;
+    return AvisoEnLinea(
+      icono: _bannerIsSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+      color: _bannerIsSuccess ? ohm.success : cs.error,
+      titulo: _bannerText,
+    );
   }
 
   /// Casilla explícita de la tierra física. Va aparte de las pruebas del
@@ -808,94 +786,33 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     return FechasOdoo.fechaHora(iso.toString());
   }
 
-  Widget _buildDetailRow(String key, String value) {
+  Widget _buildDetailRow(String key, String value, {Color? punto, bool fuerte = false}) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          "$key:",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: theme.textTheme.bodyLarge?.color,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-            fontWeight: FontWeight.w500,
+        Text(key, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (punto != null) ...[
+                Container(width: 8, height: 8, decoration: BoxDecoration(color: punto, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: (fuerte ? theme.textTheme.titleMedium : theme.textTheme.bodyMedium)?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildNotificationBanner() {
-    if (!_showBanner) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
-    final bannerBg = _bannerIsSuccess
-        ? (isDark ? cs.surface : ohm.successContainer)
-        : (isDark ? cs.surface : cs.errorContainer);
-    final bannerBorder = _bannerIsSuccess
-        ? ohm.success
-        : (isDark ? cs.onErrorContainer : cs.error);
-    final bannerTextColor = _bannerIsSuccess
-        ? (isDark ? Colors.white : ohm.onSuccessContainer)
-        : (isDark ? Colors.white : cs.onErrorContainer);
-
-    return Positioned(
-      top: 64,
-      left: 20,
-      right: 20,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: bannerBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: bannerBorder, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: _bannerIsSuccess ? ohm.success : cs.error,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _bannerIsSuccess ? Icons.check : Icons.close,
-                color: Colors.white,
-                size: 16,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _bannerText,
-                style: TextStyle(
-                  color: bannerTextColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
