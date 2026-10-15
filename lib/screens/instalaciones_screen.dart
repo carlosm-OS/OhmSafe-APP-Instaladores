@@ -877,6 +877,10 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         return "Continuar · Registrar instalación";
       case 'vinculacion':
         return "Continuar · Vincular energizador";
+      case 'prueba':
+        return "Continuar · Probar energizador";
+      case 'dispositivos':
+        return "Continuar · Dispositivos y cierre";
       case 'cierre':
         return "Continuar · Cierre y firma";
       default:
@@ -892,7 +896,9 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       'inspeccion': 2,
       'instalacion': 3,
       'vinculacion': 4,
-      'cierre': 5,
+      'prueba': 5,
+      'dispositivos': 6,
+      'cierre': 7,
     };
     await Navigator.push(
       context,

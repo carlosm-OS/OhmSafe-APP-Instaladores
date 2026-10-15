@@ -152,118 +152,124 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
         if (!didPop) _terminar(omitir: true);
       },
       child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Row(
-                  children: [
-                    IconButton(onPressed: () => _terminar(omitir: true), icon: const Icon(Icons.chevron_left, size: 30)),
-                    const Expanded(
-                      child: Text(
-                        'Prueba del energizador',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-                      ),
+        body: Stack(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Row(
+                      children: [
+                        IconButton(onPressed: () => _terminar(omitir: true), icon: const Icon(Icons.chevron_left, size: 30)),
+                        const Expanded(
+                          child: Text(
+                            'Prueba del energizador',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        const NotificationBell(),
+                      ],
                     ),
-                    const NotificationBell(),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: _cargando
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                        children: [
-                          if (_error != null) ...[
-                            _Aviso(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo preparar el equipo', texto: _error!),
-                            const SizedBox(height: 10),
-                            OutlinedButton.icon(onPressed: _abrir, icon: const Icon(Icons.refresh), label: const Text('Intentar de nuevo')),
-                            const SizedBox(height: 16),
-                          ],
-                          Text('Enciende y apaga la cerca con el cliente las veces que haga falta. Al terminar, el control del equipo se retira.', style: muted),
-                          const SizedBox(height: 16),
-
-                          // Estado del equipo
-                          Text(
-                            'EQUIPO',
-                            style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: theme.cardColor,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _Fila(etiqueta: 'Serie', valor: serie.isEmpty ? '—' : serie),
-                                const SizedBox(height: 8),
-                                _Fila(etiqueta: 'Conexión', valor: _enLinea ? 'En línea' : 'Sin conexión', color: _enLinea ? ohm.success : cs.error),
-                                const SizedBox(height: 8),
-                                _Fila(etiqueta: 'Cerca', valor: _cercaEncendida ? 'Encendida (alto voltaje)' : 'Apagada', color: _cercaEncendida ? cs.secondary : cs.onSurfaceVariant),
-                              ],
-                            ),
-                          ),
-                          if (!_enLinea) ...[
-                            const SizedBox(height: 10),
-                            _Aviso(
-                              icono: Icons.wifi_off,
-                              color: cs.error,
-                              titulo: 'El energizador no reporta',
-                              texto: 'Revisa que esté encendido y con señal; el comando no se puede mandar hasta que esté en línea.',
-                            ),
-                          ],
-                          const SizedBox(height: 20),
-
-                          // Controles
-                          Row(
+                  ),
+                  Expanded(
+                    child: _cargando
+                        ? const Center(child: CircularProgressIndicator())
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
                             children: [
-                              Expanded(
-                                child: _BotonGrande(
-                                  etiqueta: 'Encender cerca',
-                                  icono: Icons.bolt,
-                                  activo: _cercaEncendida,
-                                  color: cs.secondary,
-                                  habilitado: _estado != null && _enLinea && !_enviando && !_cercaEncendida,
-                                  onTap: () => _accion('cerca_on'),
+                              if (_error != null) ...[
+                                _Aviso(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo preparar el equipo', texto: _error!),
+                                const SizedBox(height: 10),
+                                OutlinedButton.icon(onPressed: _abrir, icon: const Icon(Icons.refresh), label: const Text('Intentar de nuevo')),
+                                const SizedBox(height: 16),
+                              ],
+                              Text('Enciende y apaga la cerca con el cliente las veces que haga falta. Al terminar, el control del equipo se retira.', style: muted),
+                              const SizedBox(height: 16),
+
+                              // Estado del equipo
+                              Text(
+                                'EQUIPO',
+                                style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: theme.cardColor,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    _Fila(etiqueta: 'Serie', valor: serie.isEmpty ? '—' : serie),
+                                    const SizedBox(height: 8),
+                                    _Fila(etiqueta: 'Conexión', valor: _enLinea ? 'En línea' : 'Sin conexión', color: _enLinea ? ohm.success : cs.error),
+                                    const SizedBox(height: 8),
+                                    _Fila(etiqueta: 'Cerca', valor: _cercaEncendida ? 'Encendida (alto voltaje)' : 'Apagada', color: _cercaEncendida ? cs.secondary : cs.onSurfaceVariant),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _BotonGrande(
-                                  etiqueta: 'Apagar cerca',
-                                  icono: Icons.power_settings_new,
-                                  activo: !_cercaEncendida,
-                                  color: cs.onSurfaceVariant,
-                                  habilitado: _estado != null && _enLinea && !_enviando && _cercaEncendida,
-                                  onTap: () => _accion('cerca_off'),
+                              if (!_enLinea) ...[
+                                const SizedBox(height: 10),
+                                _Aviso(
+                                  icono: Icons.wifi_off,
+                                  color: cs.error,
+                                  titulo: 'El energizador no reporta',
+                                  texto: 'Revisa que esté encendido y con señal; el comando no se puede mandar hasta que esté en línea.',
                                 ),
+                              ],
+                              const SizedBox(height: 20),
+
+                              // Controles
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _BotonGrande(
+                                      etiqueta: 'Encender cerca',
+                                      icono: Icons.bolt,
+                                      activo: _cercaEncendida,
+                                      color: cs.secondary,
+                                      habilitado: _estado != null && _enLinea && !_enviando && !_cercaEncendida,
+                                      onTap: () => _accion('cerca_on'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _BotonGrande(
+                                      etiqueta: 'Apagar cerca',
+                                      icono: Icons.power_settings_new,
+                                      activo: !_cercaEncendida,
+                                      color: cs.onSurfaceVariant,
+                                      habilitado: _estado != null && _enLinea && !_enviando && _cercaEncendida,
+                                      onTap: () => _accion('cerca_off'),
+                                    ),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Muéstrale al cliente: con la cerca encendida hay alto voltaje en la línea. La sirena y los sensores se prueban en el siguiente paso.',
+                                style: muted,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 28),
+
+                              OhmGradientButton(label: 'Terminar prueba', icon: Icons.check, loading: _enviando, onPressed: _enviando ? null : () => _terminar(omitir: false)),
+                              const SizedBox(height: 8),
+                              TextButton(onPressed: _enviando ? null : () => _terminar(omitir: true), child: const Text('Omitir la prueba')),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Muéstrale al cliente: con la cerca encendida hay alto voltaje en la línea. La sirena y los sensores se prueban en el siguiente paso.',
-                            style: muted,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 28),
-
-                          OhmGradientButton(label: 'Terminar prueba', icon: Icons.check, loading: _enviando, onPressed: _enviando ? null : () => _terminar(omitir: false)),
-                          const SizedBox(height: 8),
-                          TextButton(onPressed: _enviando ? null : () => _terminar(omitir: true), child: const Text('Omitir la prueba')),
-                        ],
-                      ),
+                  ),
+                ],
               ),
-              const AppBottomNav(),
-            ],
-          ),
+            ),
+            // La barra es un Positioned: va sobre el Stack, no dentro de la columna.
+            const AppBottomNav(),
+          ],
         ),
       ),
     );

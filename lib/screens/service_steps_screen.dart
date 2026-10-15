@@ -3,6 +3,7 @@ import '../core/navigation/volver_a_listado.dart';
 import 'dart:async';
 import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
+import '../core/utils/fechas_odoo.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
@@ -409,6 +410,10 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     _step3Completed = widget.pasoInicial > 3;
     // En reparación no hay paso de vinculación; el cierre sigue al paso 3.
     _step4Completed = widget.pasoInicial > 4 || (_isReparacion && widget.pasoInicial > 3);
+    // Build 40: 5 = prueba pendiente, 6 = prueba hecha (dispositivos/cierre abiertos), 7 = cierre.
+    _pruebaHecha = !_isReparacion && widget.pasoInicial > 5;
+    // El aviso «Técnico en camino» sólo aplica al arrancar la ruta, no al retomar.
+    _showToast = widget.pasoInicial <= 1;
     // Hide the toast automatically after 4 seconds
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
@@ -558,7 +563,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                   style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
                                     const TextSpan(text: "Fecha de Creación: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                    TextSpan(text: details["createdDate"]),
+                                    TextSpan(text: FechasOdoo.fechaHora(details["createdDate"])),
                                   ],
                                 ),
                               ),
@@ -801,9 +806,10 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           subtitle: _dispositivosHechos
                               ? "Listo. Puedes volver a entrar si el cliente agrega algo antes del cierre"
                               : "Puertas, sirena, salidas y OhmBox adicional, probados en vivo (opcional)",
-                          isActive: _step4Completed && !_dispositivosHechos && !_step5Completed,
+                          // Sólo después de la prueba; sigue tocable aunque ya esté hecho, hasta el cierre.
+                          isActive: _pruebaHecha && !_dispositivosHechos && !_step5Completed,
                           isCompleted: _dispositivosHechos,
-                          onTap: (_step4Completed && !_step5Completed) ? () => _abrirDispositivos(context) : null,
+                          onTap: (_pruebaHecha && !_step5Completed) ? () => _abrirDispositivos(context) : null,
                         ),
                       // Cierre: paso 4 en reparaciones (sin energizador) o 7 en
                       // instalaciones. Se habilita tras el paso 3 en reparaciones.
@@ -812,9 +818,10 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         number: _isReparacion ? "4" : "7",
                         title: _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
                         subtitle: "Configuración final",
-                        isActive: (_isReparacion ? _step3Completed : _step4Completed) && !_step5Completed,
+                        // Instalación: el cierre es lo último, después de la prueba (dispositivos es opcional).
+                        isActive: (_isReparacion ? _step3Completed : _pruebaHecha) && !_step5Completed,
                         isCompleted: _step5Completed,
-                        onTap: ((_isReparacion ? _step3Completed : _step4Completed) && !_step5Completed)
+                        onTap: ((_isReparacion ? _step3Completed : _pruebaHecha) && !_step5Completed)
                             ? () => _abrirCierre(context)
                             : null,
                       ),

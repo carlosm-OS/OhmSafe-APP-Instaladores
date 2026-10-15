@@ -2,6 +2,13 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 41 — 14 de octubre de 2026
+
+- Corrige la build 40: «Prueba del energizador» y «Agregar dispositivos» salían en gris (la barra inferior y los botones estaban mal armados).
+- Al retomar una instalación ya vinculada, la app vuelve a la **prueba del energizador** (o a Agregar dispositivos si la prueba ya se hizo), no al cierre. En la lista, el botón dice «Continuar · Probar energizador» / «Continuar · Dispositivos y cierre».
+- Los pasos se activan en orden: prueba → agregar dispositivos (opcional, se puede volver a abrir) → cierre.
+- El aviso «Técnico en camino» ya no aparece al retomar, y la fecha de creación sale en hora local.
+
 ## Build 40 — 14 de octubre de 2026
 
 - **Ya no eliges la casa al vincular.** Se retira «¿Dónde va este equipo?». La venta decide: plan nuevo va a una casa nueva con la dirección de la compra y equipo adicional va a la casa de su contrato. Ves una hoja de confirmación antes de vincular.

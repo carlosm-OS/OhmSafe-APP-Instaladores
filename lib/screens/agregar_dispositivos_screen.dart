@@ -518,147 +518,153 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
         if (!didPop) _salir();
       },
       child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Row(
-                  children: [
-                    IconButton(onPressed: _salir, icon: const Icon(Icons.chevron_left, size: 30)),
-                    const Expanded(
-                      child: Text(
-                        'Agregar dispositivos',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-                      ),
+        body: Stack(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Row(
+                      children: [
+                        IconButton(onPressed: _salir, icon: const Icon(Icons.chevron_left, size: 30)),
+                        const Expanded(
+                          child: Text(
+                            'Agregar dispositivos',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        const NotificationBell(),
+                      ],
                     ),
-                    const NotificationBell(),
-                  ],
-                ),
+                  ),
+                  Expanded(
+                    child: _cargando
+                        ? const Center(child: CircularProgressIndicator())
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
+                            children: [
+                              if (_error != null) _Aviso(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo leer el equipo', texto: _error!),
+                              if (_e != null && !_firmwareOk)
+                                _Aviso(
+                                  icono: Icons.system_update_alt,
+                                  color: cs.error,
+                                  titulo: 'Firmware ${_equipo['firmware'] ?? 'desconocido'}',
+                                  texto:
+                                      'Las entradas cableadas, la sirena y las salidas piden ${_equipo['firmwareMinimo'] ?? '2.10'} o superior. Los sensores, las cámaras y el OhmBox sí se pueden agregar.',
+                                ),
+                              if (_e != null && _firmwareOk && !_enLinea)
+                                _Aviso(icono: Icons.wifi_off, color: cs.error, titulo: 'El energizador no reporta', texto: 'Revisa que esté encendido y con señal.'),
+                              const SizedBox(height: 12),
+                              Text('Cada elemento se prueba en vivo; sólo se da de alta lo que el equipo confirma.', style: muted),
+                              const SizedBox(height: 16),
+
+                              // ---------------- OhmBox (energizadores de la casa)
+                              _Titulo('OHMBOX · ENERGIZADORES DE LA CASA'),
+                              for (final x in _energizadores)
+                                _Tarjeta(
+                                  titulo: '${x['serie']}${x['principal'] == true ? ' · principal' : ''}',
+                                  subtitulo: x['enLinea'] == true ? 'En línea' : 'Sin reporte todavía',
+                                  color: x['enLinea'] == true ? ohm.success : null,
+                                  accion: Icon(Icons.bolt, color: x['enLinea'] == true ? ohm.success : cs.onSurfaceVariant),
+                                ),
+                              _Tarjeta(
+                                titulo: 'Otro OhmBox en esta casa',
+                                subtitulo: 'Un segundo energizador es un complemento de la suscripción, no un paquete nuevo.',
+                                accion: OutlinedButton.icon(onPressed: _ocupado || _ohmbox == null ? null : _agregarOhmbox, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                              ),
+                              const SizedBox(height: 10),
+
+                              // ---------------- Entradas
+                              _Titulo('ENTRADAS CABLEADAS (PUERTAS)'),
+                              for (final x in _entradas) _tarjetaEntrada(x, theme, cs, ohm),
+
+                              // ---------------- Sirena
+                              const SizedBox(height: 10),
+                              _Titulo('SIRENA'),
+                              _Tarjeta(
+                                titulo: 'Sirena del equipo',
+                                subtitulo: _sirena['sono'] == true
+                                    ? 'Probada: sonó'
+                                    : _sirena['sono'] == false
+                                    ? 'Probada: NO sonó (revisar conexión)'
+                                    : 'Sin probar',
+                                color: _sirena['sono'] == true ? ohm.success : (_sirena['sono'] == false ? cs.error : null),
+                                accion: OutlinedButton.icon(onPressed: _listo ? _probarSirena : null, icon: const Icon(Icons.campaign_outlined), label: const Text('Probar 3 s')),
+                              ),
+
+                              // ---------------- Salidas
+                              const SizedBox(height: 10),
+                              _Titulo('SALIDAS AUXILIARES'),
+                              for (final s in _salidas) _tarjetaSalida(s, theme, cs, ohm),
+
+                              // ---------------- Sensores 433
+                              const SizedBox(height: 10),
+                              _Titulo('SENSORES 433 (INALÁMBRICOS)'),
+                              for (final x in _lista('rf', 'dispositivos'))
+                                _Tarjeta(
+                                  titulo: (x['nombre'] ?? '').toString(),
+                                  subtitulo: _tipoRfTexto[x['tipo']] ?? 'Sensor 433',
+                                  color: ohm.success,
+                                  accion: Icon(Icons.check_circle, color: ohm.success),
+                                ),
+                              _Tarjeta(
+                                titulo: 'Agregar sensor 433',
+                                subtitulo: !_rfSoportado
+                                    ? 'El firmware de este energizador no maneja 433.'
+                                    : (_enLinea ? 'Puerta, movimiento, humo o botón de pánico. El equipo lo aprende en vivo.' : 'El energizador debe estar en línea para aprender.'),
+                                accion: OutlinedButton.icon(
+                                  onPressed: _ocupado || _disp == null || !_rfSoportado || !_enLinea ? null : _agregarRf,
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Agregar'),
+                                ),
+                              ),
+
+                              // ---------------- Sensores Wi‑Fi
+                              const SizedBox(height: 10),
+                              _Titulo('SENSORES WI‑FI'),
+                              for (final x in _lista('wifi', 'sensores'))
+                                _Tarjeta(
+                                  titulo: (x['nombre'] ?? '').toString(),
+                                  subtitulo: '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · Tuya ${x['externalId'] ?? ''}',
+                                  color: ohm.success,
+                                  accion: Icon(Icons.check_circle, color: ohm.success),
+                                ),
+                              _Tarjeta(
+                                titulo: 'Registrar sensor Wi‑Fi',
+                                subtitulo: 'Tuya: se registra por id; se empareja en la app Tuya.',
+                                accion: OutlinedButton.icon(onPressed: _ocupado || _disp == null ? null : _agregarWifi, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                              ),
+
+                              // ---------------- Cámaras
+                              const SizedBox(height: 10),
+                              _Titulo('CÁMARAS'),
+                              for (final x in _lista('camaras', 'lista'))
+                                _Tarjeta(
+                                  titulo: (x['nombre'] ?? '').toString(),
+                                  subtitulo: '${(x['proveedor'] ?? '').toString().toUpperCase()} ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}',
+                                  color: x['estado'] == 'online' ? ohm.success : null,
+                                  accion: Icon(Icons.videocam_outlined, color: x['estado'] == 'online' ? ohm.success : cs.onSurfaceVariant),
+                                ),
+                              _Tarjeta(
+                                titulo: 'Agregar cámara',
+                                subtitulo: _hayProveedor ? 'EZVIZ o Imou, por la nube del fabricante.' : 'Las cámaras no están disponibles en este ambiente.',
+                                accion: OutlinedButton.icon(onPressed: _ocupado || !_hayProveedor ? null : _agregarCamara, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                              ),
+
+                              const SizedBox(height: 24),
+                              OhmGradientButton(label: 'Listo, volver a los pasos', icon: Icons.check, loading: _saliendo, onPressed: _ocupado || _saliendo ? null : _salir),
+                            ],
+                          ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: _cargando
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                        children: [
-                          if (_error != null) _Aviso(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo leer el equipo', texto: _error!),
-                          if (_e != null && !_firmwareOk)
-                            _Aviso(
-                              icono: Icons.system_update_alt,
-                              color: cs.error,
-                              titulo: 'Firmware ${_equipo['firmware'] ?? 'desconocido'}',
-                              texto:
-                                  'Las entradas cableadas, la sirena y las salidas piden ${_equipo['firmwareMinimo'] ?? '2.10'} o superior. Los sensores, las cámaras y el OhmBox sí se pueden agregar.',
-                            ),
-                          if (_e != null && _firmwareOk && !_enLinea)
-                            _Aviso(icono: Icons.wifi_off, color: cs.error, titulo: 'El energizador no reporta', texto: 'Revisa que esté encendido y con señal.'),
-                          const SizedBox(height: 12),
-                          Text('Cada elemento se prueba en vivo; sólo se da de alta lo que el equipo confirma.', style: muted),
-                          const SizedBox(height: 16),
-
-                          // ---------------- OhmBox (energizadores de la casa)
-                          _Titulo('OHMBOX · ENERGIZADORES DE LA CASA'),
-                          for (final x in _energizadores)
-                            _Tarjeta(
-                              titulo: '${x['serie']}${x['principal'] == true ? ' · principal' : ''}',
-                              subtitulo: x['enLinea'] == true ? 'En línea' : 'Sin reporte todavía',
-                              color: x['enLinea'] == true ? ohm.success : null,
-                              accion: Icon(Icons.bolt, color: x['enLinea'] == true ? ohm.success : cs.onSurfaceVariant),
-                            ),
-                          _Tarjeta(
-                            titulo: 'Otro OhmBox en esta casa',
-                            subtitulo: 'Un segundo energizador es un complemento de la suscripción, no un paquete nuevo.',
-                            accion: OutlinedButton.icon(onPressed: _ocupado || _ohmbox == null ? null : _agregarOhmbox, icon: const Icon(Icons.add), label: const Text('Agregar')),
-                          ),
-                          const SizedBox(height: 10),
-
-                          // ---------------- Entradas
-                          _Titulo('ENTRADAS CABLEADAS (PUERTAS)'),
-                          for (final x in _entradas) _tarjetaEntrada(x, theme, cs, ohm),
-
-                          // ---------------- Sirena
-                          const SizedBox(height: 10),
-                          _Titulo('SIRENA'),
-                          _Tarjeta(
-                            titulo: 'Sirena del equipo',
-                            subtitulo: _sirena['sono'] == true
-                                ? 'Probada: sonó'
-                                : _sirena['sono'] == false
-                                ? 'Probada: NO sonó (revisar conexión)'
-                                : 'Sin probar',
-                            color: _sirena['sono'] == true ? ohm.success : (_sirena['sono'] == false ? cs.error : null),
-                            accion: OutlinedButton.icon(onPressed: _listo ? _probarSirena : null, icon: const Icon(Icons.campaign_outlined), label: const Text('Probar 3 s')),
-                          ),
-
-                          // ---------------- Salidas
-                          const SizedBox(height: 10),
-                          _Titulo('SALIDAS AUXILIARES'),
-                          for (final s in _salidas) _tarjetaSalida(s, theme, cs, ohm),
-
-                          // ---------------- Sensores 433
-                          const SizedBox(height: 10),
-                          _Titulo('SENSORES 433 (INALÁMBRICOS)'),
-                          for (final x in _lista('rf', 'dispositivos'))
-                            _Tarjeta(
-                              titulo: (x['nombre'] ?? '').toString(),
-                              subtitulo: _tipoRfTexto[x['tipo']] ?? 'Sensor 433',
-                              color: ohm.success,
-                              accion: Icon(Icons.check_circle, color: ohm.success),
-                            ),
-                          _Tarjeta(
-                            titulo: 'Agregar sensor 433',
-                            subtitulo: !_rfSoportado
-                                ? 'El firmware de este energizador no maneja 433.'
-                                : (_enLinea ? 'Puerta, movimiento, humo o botón de pánico. El equipo lo aprende en vivo.' : 'El energizador debe estar en línea para aprender.'),
-                            accion: OutlinedButton.icon(
-                              onPressed: _ocupado || _disp == null || !_rfSoportado || !_enLinea ? null : _agregarRf,
-                              icon: const Icon(Icons.add),
-                              label: const Text('Agregar'),
-                            ),
-                          ),
-
-                          // ---------------- Sensores Wi‑Fi
-                          const SizedBox(height: 10),
-                          _Titulo('SENSORES WI‑FI'),
-                          for (final x in _lista('wifi', 'sensores'))
-                            _Tarjeta(
-                              titulo: (x['nombre'] ?? '').toString(),
-                              subtitulo: '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · Tuya ${x['externalId'] ?? ''}',
-                              color: ohm.success,
-                              accion: Icon(Icons.check_circle, color: ohm.success),
-                            ),
-                          _Tarjeta(
-                            titulo: 'Registrar sensor Wi‑Fi',
-                            subtitulo: 'Tuya: se registra por id; se empareja en la app Tuya.',
-                            accion: OutlinedButton.icon(onPressed: _ocupado || _disp == null ? null : _agregarWifi, icon: const Icon(Icons.add), label: const Text('Agregar')),
-                          ),
-
-                          // ---------------- Cámaras
-                          const SizedBox(height: 10),
-                          _Titulo('CÁMARAS'),
-                          for (final x in _lista('camaras', 'lista'))
-                            _Tarjeta(
-                              titulo: (x['nombre'] ?? '').toString(),
-                              subtitulo: '${(x['proveedor'] ?? '').toString().toUpperCase()} ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}',
-                              color: x['estado'] == 'online' ? ohm.success : null,
-                              accion: Icon(Icons.videocam_outlined, color: x['estado'] == 'online' ? ohm.success : cs.onSurfaceVariant),
-                            ),
-                          _Tarjeta(
-                            titulo: 'Agregar cámara',
-                            subtitulo: _hayProveedor ? 'EZVIZ o Imou, por la nube del fabricante.' : 'Las cámaras no están disponibles en este ambiente.',
-                            accion: OutlinedButton.icon(onPressed: _ocupado || !_hayProveedor ? null : _agregarCamara, icon: const Icon(Icons.add), label: const Text('Agregar')),
-                          ),
-
-                          const SizedBox(height: 24),
-                          OhmGradientButton(label: 'Listo, volver a los pasos', icon: Icons.check, loading: _saliendo, onPressed: _ocupado || _saliendo ? null : _salir),
-                        ],
-                      ),
-              ),
-              const AppBottomNav(),
-            ],
-          ),
+            ),
+            // La barra es un Positioned: va sobre el Stack, no dentro de la columna.
+            const AppBottomNav(),
+          ],
         ),
       ),
     );
@@ -752,6 +758,8 @@ class _Titulo extends StatelessWidget {
   }
 }
 
+const _compacto = ButtonStyle(minimumSize: WidgetStatePropertyAll(Size(0, 44)), padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 14)));
+
 class _Tarjeta extends StatelessWidget {
   const _Tarjeta({required this.titulo, required this.subtitulo, required this.accion, this.color});
   final String titulo;
@@ -786,7 +794,14 @@ class _Tarjeta extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          accion,
+          // El tema hace los botones de ancho completo; dentro de la fila van compactos.
+          Theme(
+            data: theme.copyWith(
+              outlinedButtonTheme: OutlinedButtonThemeData(style: _compacto.merge(theme.outlinedButtonTheme.style)),
+              filledButtonTheme: FilledButtonThemeData(style: _compacto.merge(theme.filledButtonTheme.style)),
+            ),
+            child: accion,
+          ),
         ],
       ),
     );

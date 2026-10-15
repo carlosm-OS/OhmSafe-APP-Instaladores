@@ -174,6 +174,9 @@ Al cerrar regresas a la lista de pasos con los 5 en verde. Toca «Terminar insta
 
 ## Retomar un servicio a medias
 
+Desde la build 41, si el energizador ya está vinculado la app retoma en **Prueba del energizador**; si la prueba ya se terminó u omitió, en **Agregar dispositivos** con el cierre disponible.
+
+
 Si saliste a mitad del servicio, en la tarjeta el botón dice «Continuar · [paso]», por ejemplo «Continuar · Marcar llegada», «Continuar · Inspección del perímetro», «Continuar · Registrar instalación», «Continuar · Vincular energizador» o «Continuar · Cierre y firma». Tócalo y la app te lleva directo al paso pendiente; los anteriores ya aparecen completos.
 
 ## Instalación de varios días

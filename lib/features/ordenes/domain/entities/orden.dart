@@ -82,7 +82,7 @@ class Orden {
   /// true cuando el servicio ya arrancó: la acción de la tarjeta debe
   /// retomar el paso pendiente, no volver a "iniciar ruta".
   bool get enCurso => const {
-        'marcar_llegada', 'inspeccion', 'instalacion', 'vinculacion', 'cierre',
+        'marcar_llegada', 'inspeccion', 'instalacion', 'vinculacion', 'prueba', 'dispositivos', 'cierre',
       }.contains(pasoActual);
 
   bool get esReparacion {
