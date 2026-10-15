@@ -5,15 +5,17 @@ import '../core/theme/app_dimens.dart';
 // =============================================================================
 // Botones de las ventanas emergentes (diálogos y hojas). Carlos, 2026-10-15:
 // «pon botones primarios y secundarios; el No debe tener forma de botón
-// secundario, con contorno negro». Los dos a todo lo ancho, uno sobre otro:
-// arriba el secundario (contorno oscuro) y abajo el primario (naranja lleno),
-// donde cae el pulgar. Antes el «No» / «Cancelar» era sólo texto naranja.
+// secundario». Los dos a todo lo ancho, uno sobre otro: arriba el primario
+// (naranja lleno: «Guardar», «Sí») y abajo el secundario (contorno naranja:
+// «Cancelar», «No»). Ajuste del mismo día: primero el primario y el contorno
+// en el naranja de OhmSafe (antes iba negro y abajo). Antes de todo esto el
+// «No» / «Cancelar» era sólo texto naranja suelto.
 // =============================================================================
 
-/// Botón secundario de las ventanas emergentes: contorno oscuro de 2 px y texto oscuro
-/// (en modo oscuro, claro), mismo alto y radio que el primario.
-class BotonContornoOscuro extends StatelessWidget {
-  const BotonContornoOscuro({super.key, required this.etiqueta, required this.onPressed});
+/// Botón secundario de las ventanas emergentes: contorno de 2 px y texto en el naranja de OhmSafe,
+/// mismo alto y radio que el primario.
+class BotonContornoSecundario extends StatelessWidget {
+  const BotonContornoSecundario({super.key, required this.etiqueta, required this.onPressed});
 
   final String etiqueta;
   final VoidCallback? onPressed;
@@ -25,9 +27,9 @@ class BotonContornoOscuro extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: cs.onSurface,
+        foregroundColor: cs.primary,
         minimumSize: const Size.fromHeight(AppTouch.primary),
-        side: BorderSide(color: onPressed == null ? cs.onSurface.withValues(alpha: 0.3) : cs.onSurface, width: 2),
+        side: BorderSide(color: onPressed == null ? cs.primary.withValues(alpha: 0.3) : cs.primary, width: 2),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
         // Mismo peso que el primario (el tema le da al lleno su negrita).
         textStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -37,8 +39,8 @@ class BotonContornoOscuro extends StatelessWidget {
   }
 }
 
-/// Par de botones de una ventana emergente: [secundario] arriba (contorno oscuro) y [primario]
-/// abajo (naranja). Sin [secundario], sólo el primario (p. ej. «Entendido»).
+/// Par de botones de una ventana emergente: [primario] arriba (naranja lleno) y [secundario]
+/// abajo (contorno naranja). Sin [secundario], sólo el primario (p. ej. «Entendido»).
 /// Va en `AlertDialog.actions` o al final de una hoja.
 class BotonesDialogo extends StatelessWidget {
   const BotonesDialogo({
@@ -68,16 +70,16 @@ class BotonesDialogo extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (secundario != null) ...[
-            BotonContornoOscuro(etiqueta: secundario!, onPressed: onSecundario),
-            const SizedBox(height: 12),
-          ],
           FilledButton(
             onPressed: primarioCargando ? () {} : onPrimario,
             child: primarioCargando
                 ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: cs.onPrimary))
                 : Text(primario),
           ),
+          if (secundario != null) ...[
+            const SizedBox(height: 12),
+            BotonContornoSecundario(etiqueta: secundario!, onPressed: onSecundario),
+          ],
         ],
       ),
     );
