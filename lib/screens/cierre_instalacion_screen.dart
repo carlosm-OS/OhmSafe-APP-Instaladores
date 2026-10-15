@@ -676,9 +676,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                PasoDeInstalacion(paso: _isReparacion ? 4 : 7, total: _isReparacion ? 4 : 7),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // Wizard Steps Navigation Indicator
                 Padding(
@@ -743,12 +741,24 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     );
   }
 
+  /// Etiqueta de sección del cierre (su estilo de siempre) con un ⓘ discreto al lado.
+  Widget _etiqueta(String texto, {String? tituloAyuda, required List<String> ayuda}) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    return Row(
+      children: [
+        Flexible(child: Text(texto, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: color))),
+        InfoAyuda(titulo: tituloAyuda ?? texto, puntos: ayuda, color: color),
+      ],
+    );
+  }
+
   // Step Indicators helpers
   Widget _buildStepIndicatorLabel(int step, String title, Color activeColor) {
     final bool isActive = _currentStep == step;
     final bool isCompleted = _currentStep > step;
     return Text(
-      "$step · $title",
+      "$step. $title",
       style: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.bold,
@@ -783,26 +793,21 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TituloSeccion(
+        _etiqueta(
           _isReparacion ? "FOTOS DE LA REPARACIÓN" : "FOTOS OBLIGATORIAS",
+          tituloAyuda: _isReparacion ? 'Fotos de la reparación' : 'Qué debe verse en cada foto',
           ayuda: _isReparacion
-              ? const InfoAyuda(
-                  titulo: 'Fotos de la reparación',
-                  puntos: [
-                    'Toma al menos una foto del trabajo terminado.',
-                    'Si necesitas más, toca «Agregar foto».',
-                    'Cada foto guarda la ubicación donde la tomaste.',
-                  ],
-                )
-              : const InfoAyuda(
-                  titulo: 'Qué debe verse en cada foto',
-                  puntos: [
-                    'Perfil izquierdo y derecho: la cerca vista desde cada extremo, completa.',
-                    'Energizador: el equipo ya instalado, con sus cables.',
-                    'Letrero OhmSafe: el letrero de advertencia colocado.',
-                    'Tómalas en el domicilio: cada foto guarda su ubicación.',
-                  ],
-                ),
+              ? const [
+                  'Toma al menos una foto del trabajo terminado.',
+                  'Si necesitas más, toca «Agregar foto».',
+                  'Cada foto guarda la ubicación donde la tomaste.',
+                ]
+              : const [
+                  'Perfil izquierdo y derecho: la cerca vista desde cada extremo, completa.',
+                  'Energizador: el equipo ya instalado, con sus cables.',
+                  'Letrero OhmSafe: el letrero de advertencia colocado.',
+                  'Tómalas en el domicilio: cada foto guarda su ubicación.',
+                ],
         ),
         const SizedBox(height: 4),
         Text(
@@ -1280,16 +1285,13 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         const SizedBox(height: 20),
 
         // Extras del servicio: cámaras, sensores y sirena
-        const TituloSeccion(
+        _etiqueta(
           "EXTRAS DEL SERVICIO",
-          ayuda: InfoAyuda(
-            titulo: 'Extras del servicio',
-            puntos: [
-              '«Instalé y funciona»: lo instalaste y lo probaste con el cliente.',
-              '«No aplica»: no venía en lo que compró.',
-              'Si venía pero no lo pudiste dejar funcionando, marca «Con problemas» abajo y cuéntanos qué pasó.',
-            ],
-          ),
+          ayuda: const [
+            '«Instalé y funciona»: lo instalaste y lo probaste con el cliente.',
+            '«No aplica»: no venía en lo que compró.',
+            'Si venía pero no lo pudiste dejar funcionando, marca «Con problemas» abajo y cuéntanos qué pasó.',
+          ],
         ),
         _addonRow(
           theme,

@@ -7,7 +7,6 @@ import '../core/utils/fechas_odoo.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
-import '../widgets/ayuda.dart';
 import 'route_details_screen.dart';
 import 'perimeter_inspection_screen.dart';
 import 'fence_installation_screen.dart';
@@ -769,14 +768,6 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           number: "4",
                           title: "Vincular el energizador",
                           subtitle: "Escanea el QR del equipo y lígalo al cliente",
-                          ayuda: const InfoAyuda(
-                            titulo: 'Vincular el energizador',
-                            puntos: [
-                              'Escanea el QR de la etiqueta del energizador (o escribe su número de serie).',
-                              'La app te muestra el equipo para que confirmes que es el correcto.',
-                              'Al vincularlo, el equipo queda en la cuenta del cliente y en su casa.',
-                            ],
-                          ),
                           isActive: _step3Completed && !_step4Completed,
                           isCompleted: _step4Completed,
                           onTap: (_step3Completed && !_step4Completed)
@@ -803,15 +794,6 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           number: "5",
                           title: "Prueba del energizador",
                           subtitle: "Enciende y apaga la cerca frente al cliente",
-                          ayuda: const InfoAyuda(
-                            titulo: 'Prueba del energizador',
-                            puntos: [
-                              'Enciende y apaga la cerca desde la app para que el cliente vea que funciona.',
-                              'Sólo puedes controlar su cerca mientras esta prueba está abierta.',
-                              'Al terminar, el control queda únicamente en manos del cliente.',
-                              'Hay que hacerla para poder cerrar la instalación.',
-                            ],
-                          ),
                           isActive: _step4Completed && !_pruebaHecha && !_step5Completed,
                           isCompleted: _pruebaHecha,
                           onTap: (_step4Completed && !_step5Completed) ? () => _abrirPrueba(context) : null,
@@ -824,15 +806,6 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           subtitle: _dispositivosHechos
                               ? "Listo. Puedes volver a entrar si el cliente compra algo más"
                               : "Opcional · sensores, sirena, cámaras u otro OhmBox",
-                          ayuda: const InfoAyuda(
-                            titulo: 'Agregar dispositivos',
-                            puntos: [
-                              'Agrega sólo lo que el cliente compró: sensores de puerta, sirena, luces, cámaras u otro energizador.',
-                              'Cada cosa se prueba en vivo y sólo se guarda si funciona.',
-                              'Si no instalaste nada extra, salta este paso.',
-                              'Puedes volver a entrar hasta antes del cierre.',
-                            ],
-                          ),
                           // Sólo después de la prueba; sigue tocable aunque ya esté hecho, hasta el cierre.
                           isActive: _pruebaHecha && !_dispositivosHechos && !_step5Completed,
                           isCompleted: _dispositivosHechos,
@@ -1074,7 +1047,6 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     required bool isActive,
     bool isCompleted = false,
     VoidCallback? onTap,
-    InfoAyuda? ayuda,
   }) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
@@ -1183,7 +1155,6 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                   ],
                 ),
               ),
-              ?ayuda,
               // Chevron Right
               Icon(
                 Icons.chevron_right,

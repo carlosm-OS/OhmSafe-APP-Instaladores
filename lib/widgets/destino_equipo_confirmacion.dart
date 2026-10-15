@@ -114,10 +114,11 @@ class _Bloque extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      // Tarjeta blanca con borde tenue, como el resto del flujo; la casa elegida lleva borde naranja.
       decoration: BoxDecoration(
-        color: color.withValues(alpha: resaltado ? 0.08 : 0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: resaltado ? 0.6 : 0.25), width: resaltado ? 1.4 : 1),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: resaltado ? color : theme.dividerColor.withValues(alpha: 0.3), width: resaltado ? 1.5 : 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,7 +129,7 @@ class _Bloque extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(titulo, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: resaltado ? color : null)),
+                Text(titulo, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                 if (texto != null) ...[
                   const SizedBox(height: 2),
                   Text(texto!, style: theme.textTheme.bodySmall),

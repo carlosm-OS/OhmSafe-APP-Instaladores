@@ -90,7 +90,7 @@ void main() {
         }
         for (final titulo in ['OhmBox adicional', 'Sensor Wi‑Fi', 'Cámara', 'Sensor inalámbrico']) {
           // Cada «Agregar» abre su diálogo u hoja; se busca desde arriba de la lista.
-          await t.drag(find.byType(ListView), const Offset(0, 6000));
+          t.state<ScrollableState>(_lista).position.jumpTo(0); // la lista rebota (como los pasos 1-3)
           await t.pump(const Duration(milliseconds: 600));
           final tarjeta = find.text(titulo);
           await _ver(t, tarjeta);
@@ -104,7 +104,7 @@ void main() {
     });
   }
 
-  testWidgets('Cada ⓘ de «Agregar dispositivos» abre su ayuda y se cierra con «Entendido»', (t) async {
+  testWidgets('Cada ⓘ de «Agregar dispositivos» abre su ayuda y se cierra tocando fuera', (t) async {
     await _sinErrores(t, const Size(1206, 2622), () async {
       await t.pumpWidget(_app(const AgregarDispositivosScreen(ticket: {'id': 'i69'})));
       await t.pump(const Duration(seconds: 2));
@@ -114,13 +114,11 @@ void main() {
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
       expect(find.text('Puertas con cable'), findsOneWidget);
-      await t.ensureVisible(find.text('Entendido'));
-      await t.pump();
-      await t.tap(find.text('Entendido'));
+      await t.tapAt(const Offset(200, 120)); // fuera de la hoja
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Entendido'), findsNothing);
+      expect(find.text('Puertas con cable'), findsNothing);
     });
   });
 

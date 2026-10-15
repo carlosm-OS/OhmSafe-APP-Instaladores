@@ -2,7 +2,6 @@ import 'escanear_serie_screen.dart';
 import '../core/utils/serie_formato.dart';
 import '../core/error/failures.dart';
 import 'dart:async';
-import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
 
 import '../core/utils/destino_equipo.dart';
@@ -258,7 +257,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// pantalla se cierra sola; «Continuar» sólo queda por si se regresa a ella ya vinculado.
   String get _ctaLabel => _vinculado
       ? "Continuar"
-      : (_equipoNuevo ? "Dar de alta y vincular" : "Vincular a esta instalación");
+      : (_equipoNuevo ? "Dar de alta y vincular" : "Vincular energizador");
   // Mientras envía, el botón sigue naranja con su spinner (loading ya ignora los toques).
   bool get _ctaHabilitado => _diag != null;
   void _onCta() {
@@ -272,9 +271,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
@@ -284,105 +280,23 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header (Logo centrado, iconos derecha)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Image.asset(
-                          isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                          height: 28,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "OHM",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: theme.textTheme.bodyLarge?.color,
-                                ),
-                              ),
-                              Text(
-                                "SAFE",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: cs.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: const NotificationBell(),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // Back chevron and Centered Title Row
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: SizedBox(
-                      height: 48,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            alignment: Alignment.center,
-                            child: Text(
-                              "Vincular energizador",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: theme.textTheme.titleLarge?.color,
-                              ),
-                            ),
-                          ),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: IconButton(
-                              onPressed: () {
-                                if (_currentState == LinkState.validating) {
-                                  setState(() {
-                                    _currentState = LinkState.input;
-                                  });
-                                } else {
-                                  Navigator.pop(context);
-                                }
-                              },
-                              style: IconButton.styleFrom(
-                                padding: const EdgeInsets.all(6),
-                                shape: const CircleBorder(),
-                              ),
-                              icon: Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                size: 20,
-                                color: theme.iconTheme.color,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                const PasoDeInstalacion(paso: 4),
-                const SizedBox(height: 4),
-                // State Content
-                Expanded(
-                  child: _buildStateContent(context),
+                EncabezadoFlujo(
+                  titulo: "Vincular energizador",
+                  alVolver: () {
+                    if (_currentState == LinkState.validating && !_vinculado) {
+                      setState(() {
+                        _currentState = LinkState.input;
+                        _showBanner = false;
+                      });
+                    } else {
+                      Navigator.pop(context);
+                    }
+                  },
                 ),
+                Expanded(child: _buildStateContent(context)),
               ],
             ),
           ),
-
-
-          // Shared bottom navigation bar
           const AppBottomNav(),
         ],
       ),
@@ -393,57 +307,48 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
-    final muted = theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, height: 1.4);
+    final muted = TextStyle(fontSize: 14, height: 1.4, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6));
 
     switch (_currentState) {
       case LinkState.input:
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
           physics: const BouncingScrollPhysics(),
           children: [
-            const SizedBox(height: 12),
-            Text("Busca el energizador", textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            Text("Debe estar encendido. Escanea el QR de su etiqueta.", textAlign: TextAlign.center, style: muted),
-            const SizedBox(height: 20),
-            if (_showBanner) ...[_avisoBusqueda(), const SizedBox(height: 16)],
-
-            // Acción principal: escanear (lo más rápido en sitio).
-            Material(
-              color: cs.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
+            if (_showBanner) _avisoBusqueda(),
+            // La tarjeta del QR abre la cámara: es lo más rápido en sitio.
+            Semantics(
+              button: true,
+              label: 'Escanear el QR del energizador',
+              child: GestureDetector(
                 key: const Key('vincular-escanear'),
                 onTap: _startScanning,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: cs.primary.withValues(alpha: 0.5), width: 1.5),
-                  ),
+                child: TarjetaFlujo(
+                  padding: const EdgeInsets.symmetric(vertical: 28),
                   child: Column(
                     children: [
-                      Icon(Icons.qr_code_scanner_rounded, size: 56, color: cs.primary),
-                      const SizedBox(height: 10),
-                      Text("Escanear QR", style: theme.textTheme.titleMedium?.copyWith(color: cs.primary, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 2),
-                      Text("Abre la cámara", style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                      Icon(Icons.qr_code_2_rounded, size: 96, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8)),
+                      const SizedBox(height: 12),
+                      Text("Escanea el QR de la etiqueta", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)),
+                      const SizedBox(height: 4),
+                      Text("El energizador debe estar encendido.", style: muted),
                     ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(child: Divider(color: theme.dividerColor)),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text("o escribe la serie", style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant))),
-                Expanded(child: Divider(color: theme.dividerColor)),
+            const SizedBox(height: 16),
+            OhmGradientButton(label: "Escanear QR", icon: Icons.qr_code_scanner_rounded, onPressed: _startScanning),
+            const SizedBox(height: 28),
+
+            const EtiquetaSeccion(
+              "O ESCRIBE LA SERIE",
+              tituloAyuda: '¿Dónde está la serie?',
+              ayuda: [
+                'En la etiqueta del energizador, junto al código QR. Empieza con OS-OBV01.',
+                'Basta con el número final (por ejemplo 26). Los guiones se ponen solos.',
               ],
             ),
-            const SizedBox(height: 16),
-
             TextField(
               controller: _macController,
               textCapitalization: TextCapitalization.characters,
@@ -455,45 +360,21 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               onSubmitted: (v) => _startValidation(v),
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
-                labelText: "Número de serie",
-                hintText: "Ej. 26 u OS-OBV01-0026",
-                helperText: "Basta con el número final.",
+                hintText: "Número de serie (ej. 26)",
                 filled: true,
                 fillColor: ohm.surfaceContainer,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                suffixIcon: const InfoAyuda(
-                  titulo: '¿Dónde está la serie?',
-                  puntos: [
-                    'En la etiqueta del energizador, junto al código QR.',
-                    'Empieza con OS-OBV01 (por ejemplo OS-OBV01-0026).',
-                    'Puedes escribir sólo el número final: 26. Los guiones se ponen solos.',
-                  ],
+                suffixIcon: IconButton(
+                  key: const Key('vincular-buscar'),
+                  tooltip: 'Buscar',
+                  icon: Icon(Icons.arrow_forward_rounded, color: cs.primary),
+                  onPressed: () => _startValidation(_macController.text),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _startValidation(_macController.text),
-                icon: const Icon(Icons.search_rounded),
-                label: const Text("Buscar equipo", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: cs.primary,
-                  side: BorderSide(color: cs.primary, width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
-            TextButton.icon(
-              onPressed: () => showCancellationFlow(context, widget.ticket),
-              icon: const Icon(Icons.report_gmailerrorred_rounded, size: 20),
-              label: const Text("¿Algo salió mal? Reportar o cancelar"),
-              style: TextButton.styleFrom(foregroundColor: cs.onSurfaceVariant),
-            ),
+            const SizedBox(height: 32),
+            BotonSecundario(etiqueta: "Cancelar instalación", onPressed: () => showCancellationFlow(context, widget.ticket)),
           ],
         );
 
@@ -501,87 +382,58 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         final enLinea = _diag?['enLinea'] == true;
         final cerca = _diag?['cercaActiva'] == true;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
           physics: const BouncingScrollPhysics(),
           children: [
-            const SizedBox(height: 12),
-            Text(
-              _isLoading ? "Buscando el equipo…" : (_vinculado ? "Equipo vinculado" : "¿Es este el equipo?"),
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _isLoading
-                  ? "Leyendo los datos del energizador."
-                  : (_vinculado ? "Ya quedó ligado a esta instalación." : "Revisa que la serie coincida con la etiqueta y vincúlalo."),
-              textAlign: TextAlign.center,
-              style: muted,
-            ),
-            const SizedBox(height: 20),
-            if (_showBanner && !_isLoading) ...[_avisoBusqueda(), const SizedBox(height: 16)],
-
             if (_isLoading)
-              const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
-            else ...[
-              // Ficha: lo que importa arriba; lo técnico, plegado.
-              Container(
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.4)),
-                ),
+              Padding(
+                padding: const EdgeInsets.only(top: 48),
                 child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-                      child: Column(
-                        children: [
-                          _buildDetailRow("Serie", _diag?['serie']?.toString() ?? '—', fuerte: true),
-                          const SizedBox(height: 12),
-                          _buildDetailRow("Conexión", enLinea ? "En línea" : "Sin señal reciente", punto: enLinea ? ohm.success : cs.error),
-                          const SizedBox(height: 12),
-                          _buildDetailRow("Cerca", cerca ? "Encendida" : "Apagada", punto: cerca ? cs.primary : cs.outline),
-                          const SizedBox(height: 12),
-                          _buildDetailRow("Último reporte", _formatUltimoReporte(_diag?['ultimoReporte'])),
-                        ],
-                      ),
-                    ),
-                    Theme(
-                      data: theme.copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        tilePadding: const EdgeInsets.symmetric(horizontal: 20),
-                        childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                        title: Text("Datos técnicos", style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
-                        children: [
-                          _buildDetailRow("MAC", _diag?['mac']?.toString() ?? '—'),
-                          const SizedBox(height: 10),
-                          _buildDetailRow("Firmware", _diag?['firmware']?.toString() ?? '—'),
-                        ],
-                      ),
+                    CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(cs.primary)),
+                    const SizedBox(height: 16),
+                    Text("Buscando el equipo…", style: muted),
+                  ],
+                ),
+              )
+            else ...[
+              if (_showBanner) _avisoBusqueda(),
+              TarjetaFlujo(
+                child: Column(
+                  children: [
+                    DatoFlujo(etiqueta: "Serie", valor: _diag?['serie']?.toString() ?? '—'),
+                    DatoFlujo(etiqueta: "Conexión", valor: enLinea ? "En línea" : "Sin señal reciente", color: enLinea ? ohm.success : cs.error),
+                    DatoFlujo(etiqueta: "Cerca", valor: cerca ? "Encendida" : "Apagada"),
+                    DatoFlujo(etiqueta: "Último reporte", valor: _formatUltimoReporte(_diag?['ultimoReporte'])),
+                    const SizedBox(height: 8),
+                    Text(
+                      "MAC ${_diag?['mac'] ?? '—'}  ·  Firmware ${_diag?['firmware'] ?? '—'}",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.45)),
                     ),
                   ],
                 ),
               ),
-              if (!enLinea && !_vinculado) ...[
-                const SizedBox(height: 12),
-                AvisoEnLinea(
-                  icono: Icons.wifi_off_rounded,
-                  color: cs.tertiary,
-                  titulo: "Puedes vincularlo aunque no tenga señal",
-                  texto: "Para la prueba del siguiente paso sí necesita estar conectado a la corriente y con señal.",
-                ),
-              ],
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
+              Text(
+                _vinculado
+                    ? "Ya quedó ligado a esta instalación."
+                    : (enLinea
+                        ? "Revisa que la serie coincida con la etiqueta."
+                        : "Puedes vincularlo sin señal. Para la prueba del siguiente paso sí necesita corriente y señal."),
+                textAlign: TextAlign.center,
+                style: muted,
+              ),
+              const SizedBox(height: 24),
               OhmGradientButton(
                 label: _ctaLabel,
-                icon: _vinculado ? Icons.arrow_forward_rounded : Icons.link_rounded,
                 loading: _isSending,
                 onPressed: _ctaHabilitado ? _onCta : null,
               ),
+              const SizedBox(height: 12),
               if (!_vinculado) ...[
-                const SizedBox(height: 8),
-                TextButton(
+                BotonSecundario(
+                  etiqueta: "Buscar otro equipo",
                   onPressed: _isSending
                       ? null
                       : () => setState(() {
@@ -589,28 +441,21 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                             _showBanner = false;
                             _diag = null;
                           }),
-                  child: const Text("No es este, buscar otro"),
                 ),
+                const SizedBox(height: 12),
               ],
-              const SizedBox(height: 12),
-              TextButton.icon(
-                onPressed: () => showCancellationFlow(context, widget.ticket),
-                icon: const Icon(Icons.report_gmailerrorred_rounded, size: 20),
-                label: const Text("¿Algo salió mal? Reportar o cancelar"),
-                style: TextButton.styleFrom(foregroundColor: cs.onSurfaceVariant),
-              ),
+              BotonSecundario(etiqueta: "Reportar incidencias (opcional)", onPressed: () => showCancellationFlow(context, widget.ticket)),
             ],
           ],
         );
     }
   }
 
-  /// Resultado de la búsqueda, en su lugar (antes era un cartel flotante que tapaba el encabezado
-  /// y nunca se iba).
+  /// Resultado de la búsqueda, dentro de la pantalla (antes un cartel flotante tapaba el encabezado).
   Widget _avisoBusqueda() {
     final cs = Theme.of(context).colorScheme;
     final ohm = context.ohm;
-    return AvisoEnLinea(
+    return MensajeFlujo(
       icono: _bannerIsSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded,
       color: _bannerIsSuccess ? ohm.success : cs.error,
       titulo: _bannerText,
@@ -784,35 +629,5 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   String _formatUltimoReporte(dynamic iso) {
     if (iso == null || iso.toString().isEmpty) return "Nunca";
     return FechasOdoo.fechaHora(iso.toString());
-  }
-
-  Widget _buildDetailRow(String key, String value, {Color? punto, bool fuerte = false}) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(key, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (punto != null) ...[
-                Container(width: 8, height: 8, decoration: BoxDecoration(color: punto, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-              ],
-              Flexible(
-                child: Text(
-                  value,
-                  textAlign: TextAlign.end,
-                  style: (fuerte ? theme.textTheme.titleMedium : theme.textTheme.bodyMedium)?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }

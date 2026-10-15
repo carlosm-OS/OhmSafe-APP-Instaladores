@@ -49,7 +49,7 @@ void main() {
     });
   });
 
-  testWidgets('«Buscar equipo» valida la serie escrita y el error de serie ya instalada sale ahí, sin cámara simulada', (t) async {
+  testWidgets('La flecha «Buscar» valida la serie escrita y el error de serie ya instalada sale ahí, sin cámara simulada', (t) async {
     t.view.physicalSize = const Size(1200, 4200);
     t.view.devicePixelRatio = 2.5; // 480 x 1680: la pantalla completa sin desplazar
     addTearDown(t.view.reset);
@@ -59,12 +59,11 @@ void main() {
       notifier: AppState(),
       child: MaterialApp(theme: AppTheme.light, home: const LinkEnergizerScreen(ticket: {'id': 'i24', 'title': 'Instalación'})),
     ));
-    expect(find.text('Buscar equipo'), findsOneWidget);
+    expect(find.byKey(const Key('vincular-buscar')), findsOneWidget);
     expect(find.text('Escanear QR'), findsOneWidget);
-    expect(find.text('Paso 4 de 7'), findsOneWidget);
 
     await t.enterText(find.byType(TextField), 'OHM-CARLOS-DEV-2');
-    await t.tap(find.text('Buscar equipo'));
+    await t.tap(find.byKey(const Key('vincular-buscar')));
     await t.pump();
     await t.pump(const Duration(milliseconds: 100));
 

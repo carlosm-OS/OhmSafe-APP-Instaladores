@@ -232,10 +232,11 @@ class _Caja extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
+      // Tarjeta blanca con borde tenue (como el resto del flujo); sólo el ícono y el título llevan color.
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

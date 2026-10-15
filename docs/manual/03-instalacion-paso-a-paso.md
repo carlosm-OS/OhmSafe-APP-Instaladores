@@ -63,7 +63,6 @@ El metraje real queda como «Metros a instalar» en el paso 3 y en la tarjeta de
 
 ## Ayuda en pantalla (desde la build 43)
 
-- Cada pantalla de los pasos 4 a 7 dice arriba **«Paso N de 7»** para que sepas dónde vas.
 - Donde algo puede confundir hay un ícono **ⓘ**. Tócalo: se abre una hoja corta con el «cómo funciona». Se cierra con **«Entendido»**.
 - Si el botón final del cierre está apagado, la pantalla dice **qué falta** («Para terminar falta: …»).
 
@@ -75,14 +74,14 @@ Ver el procedimiento completo en [04 — Vincular energizador](04-vincular-energ
 
 Es obligatoria para poder cerrar. Sirve para que el cliente vea que la cerca funciona.
 
-1. Arriba ves en grande cómo está la cerca: **«La cerca está encendida»** o **«apagada»**, y si el energizador está en línea.
+1. Arriba ves la serie, la conexión y si la cerca está encendida o apagada.
 2. Toca **«Encender la cerca»** y luego **«Apagar la cerca»** (es el mismo botón, cambia según el estado). Mientras el equipo responde verás «Enviando al energizador…».
-3. La tarjeta **«Muéstrale al cliente · 1 de 2»** va marcando lo que ya hiciste. Con las dos marcadas, **«Terminar prueba»** se vuelve el botón principal.
+3. En **«MUÉSTRALE AL CLIENTE»** se marcan «Encendiste la cerca» y «La apagaste» conforme lo haces. Con las dos marcadas, **«Terminar prueba»** se vuelve el botón principal.
 4. Toca **«Terminar prueba»**. Si la cerca quedó encendida, la app pregunta **«¿Dejas la cerca encendida?»**.
 
 - El equipo debe tener señal. Si no, verás **«El energizador no tiene señal»**; la pantalla se actualiza sola.
 - Lo que dispare el equipo durante la prueba (por ejemplo, tocar las líneas) **no manda avisos ni llamadas**: queda registrado como prueba.
-- Sólo controlas la cerca del cliente **mientras esta pantalla está abierta**. Al terminar, con **«Salir sin probar»**, la flecha o el gesto de regresar, el control se retira y queda sólo en manos del cliente.
+- Sólo controlas la cerca del cliente **mientras esta pantalla está abierta**. Al terminar, o al salir con la flecha o el gesto de regresar, el control se retira y queda sólo en manos del cliente.
 
 ## Paso 6 — Agregar dispositivos (opcional)
 
@@ -90,7 +89,7 @@ Agrega **sólo lo que el cliente compró**. Cada cosa se prueba en vivo y sólo 
 
 Las secciones, en este orden:
 
-- **Puertas con cable.** Toca **«Probar»** en la entrada. La tarjeta te guía: **«1 de 2 · Cierra la puerta y espera 3 segundos…»** y luego **«2 de 2 · ¡Bien! Ahora ábrela…»**. Cuando diga **«¡Funciona!»**, toca **«Guardar»** y escribe qué puerta es. Si dice «No vimos la puerta cerrar y abrir», revisa el cable del sensor y toca **«Reintentar»**. Si la alarma estaba armada, la app la desarma antes para que la prueba no haga sonar la sirena.
+- **Puertas con cable.** Toca **«Probar»** en la entrada. La fila te guía: **«1 de 2 · Cierra la puerta y espera 3 segundos»** y luego **«2 de 2 · Ahora ábrela»**. Cuando diga **«Funciona»**, toca **«Guardar»** y escribe qué puerta es. Si dice «No vimos la puerta cerrar y abrir», revisa el cable del sensor y toca **«Reintentar»**. Si la alarma estaba armada, la app la desarma antes para que la prueba no haga sonar la sirena.
 - **Sirena.** Toca **«Probar»**: suena 3 segundos (avísale al cliente antes). Contesta **«¿Sonó la sirena?»**.
 - **Luces, portón y otros (salidas).** Toca **«Probar»**: la salida se enciende 5 segundos. Contesta **«¿Se encendió?»** y, si sí, escribe el nombre, **qué es** (luz, bomba, portón, sirena externa, otro) y **cómo funciona** (encendido/apagado, o pulso como un portón). Si no encendió, no se guarda y queda anotado en el reporte.
 - **Sensores inalámbricos** (puerta, movimiento, humo o botón de pánico, por radio). Toca **«Agregar»**, elige el tipo y haz lo que diga la pantalla (abrir la puerta, pasar frente al sensor, apretar su botón). Cuando diga **«Aprendido»**, ponle nombre y **«Guardar»**. El energizador debe tener señal. Los controles remotos (llaveros) se dan de alta desde el dashboard.

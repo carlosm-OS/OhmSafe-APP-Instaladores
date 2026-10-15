@@ -8,18 +8,18 @@ Este es el paso 4 de la instalación. Sirve para tres cosas:
 
 ## Paso a paso (desde la build 43)
 
-1. En la lista de pasos toca **«Vincular el energizador»** (paso 4 de 7). El ⓘ junto al paso explica qué pasa aquí.
+1. En la lista de pasos toca **«Vincular el energizador»** (paso 4).
 2. En **«Busca el energizador»**:
-   - **Escanear (lo normal):** toca la tarjeta grande **«Escanear QR»** y apunta al código de la etiqueta. Puedes prender la linterna. Al leerlo, la app busca el equipo sola.
-   - **Escribir:** si no se puede escanear, escribe la serie en «Número de serie» y toca **«Buscar equipo»**. Basta con el número final (`26`); los guiones se ponen solos. El ⓘ del campo dice dónde está la serie.
-3. Aparece **«¿Es este el equipo?»** con la serie, la conexión (punto verde «En línea» o rojo «Sin señal reciente»), si la cerca está encendida y el último reporte. La MAC y el firmware están plegados en «Datos técnicos».
+   - **Escanear (lo normal):** toca **«Escanear QR»** (o la tarjeta del código) y apunta al código de la etiqueta. Puedes prender la linterna. Al leerlo, la app busca el equipo sola.
+   - **Escribir:** si no se puede escanear, escribe la serie en el campo de «O ESCRIBE LA SERIE» y toca la **flecha** del campo. Basta con el número final (`26`); los guiones se ponen solos. El ⓘ junto a la etiqueta dice dónde está la serie.
+3. Aparece la tarjeta del equipo con la serie, la conexión («En línea» en verde o «Sin señal reciente» en rojo), si la cerca está encendida y el último reporte; abajo, en gris, la MAC y el firmware.
    - Si dice «Sin señal reciente», **puedes vincularlo igual**; para la prueba del paso 5 sí necesita corriente y señal.
-   - Si no es el equipo, toca **«No es este, buscar otro»**.
-4. Toca **«Vincular a esta instalación»** (o «Dar de alta y vincular» si es un equipo nuevo).
+   - Si no es el equipo, toca **«Buscar otro equipo»**.
+4. Toca **«Vincular energizador»** (o «Dar de alta y vincular» si es un equipo nuevo).
 5. Se abre la hoja **«El equipo va a una casa nueva»** o **«El equipo se suma a esta casa»** con la casa, el motivo y la venta. Toca **«Sí, vincular»** (o «Cancelar»). El ⓘ explica por qué esa casa.
 6. Verás «Energizador vinculado a «casa»» y la app abre sola la **Prueba del energizador** (paso 5).
 
-Si algo sale mal (serie no encontrada, apartada, etc.) el aviso aparece **dentro de la pantalla**, debajo del título, en rojo. El botón «¿Algo salió mal? Reportar o cancelar» abre la cancelación en sitio.
+Si algo sale mal (serie no encontrada, apartada, etc.) el aviso aparece **dentro de la pantalla**, arriba de la tarjeta. «Cancelar instalación» y «Reportar incidencias (opcional)» abren la cancelación en sitio.
 
 ## Antes de empezar
 
@@ -70,7 +70,7 @@ En los mensajes, «OS-OBV01-0001» representa la serie que escribiste o escaneas
 
 | Mensaje en pantalla | Qué significa | Qué hacer |
 |---|---|---|
-| «Escanea el QR o escribe el número de serie.» | Tocaste «Buscar equipo» con el campo vacío. | Escribe la serie o toca «Escanear QR». |
+| «Escanea el QR o escribe el número de serie.» | Tocaste la flecha con el campo vacío. | Escribe la serie o toca «Escanear QR». |
 | «El número de serie OS-OBV01-0001 no está en el inventario de Ohmbox. Revisa la etiqueta del equipo o avisa a operaciones.» | Esa serie no existe en el inventario de OhmSafe. | Revisa que la escribiste bien (letras, guiones, ceros). Si está bien, avisa a operaciones y no instales ese equipo. |
 | «El número de serie OS-OBV01-0001 ya está registrado como instalado con otro cliente. Revisa la etiqueta del equipo o avisa a operaciones.» | El sistema dice que ese equipo ya está instalado en otra casa. | Revisa la etiqueta. Si es correcta, avisa a operaciones antes de seguir. |
 | «El número de serie OS-OBV01-0001 no aparece en el almacén. Avisa a operaciones para que lo revise antes de instalarlo.» | La serie existe pero el almacén no la tiene disponible. | Avisa a operaciones; no lo instales hasta que te confirmen. |
@@ -80,7 +80,7 @@ En los mensajes, «OS-OBV01-0001» representa la serie que escribiste o escaneas
 | «Diagnóstico del equipo exitoso» | Las 3 pruebas están en verde. | Confirma la tierra física y continúa. |
 | «Hay pruebas en rojo, revisa el equipo» | Al menos una prueba no está en verde. | Corrige lo que marca la prueba y vuelve a leer el equipo. |
 | «No pudimos leer el equipo: …» | Falló la lectura por otra causa (texto después de los dos puntos). | Si dice «Sin conexión a internet», busca señal. Si no, vuelve a intentar o avisa a operaciones. |
-| «No pudimos vincular el energizador: …» | El equipo se encontró pero no se pudo guardar la vinculación. | Revisa señal y vuelve a tocar «Vincular a esta instalación». |
+| «No pudimos vincular el energizador: …» | El equipo se encontró pero no se pudo guardar la vinculación. | Revisa señal y vuelve a tocar «Vincular energizador». |
 | «… Sesión expirada, vuelve a iniciar sesión» | Tu sesión ya no es válida. | Cierra y abre la app y entra de nuevo. |
 
 ### Aviso «Vinculado, pero falta la cuenta del cliente»
@@ -95,7 +95,7 @@ El equipo **sí** quedó vinculado a la instalación, pero no llegó a la app de
 
 ## También desde esta pantalla
 
-- «¿Algo salió mal? Reportar o cancelar» abre la cancelación en sitio. Ver [05](05-cancelar-en-sitio.md).
+- «Cancelar instalación» y «Reportar incidencias (opcional)» abren la cancelación en sitio. Ver [05](05-cancelar-en-sitio.md).
 
 ## A dónde va el equipo (desde la build 40)
 
@@ -104,7 +104,7 @@ El equipo **sí** quedó vinculado a la instalación, pero no llegó a la app de
 - **Plan nuevo** (la venta es una suscripción nueva): el equipo va a una **casa nueva** con la dirección de la compra, aunque el cliente ya tenga otras casas. Cada dirección del cliente es una casa con su propio plan.
 - **Equipo adicional** (un complemento sobre un contrato que ya existe): el equipo va a la **casa de ese contrato**.
 
-Al tocar **«Vincular a esta instalación»** verás una hoja de confirmación con la casa, el motivo y la venta. Toca **«Sí, vincular»** para seguir o **«Cancelar»** para quedarte en la pantalla.
+Al tocar **«Vincular energizador»** verás una hoja de confirmación con la casa, el motivo y la venta. Toca **«Sí, vincular»** para seguir o **«Cancelar»** para quedarte en la pantalla.
 
 Si la hoja dice **«Todavía no se puede vincular»**, la venta es equipo adicional pero no dice a qué casa va. Avisa a operaciones para que la ligue a su contrato en Odoo y vuelve a intentarlo.
 
