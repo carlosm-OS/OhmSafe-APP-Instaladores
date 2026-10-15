@@ -15,6 +15,7 @@ import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/utils/fechas_odoo.dart';
 import '../core/utils/ligado_cliente.dart';
+import '../widgets/botones_dialogo.dart';
 
 enum LinkState { input, validating }
 
@@ -209,7 +210,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             builder: (ctx) => AlertDialog(
               title: const Text('Vinculado, pero falta la cuenta del cliente'),
               content: Text(aviso),
-              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
+              actions: [BotonesDialogo(primario: 'Entendido', onPrimario: () => Navigator.pop(ctx))],
             ),
           );
           if (!mounted) return;

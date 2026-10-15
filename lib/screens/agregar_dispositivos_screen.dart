@@ -14,6 +14,7 @@ import '../widgets/ayuda.dart';
 import 'escanear_serie_screen.dart';
 import '../widgets/aprender_rf_sheet.dart';
 import '../widgets/con_textos.dart';
+import '../widgets/botones_dialogo.dart';
 
 /// «Agregar dispositivos» · cableado con prueba en vivo (build 39, Carlos 2026-10-13).
 /// Cada elemento se comprueba físicamente y la app sólo acepta lo que el equipo confirma:
@@ -193,13 +194,14 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-                FilledButton(
-                  onPressed: () {
+                BotonesDialogo(
+                  secundario: 'Cancelar',
+                  onSecundario: () => Navigator.pop(ctx),
+                  primario: 'Guardar',
+                  onPrimario: () {
                     final id = c[0].text.trim(), nombre = c[1].text.trim();
                     if (id.isNotEmpty && nombre.isNotEmpty) Navigator.pop(ctx, (id: id, nombre: nombre, tipo: tipo));
                   },
-                  child: const Text('Guardar'),
                 ),
               ],
             ),
@@ -240,13 +242,14 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-            FilledButton(
-              onPressed: () {
+            BotonesDialogo(
+              secundario: 'Cancelar',
+              onSecundario: () => Navigator.pop(ctx),
+              primario: 'Agregar',
+              onPrimario: () {
                 final serie = c[0].text.trim(), codigo = c[1].text.trim(), nombre = c[2].text.trim();
                 if (serie.isNotEmpty && codigo.isNotEmpty && nombre.isNotEmpty) Navigator.pop(ctx, (serie: serie, codigo: codigo, nombre: nombre));
               },
-              child: const Text('Agregar'),
             ),
           ],
         ),
@@ -320,13 +323,14 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-            FilledButton(
-              onPressed: () {
+            BotonesDialogo(
+              secundario: 'Cancelar',
+              onSecundario: () => Navigator.pop(ctx),
+              primario: 'Agregar',
+              onPrimario: () {
                 final s = normalizarSerie(c[0].text);
                 if (s.isNotEmpty) Navigator.pop(ctx, s);
               },
-              child: const Text('Agregar'),
             ),
           ],
         ),
@@ -414,8 +418,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       title: Text(titulo),
       content: Text(texto),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí')),
+        BotonesDialogo(
+          secundario: 'No',
+          onSecundario: () => Navigator.pop(ctx, false),
+          primario: 'Sí',
+          onPrimario: () => Navigator.pop(ctx, true),
+        ),
       ],
     ),
   );
@@ -434,8 +442,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
             decoration: InputDecoration(hintText: ejemplo, border: const OutlineInputBorder()),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, c[0].text.trim()), child: const Text('Guardar')),
+            BotonesDialogo(
+              secundario: 'Cancelar',
+              onSecundario: () => Navigator.pop(ctx),
+              primario: 'Guardar',
+              onPrimario: () => Navigator.pop(ctx, c[0].text.trim()),
+            ),
           ],
         ),
       ),
@@ -491,13 +503,14 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                 ],
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-                FilledButton(
-                  onPressed: () {
+                BotonesDialogo(
+                  secundario: 'Cancelar',
+                  onSecundario: () => Navigator.pop(ctx),
+                  primario: 'Guardar',
+                  onPrimario: () {
                     final nombre = c[0].text.trim();
                     if (nombre.isNotEmpty) Navigator.pop(ctx, _AltaSalida(nombre, tipo, modo, 2));
                   },
-                  child: const Text('Guardar'),
                 ),
               ],
             ),

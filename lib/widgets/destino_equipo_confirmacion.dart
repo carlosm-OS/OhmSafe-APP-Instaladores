@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme_extension.dart';
 import '../core/utils/destino_equipo.dart';
+import 'botones_dialogo.dart';
 import 'ayuda.dart';
 
 /// Confirma a dónde va el energizador antes de vincular (2026-10-14). No hay nada que elegir:
@@ -85,14 +86,13 @@ class _Confirmacion extends StatelessWidget {
             ],
             const SizedBox(height: 20),
             if (bloquea)
-              FilledButton(onPressed: () => Navigator.pop(context, false), child: const Text('Entendido'))
+              BotonesDialogo(primario: 'Entendido', onPrimario: () => Navigator.pop(context, false))
             else
-              Row(
-                children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sí, vincular'))),
-                ],
+              BotonesDialogo(
+                secundario: 'Cancelar',
+                onSecundario: () => Navigator.pop(context, false),
+                primario: 'Sí, vincular',
+                onPrimario: () => Navigator.pop(context, true),
               ),
           ],
         ),

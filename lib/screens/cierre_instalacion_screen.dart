@@ -17,6 +17,7 @@ import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/theme/app_motion.dart';
 import '../core/theme/app_theme_extension.dart';
+import '../widgets/botones_dialogo.dart';
 
 class CierreInstalacionScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -408,7 +409,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   /// instalador puede confirmar; la confirmación queda en el chatter de Odoo.
   Future<void> _confirmarCierreLejos(ServerFailure failure) async {
     final distancia = failure.details['distanciaM'];
-    final cs = Theme.of(context).colorScheme;
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -419,11 +419,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               : failure.message,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Revisar')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: cs.primary),
-            child: const Text('Sí, cerrar aquí'),
+          BotonesDialogo(
+            secundario: 'Revisar',
+            onSecundario: () => Navigator.pop(ctx, false),
+            primario: 'Sí, cerrar aquí',
+            onPrimario: () => Navigator.pop(ctx, true),
           ),
         ],
       ),

@@ -6,6 +6,7 @@ import '../core/di/injection_container.dart';
 import '../core/network/actividad.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import 'botones_dialogo.dart';
 import 'ayuda.dart';
 
 /// Tipos de sensor 433 que el instalador da de alta en sitio (2026-10-14). El control remoto
@@ -197,22 +198,21 @@ class _AprenderRfState extends State<_AprenderRf> {
               ),
             ],
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(onPressed: _guardando ? null : _cancelar, child: Text(_viva || _s == null ? 'Cancelar' : 'Cerrar')),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: !_viva && !_puedeGuardar && _s != null
-                      ? FilledButton(onPressed: _empezar, child: const Text('Intentar de nuevo'))
-                      : FilledButton(
-                          onPressed: _puedeGuardar && !_guardando ? _guardar : null,
-                          child: _guardando ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Guardar'),
-                        ),
-                ),
-              ],
-            ),
+            if (!_viva && !_puedeGuardar && _s != null)
+              BotonesDialogo(
+                secundario: 'Cerrar',
+                onSecundario: _cancelar,
+                primario: 'Intentar de nuevo',
+                onPrimario: _empezar,
+              )
+            else
+              BotonesDialogo(
+                secundario: _viva || _s == null ? 'Cancelar' : 'Cerrar',
+                onSecundario: _guardando ? null : _cancelar,
+                primario: 'Guardar',
+                onPrimario: _puedeGuardar ? _guardar : null,
+                primarioCargando: _guardando,
+              ),
           ],
         ),
       ),

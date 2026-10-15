@@ -10,6 +10,7 @@ import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
+import '../widgets/botones_dialogo.dart';
 
 /// Prueba del energizador (build 39, Carlos 2026-10-13): después de vincular, el instalador tiene
 /// una ventana de tiempo para ENCENDER y APAGAR la cerca y enseñarle al cliente que el equipo
@@ -127,8 +128,12 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
           title: const Text('¿Dejas la cerca encendida?'),
           content: const Text('Al terminar ya no podrás encenderla ni apagarla desde tu app. Se queda encendida y el control lo tiene sólo el cliente.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Volver')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí, dejarla así')),
+            BotonesDialogo(
+              secundario: 'Volver',
+              onSecundario: () => Navigator.pop(ctx, false),
+              primario: 'Sí, dejarla así',
+              onPrimario: () => Navigator.pop(ctx, true),
+            ),
           ],
         ),
       );
