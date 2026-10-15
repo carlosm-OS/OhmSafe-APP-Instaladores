@@ -31,10 +31,10 @@ class BotonContornoSecundario extends StatelessWidget {
         minimumSize: const Size.fromHeight(AppTouch.primary),
         side: BorderSide(color: onPressed == null ? cs.primary.withValues(alpha: 0.3) : cs.primary, width: 2),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
-        // Mismo peso que el primario (el tema le da al lleno su negrita).
-        textStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+        textStyle: theme.textTheme.labelLarge,
       ),
-      child: Text(etiqueta),
+      // La negrita va en el Text: desde `textStyle` no llegaba (se veía delgado junto al primario).
+      child: Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.w700)),
     );
   }
 }
