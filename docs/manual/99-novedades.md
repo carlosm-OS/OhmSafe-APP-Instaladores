@@ -2,6 +2,15 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 44 — 15 de octubre de 2026
+
+- **Arreglo:** «Agregar dispositivos» ya no muestra la pantalla de error al guardar el nombre de una puerta (u otro dato) con el teclado abierto.
+- **Ventanas emergentes con botones claros:** arriba el botón principal naranja («Guardar», «Sí») y abajo el secundario con contorno naranja («Cancelar», «No»).
+- **Con el teclado abierto**, las ventanas emergentes se desplazan en vez de cortarse (p. ej. «¿Qué conectaste a la salida?»).
+- **Sensores Wi‑Fi:** por ahora no se pueden agregar.
+- **Otro energizador en esta casa:** los energizadores que ya tiene la casa se ven en un recuadro gris de sólo información (serie, «Principal», «En línea»); debajo, «Agregar otro OhmBox».
+- El aviso «Sigue cargando…» sale abajo, sobre la barra, en vez de tapar el título.
+
 ## Build 43 — 15 de octubre de 2026
 
 - **Barra de progreso** arriba de la pantalla cuando la app espera al servidor o al GPS; si tarda más de 6 segundos dice «Sigue cargando… la señal está lenta». Ya no parece trabada.
