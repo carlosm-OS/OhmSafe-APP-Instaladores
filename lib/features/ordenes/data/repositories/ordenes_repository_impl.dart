@@ -306,7 +306,7 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
-  Future<Result<Map<String, dynamic>>> camaraAgregar(String id, {required String proveedor, required String serie, required String codigo, required String nombre}) async {
+  Future<Result<Map<String, dynamic>>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre}) async {
     try {
       return Success(await dataSource.camaraAgregar(id, proveedor: proveedor, serie: serie, codigo: codigo, nombre: nombre));
     } on UnauthorizedException {

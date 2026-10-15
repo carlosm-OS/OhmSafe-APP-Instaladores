@@ -158,13 +158,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, set) => AlertDialog(
-          title: const Text('Sensor Wi‑Fi (Tuya)'),
+          title: const Text('Sensor Wi‑Fi'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Se registra por su id de Tuya; el emparejamiento se hace en la app Tuya del cliente.', style: Theme.of(ctx).textTheme.bodySmall),
+                Text('Se registra con el id del sensor; el cliente lo empareja desde su app.', style: Theme.of(ctx).textTheme.bodySmall),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: tipo,
@@ -174,7 +174,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                 ),
                 TextField(
                   controller: idCtrl,
-                  decoration: const InputDecoration(labelText: 'Id del sensor en Tuya'),
+                  decoration: const InputDecoration(labelText: 'Id del sensor'),
                 ),
                 TextField(
                   controller: nombreCtrl,
@@ -209,49 +209,30 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final serieCtrl = TextEditingController();
     final codigoCtrl = TextEditingController();
     final nombreCtrl = TextEditingController();
-    final opciones = [if (_proveedores['ezviz'] == true) 'ezviz', if (_proveedores['imou'] == true) 'imou'];
-    String proveedor = opciones.isNotEmpty ? opciones.first : 'ezviz';
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) => AlertDialog(
-          title: const Text('Agregar cámara'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('La cámara debe estar encendida y con internet. Los datos vienen en su etiqueta.', style: Theme.of(ctx).textTheme.bodySmall),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: proveedor,
-                  decoration: const InputDecoration(labelText: 'Marca'),
-                  items: [for (final o in opciones) DropdownMenuItem(value: o, child: Text(o == 'ezviz' ? 'EZVIZ' : 'Imou'))],
-                  onChanged: (v) => set(() => proveedor = v ?? proveedor),
-                ),
-                TextField(
-                  controller: serieCtrl,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(labelText: 'Número de serie (S/N)'),
-                ),
-                TextField(
-                  controller: codigoCtrl,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(labelText: 'Código de verificación'),
-                ),
-                TextField(
-                  controller: nombreCtrl,
-                  maxLength: 40,
-                  decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Cochera'),
-                ),
-              ],
-            ),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Agregar cámara'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('La cámara debe estar encendida y con internet. La serie y el código vienen en su etiqueta.', style: Theme.of(ctx).textTheme.bodySmall),
+              const SizedBox(height: 12),
+              TextField(controller: serieCtrl, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Número de serie (S/N)')),
+              TextField(controller: codigoCtrl, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Código de verificación')),
+              TextField(controller: nombreCtrl, maxLength: 40, decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Cochera')),
+            ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, serieCtrl.text.trim().isNotEmpty && codigoCtrl.text.trim().isNotEmpty && nombreCtrl.text.trim().isNotEmpty), child: const Text('Agregar')),
-          ],
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, serieCtrl.text.trim().isNotEmpty && codigoCtrl.text.trim().isNotEmpty && nombreCtrl.text.trim().isNotEmpty),
+            child: const Text('Agregar'),
+          ),
+        ],
       ),
     );
     final serie = serieCtrl.text.trim();
@@ -262,7 +243,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     nombreCtrl.dispose();
     if (ok != true || !mounted) return;
     setState(() => _ocupado = true);
-    final r = await _repo.camaraAgregar(_id, proveedor: proveedor, serie: serie, codigo: codigo, nombre: nombre);
+    // Sin marca: el backend prueba cada nube habilitada y se queda con la que reconoce la cámara.
+    final r = await _repo.camaraAgregar(_id, serie: serie, codigo: codigo, nombre: nombre);
     if (!mounted) return;
     setState(() => _ocupado = false);
     r.fold((_) => _aviso('Cámara «$nombre» agregada'), (f) => _aviso(f.message));
@@ -628,13 +610,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               for (final x in _lista('wifi', 'sensores'))
                                 _Tarjeta(
                                   titulo: (x['nombre'] ?? '').toString(),
-                                  subtitulo: '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · Tuya ${x['externalId'] ?? ''}',
+                                  subtitulo: '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · id ${x['externalId'] ?? ''}',
                                   color: ohm.success,
                                   accion: Icon(Icons.check_circle, color: ohm.success),
                                 ),
                               _Tarjeta(
                                 titulo: 'Registrar sensor Wi‑Fi',
-                                subtitulo: 'Tuya: se registra por id; se empareja en la app Tuya.',
+                                subtitulo: 'Se registra con el id del sensor; el cliente lo empareja desde su app.',
                                 accion: OutlinedButton.icon(onPressed: _ocupado || _disp == null ? null : _agregarWifi, icon: const Icon(Icons.add), label: const Text('Agregar')),
                               ),
 
@@ -644,13 +626,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               for (final x in _lista('camaras', 'lista'))
                                 _Tarjeta(
                                   titulo: (x['nombre'] ?? '').toString(),
-                                  subtitulo: '${(x['proveedor'] ?? '').toString().toUpperCase()} ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}',
+                                  subtitulo: 'Serie ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}',
                                   color: x['estado'] == 'online' ? ohm.success : null,
                                   accion: Icon(Icons.videocam_outlined, color: x['estado'] == 'online' ? ohm.success : cs.onSurfaceVariant),
                                 ),
                               _Tarjeta(
                                 titulo: 'Agregar cámara',
-                                subtitulo: _hayProveedor ? 'EZVIZ o Imou, por la nube del fabricante.' : 'Las cámaras no están disponibles en este ambiente.',
+                                subtitulo: _hayProveedor ? 'Con el número de serie y el código de verificación de la etiqueta.' : 'Las cámaras no están disponibles en este ambiente.',
                                 accion: OutlinedButton.icon(onPressed: _ocupado || !_hayProveedor ? null : _agregarCamara, icon: const Icon(Icons.add), label: const Text('Agregar')),
                               ),
 

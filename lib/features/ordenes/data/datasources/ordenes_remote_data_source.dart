@@ -160,8 +160,8 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo}) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/sensores-wifi', body: {'externalId': externalId, 'nombre': nombre, 'tipo': tipo}));
   @override
-  Future<Map<String, dynamic>> camaraAgregar(String id, {required String proveedor, required String serie, required String codigo, required String nombre}) async =>
-      _data(await dioClient.post('/instalador/ordenes/$id/camaras', body: {'proveedor': proveedor, 'serie': serie, 'codigo': codigo, 'nombre': nombre}));
+  Future<Map<String, dynamic>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/camaras', body: {if (proveedor != null) 'proveedor': proveedor, 'serie': serie, 'codigo': codigo, 'nombre': nombre}));
 
   @override
   Future<Map<String, dynamic>> ohmboxEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/ohmbox'));

@@ -196,7 +196,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   @override
   Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo}) async { await _ok(); _mockWifi.add({'id': externalId, 'tipo': tipo, 'nombre': nombre, 'externalId': externalId}); return {'sensor': {'name': nombre}}; }
   @override
-  Future<Map<String, dynamic>> camaraAgregar(String id, {required String proveedor, required String serie, required String codigo, required String nombre}) async { await _ok(); _mockCams.add({'id': serie, 'proveedor': proveedor, 'nombre': nombre, 'serie': serie, 'estado': 'online'}); return {'camara': {'name': nombre}}; }
+  Future<Map<String, dynamic>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre}) async { await _ok(); _mockCams.add({'id': serie, 'proveedor': proveedor ?? 'cam', 'nombre': nombre, 'serie': serie, 'estado': 'online'}); return {'camara': {'name': nombre}}; }
   final List<Map<String, dynamic>> _mockOhmbox = [
     {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'nombre': 'Cerca', 'enLinea': true, 'principal': true},
   ];

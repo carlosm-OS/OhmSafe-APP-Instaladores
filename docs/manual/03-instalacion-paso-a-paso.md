@@ -88,8 +88,8 @@ se retira al salir. El cierre (paso 7) es siempre lo último.
 **Sensores y cámaras (desde la build 40).** En la misma pantalla hay tres secciones más:
 
 - **Sensores 433 (inalámbricos)**: toca **«Agregar»**, elige puerta, movimiento, humo o botón de pánico y sigue las instrucciones en pantalla (abre/cierra la puerta, pasa frente al sensor, pulsa el botón). El energizador lo aprende en vivo; cuando dice **«Aprendido»**, ponle nombre y **«Guardar»**. El energizador debe estar en línea. Los controles remotos (llaveros) se dan de alta desde el dashboard.
-- **Sensores Wi‑Fi**: se registran con el **id de Tuya**, tipo y nombre; el emparejamiento se hace en la app Tuya del cliente.
-- **Cámaras**: marca (EZVIZ o Imou), **número de serie**, **código de verificación** (los dos vienen en la etiqueta) y nombre. La cámara debe estar encendida y con internet.
+- **Sensores Wi‑Fi**: se registran con el **id del sensor**, tipo y nombre; el cliente lo empareja desde su app.
+- **Cámaras**: **número de serie** y **código de verificación** (los dos vienen en la etiqueta) y nombre. La cámara debe estar encendida y con internet.
 
 Cada alta queda en el acta de la intervención.
 

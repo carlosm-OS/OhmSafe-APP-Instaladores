@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 42 — 14 de octubre de 2026
+
+- «Agregar dispositivos» ya no muestra marcas. Las cámaras se agregan sólo con número de serie, código de verificación y nombre; los sensores Wi‑Fi con su id.
+
 ## Build 41 — 14 de octubre de 2026
 
 - Corrige la build 40: «Prueba del energizador» y «Agregar dispositivos» salían en gris (la barra inferior y los botones estaban mal armados).

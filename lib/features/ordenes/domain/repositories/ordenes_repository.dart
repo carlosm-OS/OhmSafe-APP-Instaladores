@@ -65,7 +65,7 @@ abstract class OrdenesRepository {
   Future<Result<Map<String, dynamic>>> rfTerminar(String id, String sid, {required String nombre});
   Future<Result<Map<String, dynamic>>> rfCancelar(String id, String sid);
   Future<Result<Map<String, dynamic>>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo});
-  Future<Result<Map<String, dynamic>>> camaraAgregar(String id, {required String proveedor, required String serie, required String codigo, required String nombre});
+  Future<Result<Map<String, dynamic>>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre});
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
