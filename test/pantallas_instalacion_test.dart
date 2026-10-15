@@ -2,11 +2,13 @@
 // mock y sin errores de layout. La build 40 salió en gris en el teléfono (2026-10-14): la barra
 // inferior (un Positioned) estaba dentro de una columna y los botones del tema, de ancho completo,
 // estaban dentro de filas. Estas pruebas abren además cada diálogo y hoja de «Agregar dispositivos».
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ohmsafe_app/controllers/app_state.dart';
 import 'package:ohmsafe_app/controllers/app_state_provider.dart';
 import 'package:ohmsafe_app/core/di/injection_container.dart';
+import 'package:ohmsafe_app/core/teclado/teclado.dart';
 import 'package:ohmsafe_app/core/theme/app_theme.dart';
 import 'package:ohmsafe_app/core/utils/destino_equipo.dart';
 import 'package:ohmsafe_app/features/ordenes/data/datasources/ordenes_mock_data_source.dart';
@@ -19,7 +21,10 @@ import 'package:ohmsafe_app/widgets/destino_equipo_confirmacion.dart';
 
 final _lista = find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
 
-Widget _app(Widget home) => AppStateProvider(notifier: AppState(), child: MaterialApp(theme: AppTheme.light, home: home));
+Widget _app(Widget home) => AppStateProvider(
+  notifier: AppState(),
+  child: MaterialApp(theme: AppTheme.light, home: home),
+);
 
 /// Corre `cuerpo` juntando los errores de Flutter y devolviendo siempre el manejador original. La
 /// fuente de pruebas es más ancha que la real y desborda la barra inferior compartida (en el teléfono
@@ -94,7 +99,13 @@ void main() {
           await t.pump(const Duration(milliseconds: 600));
           final tarjeta = find.text(titulo);
           await _ver(t, tarjeta);
-          await _tocar(t, find.descendant(of: find.ancestor(of: tarjeta, matching: find.byType(Row)).first, matching: find.text('Agregar')));
+          await _tocar(
+            t,
+            find.descendant(
+              of: find.ancestor(of: tarjeta, matching: find.byType(Row)).first,
+              matching: find.text('Agregar'),
+            ),
+          );
           await t.pump(const Duration(milliseconds: 600));
           expect(find.byType(Dialog).evaluate().isNotEmpty || find.byType(BottomSheet).evaluate().isNotEmpty, isTrue, reason: titulo);
           await t.tapAt(const Offset(5, 5)); // cierra tocando fuera
@@ -122,25 +133,86 @@ void main() {
     });
   });
 
+  testWidgets('Guardar en un diálogo con texto no truena al cerrarse con el teclado de iOS (build 43: _dependents.isEmpty)', (t) async {
+    // El truene sólo sale con el teclado de iOS: TecladoGlobal envuelve la app en un MediaQuery mientras
+    // está abierto y lo quita al cerrarse, en el mismo cuadro en que el diálogo empieza a cerrarse.
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      await _sinErrores(t, const Size(1206, 2622), () async {
+        await t.pumpWidget(
+          AppStateProvider(
+            notifier: AppState(),
+            child: MaterialApp(
+              theme: AppTheme.light,
+              builder: (_, child) => TecladoGlobal(child: child!),
+              home: const AgregarDispositivosScreen(ticket: {'id': 'i69'}),
+            ),
+          ),
+        );
+        await t.pump(const Duration(seconds: 2));
+        final tarjeta = find.text('Sensor Wi‑Fi');
+        await _ver(t, tarjeta);
+        await _tocar(
+          t,
+          find.descendant(
+            of: find.ancestor(of: tarjeta, matching: find.byType(Row)).first,
+            matching: find.text('Agregar'),
+          ),
+        );
+        await t.pump(const Duration(milliseconds: 600));
+        final campos = find.descendant(of: find.byType(Dialog), matching: find.byType(TextField));
+        expect(campos, findsNWidgets(2));
+        await t.enterText(campos.at(0), 'bf12ab34');
+        await t.enterText(campos.at(1), 'Ventana sala');
+        t.view.viewInsets = const FakeViewPadding(bottom: 900); // teclado abierto
+        await t.pump(const Duration(milliseconds: 300));
+        await t.tap(find.text('Guardar'));
+        t.view.viewInsets = FakeViewPadding.zero; // y se cierra al guardar
+        for (var i = 0; i < 12; i++) {
+          await t.pump(const Duration(milliseconds: 50));
+        }
+        await t.pump(const Duration(seconds: 1));
+        expect(find.byType(Dialog), findsNothing);
+      });
+    } finally {
+      debugDefaultTargetPlatformOverride = null; // antes de que termine la prueba
+    }
+  });
+
   testWidgets('Hojas: confirmación de casa y asistente 433 se pintan sin errores', (t) async {
     await _sinErrores(t, const Size(1206, 2622), () async {
-      await t.pumpWidget(_app(Builder(
-        builder: (ctx) => Scaffold(
-          body: Column(children: [
-            TextButton(
-              onPressed: () => confirmarDestinoEquipo(
-                ctx,
-                DestinoDecidido.fromCasas({
-                  'destino': {'tipo': 'nueva', 'nombre': 'Nellie Campobello 12', 'direccion': 'Nellie Campobello 12, 01180, CDMX', 'motivo': 'S00170 es un plan nuevo.', 'aviso': 'Dirección parecida a otra casa.'},
-                  'venta': {'nombre': 'S00170', 'esServicioNuevo': true, 'plan': 'Plan Hogar Seguro - Mensual', 'equipos': []},
-                })!,
+      await t.pumpWidget(
+        _app(
+          Builder(
+            builder: (ctx) => Scaffold(
+              body: Column(
+                children: [
+                  TextButton(
+                    onPressed: () => confirmarDestinoEquipo(
+                      ctx,
+                      DestinoDecidido.fromCasas({
+                        'destino': {
+                          'tipo': 'nueva',
+                          'nombre': 'Nellie Campobello 12',
+                          'direccion': 'Nellie Campobello 12, 01180, CDMX',
+                          'motivo': 'S00170 es un plan nuevo.',
+                          'aviso': 'Dirección parecida a otra casa.',
+                        },
+                        'venta': {'nombre': 'S00170', 'esServicioNuevo': true, 'plan': 'Plan Hogar Seguro - Mensual', 'equipos': []},
+                      })!,
+                    ),
+                    child: const Text('casa'),
+                  ),
+                  TextButton(
+                    onPressed: () => aprenderSensorRf(ctx, ordenId: 'i69', tipo: 'door', etiqueta: 'Contacto de puerta'),
+                    child: const Text('rf'),
+                  ),
+                ],
               ),
-              child: const Text('casa'),
             ),
-            TextButton(onPressed: () => aprenderSensorRf(ctx, ordenId: 'i69', tipo: 'door', etiqueta: 'Contacto de puerta'), child: const Text('rf')),
-          ]),
+          ),
         ),
-      )));
+      );
       await t.tap(find.text('casa'));
       await t.pump(const Duration(milliseconds: 600));
       expect(find.text('El equipo va a una casa nueva'), findsOneWidget);
@@ -151,9 +223,20 @@ void main() {
 
   testWidgets('Hoja del asistente 433 se pinta sin errores', (t) async {
     await _sinErrores(t, const Size(1206, 2622), () async {
-      await t.pumpWidget(_app(Builder(
-        builder: (ctx) => Scaffold(body: Center(child: TextButton(onPressed: () => aprenderSensorRf(ctx, ordenId: 'i69', tipo: 'door', etiqueta: 'Contacto de puerta'), child: const Text('rf')))),
-      )));
+      await t.pumpWidget(
+        _app(
+          Builder(
+            builder: (ctx) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed: () => aprenderSensorRf(ctx, ordenId: 'i69', tipo: 'door', etiqueta: 'Contacto de puerta'),
+                  child: const Text('rf'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
       await t.tap(find.text('rf'));
       for (var i = 0; i < 7; i++) {
         await t.pump(const Duration(seconds: 1));

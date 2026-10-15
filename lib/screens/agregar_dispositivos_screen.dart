@@ -13,6 +13,7 @@ import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import 'escanear_serie_screen.dart';
 import '../widgets/aprender_rf_sheet.dart';
+import '../widgets/con_textos.dart';
 
 /// «Agregar dispositivos» · cableado con prueba en vivo (build 39, Carlos 2026-10-13).
 /// Cada elemento se comprueba físicamente y la app sólo acepta lo que el equipo confirma:
@@ -153,107 +154,111 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
   // ---------------------------------------------------------------- Wi‑Fi
   Future<void> _agregarWifi() async {
-    final idCtrl = TextEditingController();
-    final nombreCtrl = TextEditingController();
-    String tipo = 'door';
-    final ok = await showDialog<bool>(
+    // ConTextos es dueño de los controladores: los libera cuando el diálogo YA se cerró.
+    // El tipo vive fuera del builder: si el diálogo se reconstruye (p. ej. al abrir el teclado) no se pierde.
+    var tipo = 'door';
+    final datos = await showDialog<({String id, String nombre, String tipo})>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) => AlertDialog(
-          title: const Text('Sensor Wi‑Fi'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Escribe el ID del sensor. El cliente termina de conectarlo desde su app.', style: Theme.of(ctx).textTheme.bodySmall),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: tipo,
-                  decoration: const InputDecoration(labelText: 'Tipo'),
-                  items: [for (final e in _tipoWifiTexto.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
-                  onChanged: (v) => set(() => tipo = v ?? 'door'),
+      builder: (_) => ConTextos(
+        iniciales: const ['', ''],
+        builder: (ctx, c) {
+          return StatefulBuilder(
+            builder: (ctx, set) => AlertDialog(
+              title: const Text('Sensor Wi‑Fi'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Escribe el ID del sensor. El cliente termina de conectarlo desde su app.', style: Theme.of(ctx).textTheme.bodySmall),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: tipo,
+                      decoration: const InputDecoration(labelText: 'Tipo'),
+                      items: [for (final e in _tipoWifiTexto.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+                      onChanged: (v) => set(() => tipo = v ?? 'door'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: c[0],
+                      decoration: const InputDecoration(labelText: 'ID del sensor', helperText: 'Viene en la etiqueta o en la app del sensor.', helperMaxLines: 2),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: c[1],
+                      maxLength: 40,
+                      decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Ventana de la sala'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: idCtrl,
-                  decoration: const InputDecoration(labelText: 'ID del sensor', helperText: 'Viene en la etiqueta o en la app del sensor.', helperMaxLines: 2),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nombreCtrl,
-                  maxLength: 40,
-                  decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Ventana de la sala'),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                FilledButton(
+                  onPressed: () {
+                    final id = c[0].text.trim(), nombre = c[1].text.trim();
+                    if (id.isNotEmpty && nombre.isNotEmpty) Navigator.pop(ctx, (id: id, nombre: nombre, tipo: tipo));
+                  },
+                  child: const Text('Guardar'),
                 ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, idCtrl.text.trim().isNotEmpty && nombreCtrl.text.trim().isNotEmpty), child: const Text('Guardar')),
-          ],
-        ),
+          );
+        },
       ),
     );
-    final externalId = idCtrl.text.trim();
-    final nombre = nombreCtrl.text.trim();
-    idCtrl.dispose();
-    nombreCtrl.dispose();
-    if (ok != true || !mounted) return;
+    if (datos == null || !mounted) return;
     setState(() => _ocupado = true);
-    final r = await _repo.sensorWifiAgregar(_id, externalId: externalId, nombre: nombre, tipo: tipo);
+    final r = await _repo.sensorWifiAgregar(_id, externalId: datos.id, nombre: datos.nombre, tipo: datos.tipo);
     if (!mounted) return;
     setState(() => _ocupado = false);
-    r.fold((_) => _aviso('Sensor Wi‑Fi «$nombre» guardado'), (f) => _aviso(f.message));
+    r.fold((_) => _aviso('Sensor Wi‑Fi «${datos.nombre}» guardado'), (f) => _aviso(f.message));
     await _cargarDisp();
   }
 
   // ---------------------------------------------------------------- Cámaras
   Future<void> _agregarCamara() async {
-    final serieCtrl = TextEditingController();
-    final codigoCtrl = TextEditingController();
-    final nombreCtrl = TextEditingController();
-    final ok = await showDialog<bool>(
+    final datos = await showDialog<({String serie, String codigo, String nombre})>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Agregar cámara'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('La cámara debe estar encendida y con internet.', style: Theme.of(ctx).textTheme.bodySmall),
-              const SizedBox(height: 12),
-              TextField(controller: serieCtrl, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Número de serie', helperText: 'En la etiqueta, como S/N.')),
-              const SizedBox(height: 12),
-              TextField(controller: codigoCtrl, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Código de verificación', helperText: 'En la misma etiqueta.')),
-              const SizedBox(height: 12),
-              TextField(controller: nombreCtrl, maxLength: 40, decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Cochera')),
-            ],
+      builder: (_) => ConTextos(
+        iniciales: const ['', '', ''],
+        builder: (ctx, c) => AlertDialog(
+          title: const Text('Agregar cámara'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('La cámara debe estar encendida y con internet.', style: Theme.of(ctx).textTheme.bodySmall),
+                const SizedBox(height: 12),
+                TextField(controller: c[0], textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Número de serie', helperText: 'En la etiqueta, como S/N.')),
+                const SizedBox(height: 12),
+                TextField(controller: c[1], textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Código de verificación', helperText: 'En la misma etiqueta.')),
+                const SizedBox(height: 12),
+                TextField(controller: c[2], maxLength: 40, decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Cochera')),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: () {
+                final serie = c[0].text.trim(), codigo = c[1].text.trim(), nombre = c[2].text.trim();
+                if (serie.isNotEmpty && codigo.isNotEmpty && nombre.isNotEmpty) Navigator.pop(ctx, (serie: serie, codigo: codigo, nombre: nombre));
+              },
+              child: const Text('Agregar'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, serieCtrl.text.trim().isNotEmpty && codigoCtrl.text.trim().isNotEmpty && nombreCtrl.text.trim().isNotEmpty),
-            child: const Text('Agregar'),
-          ),
-        ],
       ),
     );
-    final serie = serieCtrl.text.trim();
-    final codigo = codigoCtrl.text.trim();
-    final nombre = nombreCtrl.text.trim();
-    serieCtrl.dispose();
-    codigoCtrl.dispose();
-    nombreCtrl.dispose();
-    if (ok != true || !mounted) return;
+    if (datos == null || !mounted) return;
     setState(() => _ocupado = true);
     // Sin marca: el backend prueba cada nube habilitada y se queda con la que reconoce la cámara.
-    final r = await _repo.camaraAgregar(_id, serie: serie, codigo: codigo, nombre: nombre);
+    final r = await _repo.camaraAgregar(_id, serie: datos.serie, codigo: datos.codigo, nombre: datos.nombre);
     if (!mounted) return;
     setState(() => _ocupado = false);
-    r.fold((_) => _aviso('Cámara «$nombre» guardada'), (f) => _aviso(f.message));
+    r.fold((_) => _aviso('Cámara «${datos.nombre}» guardada'), (f) => _aviso(f.message));
     await _cargarDisp();
   }
 
@@ -281,52 +286,52 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     }, (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))));
   }
 
-  Future<String?> _pedirSerie() async {
-    final ctrl = TextEditingController();
-    final r = await showDialog<String>(
+  Future<String?> _pedirSerie() {
+    return showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Otro energizador'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Se suma a «$_casaNombre» como complemento. No crea otra suscripción.', style: Theme.of(ctx).textTheme.bodySmall),
-            const SizedBox(height: 12),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              textCapitalization: TextCapitalization.characters,
-              inputFormatters: [SerieInputFormatter()],
-              decoration: InputDecoration(
-                labelText: 'Número de serie',
-                hintText: 'Ej. 26 u OS-OBV01-0026',
-                suffixIcon: IconButton(
-                  tooltip: 'Escanear QR',
-                  icon: const Icon(Icons.qr_code_scanner),
-                  onPressed: () async {
-                    final leida = await Navigator.of(ctx).push<String>(MaterialPageRoute(builder: (_) => const EscanearSerieScreen()));
-                    if (leida != null && leida.isNotEmpty) ctrl.text = leida;
-                  },
+      builder: (_) => ConTextos(
+        iniciales: const [''],
+        builder: (ctx, c) => AlertDialog(
+          title: const Text('Otro energizador'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Se suma a «$_casaNombre» como complemento. No crea otra suscripción.', style: Theme.of(ctx).textTheme.bodySmall),
+              const SizedBox(height: 12),
+              TextField(
+                controller: c[0],
+                autofocus: true,
+                textCapitalization: TextCapitalization.characters,
+                inputFormatters: [SerieInputFormatter()],
+                decoration: InputDecoration(
+                  labelText: 'Número de serie',
+                  hintText: 'Ej. 26 u OS-OBV01-0026',
+                  suffixIcon: IconButton(
+                    tooltip: 'Escanear QR',
+                    icon: const Icon(Icons.qr_code_scanner),
+                    onPressed: () async {
+                      final leida = await Navigator.of(ctx).push<String>(MaterialPageRoute(builder: (_) => const EscanearSerieScreen()));
+                      if (leida != null && leida.isNotEmpty && ctx.mounted) c[0].text = leida;
+                    },
+                  ),
                 ),
               ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: () {
+                final s = normalizarSerie(c[0].text);
+                if (s.isNotEmpty) Navigator.pop(ctx, s);
+              },
+              child: const Text('Agregar'),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () {
-              final s = normalizarSerie(ctrl.text);
-              if (s.isNotEmpty) Navigator.pop(ctx, s);
-            },
-            child: const Text('Agregar'),
-          ),
-        ],
       ),
     );
-    ctrl.dispose();
-    return r;
   }
 
   /// Mientras hay una prueba de entrada en curso, se consulta el equipo cada 2 s.
@@ -416,80 +421,90 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   );
 
   Future<String?> _pedirNombre(String titulo, String inicial, {required String ejemplo}) async {
-    final c = TextEditingController(text: inicial);
     final r = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(titulo),
-        content: TextField(
-          controller: c,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(hintText: ejemplo, border: const OutlineInputBorder()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: const Text('Guardar')),
-        ],
-      ),
-    );
-    c.dispose();
-    return (r == null || r.isEmpty) ? null : r;
-  }
-
-  Future<_AltaSalida?> _formSalida(int index) async {
-    final nombre = TextEditingController();
-    var tipo = 'luz';
-    var modo = 'on_off';
-    final r = await showDialog<_AltaSalida>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: Text('¿Qué conectaste a la salida $index?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: nombre,
-                autofocus: true,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Luz del jardín', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: tipo,
-                decoration: const InputDecoration(labelText: '¿Qué es?', border: OutlineInputBorder()),
-                items: const [
-                  DropdownMenuItem(value: 'luz', child: Text('Luz')),
-                  DropdownMenuItem(value: 'bomba', child: Text('Bomba')),
-                  DropdownMenuItem(value: 'porton', child: Text('Portón')),
-                  DropdownMenuItem(value: 'sirena', child: Text('Sirena externa')),
-                  DropdownMenuItem(value: 'otro', child: Text('Otro')),
-                ],
-                onChanged: (v) => setLocal(() => tipo = v ?? 'otro'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: modo,
-                decoration: const InputDecoration(labelText: '¿Cómo funciona?', border: OutlineInputBorder()),
-                items: const [
-                  DropdownMenuItem(value: 'on_off', child: Text('Encendido / apagado')),
-                  DropdownMenuItem(value: 'pulso', child: Text('Pulso (como un portón)')),
-                ],
-                onChanged: (v) => setLocal(() => modo = v ?? 'on_off'),
-              ),
-            ],
+      builder: (_) => ConTextos(
+        iniciales: [inicial],
+        builder: (ctx, c) => AlertDialog(
+          title: Text(titulo),
+          content: TextField(
+            controller: c[0],
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(hintText: ejemplo, border: const OutlineInputBorder()),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => nombre.text.trim().isEmpty ? null : Navigator.pop(ctx, _AltaSalida(nombre.text.trim(), tipo, modo, 2)), child: const Text('Guardar')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, c[0].text.trim()), child: const Text('Guardar')),
           ],
         ),
       ),
     );
-    nombre.dispose();
-    return r;
+    return (r == null || r.isEmpty) ? null : r;
+  }
+
+  Future<_AltaSalida?> _formSalida(int index) {
+    // Tipo y modo fuera del builder: sobreviven a que el diálogo se reconstruya (teclado).
+    var tipo = 'luz';
+    var modo = 'on_off';
+    return showDialog<_AltaSalida>(
+      context: context,
+      builder: (_) => ConTextos(
+        iniciales: const [''],
+        builder: (ctx, c) {
+          return StatefulBuilder(
+            builder: (ctx, setLocal) => AlertDialog(
+              title: Text('¿Qué conectaste a la salida $index?'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: c[0],
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Luz del jardín', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: tipo,
+                    decoration: const InputDecoration(labelText: '¿Qué es?', border: OutlineInputBorder()),
+                    items: const [
+                      DropdownMenuItem(value: 'luz', child: Text('Luz')),
+                      DropdownMenuItem(value: 'bomba', child: Text('Bomba')),
+                      DropdownMenuItem(value: 'porton', child: Text('Portón')),
+                      DropdownMenuItem(value: 'sirena', child: Text('Sirena externa')),
+                      DropdownMenuItem(value: 'otro', child: Text('Otro')),
+                    ],
+                    onChanged: (v) => setLocal(() => tipo = v ?? 'otro'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: modo,
+                    decoration: const InputDecoration(labelText: '¿Cómo funciona?', border: OutlineInputBorder()),
+                    items: const [
+                      DropdownMenuItem(value: 'on_off', child: Text('Encendido / apagado')),
+                      DropdownMenuItem(value: 'pulso', child: Text('Pulso (como un portón)')),
+                    ],
+                    onChanged: (v) => setLocal(() => modo = v ?? 'on_off'),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                FilledButton(
+                  onPressed: () {
+                    final nombre = c[0].text.trim();
+                    if (nombre.isNotEmpty) Navigator.pop(ctx, _AltaSalida(nombre, tipo, modo, 2));
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   // ---------------------------------------------------------------- UI
