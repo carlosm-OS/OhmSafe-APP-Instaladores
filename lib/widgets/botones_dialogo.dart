@@ -31,10 +31,11 @@ class BotonContornoSecundario extends StatelessWidget {
         minimumSize: const Size.fromHeight(AppTouch.primary),
         side: BorderSide(color: onPressed == null ? cs.primary.withValues(alpha: 0.3) : cs.primary, width: 2),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
-        textStyle: theme.textTheme.labelLarge,
+        // Sin `textStyle` propio: hereda el del tema de botones, igual que el primario. Tomarlo de
+        // `theme.textTheme` le ponía la familia Inter (variable), que en el teléfono no engrosa y se
+        // veía delgado junto al primario.
       ),
-      // La negrita va en el Text: desde `textStyle` no llegaba (se veía delgado junto al primario).
-      child: Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.w700)),
+      child: Text(etiqueta, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
     );
   }
 }
