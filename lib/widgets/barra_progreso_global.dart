@@ -14,12 +14,7 @@ import '../core/theme/app_motion.dart';
 /// * Si la espera pasa de [aviso], muestra «Sigue cargando…» para que no parezca trabada con mala señal.
 /// * No captura toques ([IgnorePointer]).
 class BarraProgresoGlobal extends StatefulWidget {
-  const BarraProgresoGlobal({
-    super.key,
-    required this.child,
-    this.retraso = const Duration(milliseconds: 250),
-    this.aviso = const Duration(seconds: 6),
-  });
+  const BarraProgresoGlobal({super.key, required this.child, this.retraso = const Duration(milliseconds: 250), this.aviso = const Duration(seconds: 6)});
 
   final Widget child;
   final Duration retraso;
@@ -122,6 +117,9 @@ class _BarraProgresoGlobalState extends State<BarraProgresoGlobal> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final arriba = MediaQuery.paddingOf(context).top;
+    // El aviso de señal lenta va abajo, sobre la barra de navegación (como los avisos de la app):
+    // arriba tapaba el logo y el título.
+    final abajo = MediaQuery.paddingOf(context).bottom + 104;
     final dur = AppMotion.duration(context, AppDurations.base);
     return Stack(
       children: [
@@ -158,42 +156,45 @@ class _BarraProgresoGlobalState extends State<BarraProgresoGlobal> {
                         ),
                       ),
                     ),
-                    AnimatedSwitcher(
-                      duration: dur,
-                      child: !_lento
-                          ? const SizedBox.shrink()
-                          : Padding(
-                              key: const Key('barra-progreso-lento'),
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Center(
-                                child: Material(
-                                  color: cs.inverseSurface,
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: cs.onInverseSurface),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          'Sigue cargando… la señal está lenta',
-                                          style: theme.textTheme.bodySmall?.copyWith(color: cs.onInverseSurface, fontWeight: FontWeight.w600),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                    ),
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 16,
+          right: 16,
+          bottom: abajo,
+          child: IgnorePointer(
+            child: AnimatedSwitcher(
+              duration: dur,
+              child: !_lento
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      key: const Key('barra-progreso-lento'),
+                      padding: EdgeInsets.zero,
+                      child: Center(
+                        child: Material(
+                          color: cs.inverseSurface,
+                          borderRadius: BorderRadius.circular(20),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: cs.onInverseSurface)),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Sigue cargando… la señal está lenta',
+                                  style: theme.textTheme.bodySmall?.copyWith(color: cs.onInverseSurface, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
             ),
           ),
         ),
