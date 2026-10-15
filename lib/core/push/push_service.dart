@@ -5,6 +5,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 
 import '../config/env_config.dart';
 import '../di/injection_container.dart';
+import '../network/actividad.dart';
 import '../network/dio_client.dart';
 
 /// Notificaciones push del instalador (FCM, proyecto Firebase ohmsafe-instaladores).
@@ -67,14 +68,16 @@ class PushService {
   Future<void> _registrar(String token) async {
     if (sl.get<EnvConfig>().useMock) return; // sin backend en modo mock
     try {
-      await sl.get<DioClient>().post('/instalador/push/registrar', body: {
+      // De fondo: no mueve la barra de progreso.
+      final zona = await _zonaHoraria();
+      await Actividad.enSilencio(() => sl.get<DioClient>().post('/instalador/push/registrar', body: {
         'token': token,
         'platform': Platform.isIOS ? 'ios' : 'android',
         // Zona IANA del dispositivo (p. ej. America/Tijuana). El backend la
         // guarda en el `tz` del instalador para redactar avisos y PDF en su
         // hora, no en la de CDMX por defecto.
-        'zonaHoraria': ?await _zonaHoraria(),
-      });
+        'zonaHoraria': ?zona,
+      }));
     } catch (_) {
       // Best-effort: si falla el registro, el push simplemente no llega aún.
     }

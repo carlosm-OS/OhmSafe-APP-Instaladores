@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/di/injection_container.dart';
+import '../core/network/actividad.dart';
 import '../core/error/failures.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
@@ -44,7 +45,7 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
     super.initState();
     _abrir();
     // El equipo reporta solo; cada 15 s se refresca cómo quedó (cerca, en línea) y se renueva la ventana.
-    _refresco = Timer.periodic(const Duration(seconds: 15), (_) => _refrescar());
+    _refresco = Timer.periodic(const Duration(seconds: 15), (_) => Actividad.enSilencio(_refrescar));
   }
 
   @override

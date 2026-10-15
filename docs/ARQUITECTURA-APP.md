@@ -23,6 +23,21 @@ Enchufar el backend real = cambiar `useMock: false` + rellenar los `*RemoteDataS
 ## Manejo de errores (red vs credenciales)
 `DioClient` distingue: 401 → `UnauthorizedException` → `AuthFailure` ("Correo o contraseña incorrectos" en login / "Sesión expirada" en lecturas); otros HTTP>=400 → `ServerException`/`ServerFailure` (usa el `message` del backend); fallo real de socket → `NetworkException`/`NetworkFailure` ("Sin conexión a internet"). Antes un 401 se veía como "sin conexión"; ya no.
 
+## Esperas visibles: barra de progreso global (2026-10-15)
+Carlos: «al hacer tap hay tiempos de espera donde parece que la app se trabó». Toda espera que el
+instalador provoca se ve en una barra naranja delgada arriba de la pantalla (sobre pantallas, hojas
+y diálogos):
+- `lib/core/network/actividad.dart` — `Actividad.pendientes` cuenta lo que está en curso.
+  `DioClient` envuelve cada petición (incluido el reintento tras 401) y `ubicacionActual()` la
+  lectura del GPS.
+- `lib/widgets/barra_progreso_global.dart` — montada en `MaterialApp.builder`. Aparece sólo si la
+  espera pasa de 250 ms (una respuesta rápida no parpadea), avanza sola hacia ~90 %, llega a 100 % al
+  terminar y se desvanece. A los 6 s muestra «Sigue cargando… la señal está lenta». No captura toques.
+- **Tareas de fondo** (sondeos, renovar la ventana de prueba, registro push, campana al llegar un
+  push) van dentro de `Actividad.enSilencio(...)`: la zona se hereda por los `await`, así que nada de
+  lo que corre dentro mueve la barra. Todo sondeo nuevo (`Timer.periodic`) debe ir así.
+- Pruebas: `test/barra_progreso_test.dart`.
+
 ## Correr contra el backend local (macOS)
 El repo vive en iCloud, que rompe la firma iOS. Camino que funciona: `flutter build macos --debug` (falla el codesign por "resource fork" de iCloud) → copiar el `.app` fuera de iCloud → `xattr -cr` → `codesign --force --deep --sign - --entitlements macos/Runner/DebugProfile.entitlements` → `open`. Requiere `com.apple.security.network.client` (ya agregado) y ATS `NSAllowsLocalNetworking` (ya en Info.plist) para hablar con `http://localhost:3001`. Web no sirve (DioClient usa `dart:io`).
 

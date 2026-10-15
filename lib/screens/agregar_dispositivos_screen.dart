@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/di/injection_container.dart';
+import '../core/network/actividad.dart';
 import '../core/error/failures.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../core/utils/serie_formato.dart';
@@ -63,7 +64,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     // Ventana de control invisible (2026-10-14): se abre al entrar, se renueva sola mientras la
     // pantalla está abierta y se cierra al salir; el instalador no se queda con control de la cerca.
     await _repo.pruebaAbrir(_id);
-    _ventana = Timer.periodic(const Duration(minutes: 1), (_) => _renovarVentana());
+    _ventana = Timer.periodic(const Duration(minutes: 1), (_) => Actividad.enSilencio(_renovarVentana));
     await Future.wait([_cargar(), _cargarOhmbox(), _cargarDisp()]);
     if (mounted) setState(() => _cargando = false);
   }
@@ -327,7 +328,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   void _ajustarSondeo() {
     final activa = _entradas.any((x) => x['prueba'] != null && !{'verificada', 'expirada'}.contains((x['prueba'] as Map)['fase']));
     if (activa && _sondeo == null) {
-      _sondeo = Timer.periodic(const Duration(seconds: 2), (_) => _cargar());
+      _sondeo = Timer.periodic(const Duration(seconds: 2), (_) => Actividad.enSilencio(_cargar));
     } else if (!activa && _sondeo != null) {
       _sondeo!.cancel();
       _sondeo = null;

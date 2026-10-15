@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/di/injection_container.dart';
+import '../core/network/actividad.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 
@@ -83,7 +84,7 @@ class _AprenderRfState extends State<_AprenderRf> {
     r.fold((d) {
       setState(() => _s = (d['sesion'] as Map?)?.cast<String, dynamic>());
       _sondeo?.cancel();
-      _sondeo = Timer.periodic(const Duration(milliseconds: 1500), (_) => _leer());
+      _sondeo = Timer.periodic(const Duration(milliseconds: 1500), (_) => Actividad.enSilencio(_leer));
     }, (f) => setState(() => _error = f.message));
   }
 
