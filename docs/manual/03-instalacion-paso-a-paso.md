@@ -93,9 +93,9 @@ Las secciones, en este orden:
 - **Sirena.** Toca **«Probar»**: suena 3 segundos (avísale al cliente antes). Contesta **«¿Sonó la sirena?»**.
 - **Luces, portón y otros (salidas).** Toca **«Probar»**: la salida se enciende 5 segundos. Contesta **«¿Se encendió?»** y, si sí, escribe el nombre, **qué es** (luz, bomba, portón, sirena externa, otro) y **cómo funciona** (encendido/apagado, o pulso como un portón). Si no encendió, no se guarda y queda anotado en el reporte.
 - **Sensores inalámbricos** (puerta, movimiento, humo o botón de pánico, por radio). Toca **«Agregar»**, elige el tipo y haz lo que diga la pantalla (abrir la puerta, pasar frente al sensor, apretar su botón). Cuando diga **«Aprendido»**, ponle nombre y **«Guardar»**. El energizador debe tener señal. Los controles remotos (llaveros) se dan de alta desde el dashboard.
-- **Sensores Wi‑Fi.** Se conectan al internet de la casa. Toca **«Agregar»**, elige el tipo y escribe el **ID del sensor** (viene en la etiqueta o en la app del sensor) y un nombre. El cliente termina de conectarlo desde su app.
+- **Sensores Wi‑Fi.** Por ahora **no están disponibles**: la sección no aparece (si una casa ya tiene alguno, se ve en la lista, pero no se pueden agregar nuevos).
 - **Cámaras.** La cámara debe estar encendida y con internet. Toca **«Agregar»** y escribe el **número de serie** (en la etiqueta, como S/N), el **código de verificación** (en la misma etiqueta) y un nombre.
-- **Otro energizador en esta casa (OhmBox adicional).** Sólo si el cliente compró un segundo energizador para la misma casa. Toca **«Agregar»** y escanea o escribe su serie. Se suma como complemento de la suscripción de esa casa; no crea una nueva.
+- **Otro energizador en esta casa.** Arriba, en un recuadro gris, ves los energizadores que ya tiene la casa (serie, «Principal» y si está «En línea»); es sólo información. Si el cliente compró un segundo energizador para la misma casa, toca **«Agregar»** en **«Agregar otro OhmBox»** y escanea o escribe su serie. Se suma como complemento de la suscripción de esa casa; no crea una nueva.
 
 Las puertas con cable, la sirena y las salidas piden firmware **2.10 o superior**; si el equipo es más viejo verás «Este energizador necesita actualizarse» (lo demás sí se puede agregar). Todo lo guardado queda en el acta de la instalación (Odoo).
 

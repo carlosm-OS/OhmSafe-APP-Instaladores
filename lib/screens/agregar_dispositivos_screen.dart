@@ -115,13 +115,20 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   }
 
   Map<String, dynamic> _sec(String k) => (_disp?[k] as Map?)?.cast<String, dynamic>() ?? const {};
-  List<Map<String, dynamic>> _lista(String k, String campo) => ((_sec(k)[campo] as List?) ?? const []).whereType<Map>().map((x) => x.cast<String, dynamic>()).toList();
+  List<Map<String, dynamic>> _lista(String k, String campo) =>
+      ((_sec(k)[campo] as List?) ?? const []).whereType<Map>().map((x) => x.cast<String, dynamic>()).toList();
   bool get _rfSoportado => _sec('rf')['soportado'] != false;
   bool get _camarasOn => _sec('camaras')['habilitadas'] == true;
   Map<String, dynamic> get _proveedores => (_sec('camaras')['proveedores'] as Map?)?.cast<String, dynamic>() ?? const {};
   bool get _hayProveedor => _camarasOn && (_proveedores['ezviz'] == true || _proveedores['imou'] == true);
 
   static const _tipoRfTexto = {'door': 'Puerta', 'pir': 'Movimiento', 'smoke': 'Humo', 'panic_button': 'Botón de pánico', 'fob': 'Control remoto'};
+
+  /// Sensores Wi‑Fi apagados por ahora (Carlos, 2026-10-15: «no borres, pero por ahora deshabilita
+  /// la opción»). El código queda completo; para volver a ofrecerlos basta poner `true`. Si una casa ya
+  /// tiene sensores Wi‑Fi, se siguen listando, sólo no se pueden agregar nuevos.
+  static const _wifiHabilitado = false;
+
   static const _tipoWifiTexto = {'door': 'Puerta', 'motion': 'Movimiento', 'smoke': 'Humo'};
   static const _tipoSalidaTexto = {'luz': 'luz', 'bomba': 'bomba', 'porton': 'portón', 'sirena': 'sirena externa', 'otro': 'otro'};
 
@@ -182,7 +189,11 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: c[0],
-                      decoration: const InputDecoration(labelText: 'ID del sensor', helperText: 'Viene en la etiqueta o en la app del sensor.', helperMaxLines: 2),
+                      decoration: const InputDecoration(
+                        labelText: 'ID del sensor',
+                        helperText: 'Viene en la etiqueta o en la app del sensor.',
+                        helperMaxLines: 2,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -233,11 +244,23 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
               children: [
                 Text('La cámara debe estar encendida y con internet.', style: Theme.of(ctx).textTheme.bodySmall),
                 const SizedBox(height: 12),
-                TextField(controller: c[0], textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Número de serie', helperText: 'En la etiqueta, como S/N.')),
+                TextField(
+                  controller: c[0],
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(labelText: 'Número de serie', helperText: 'En la etiqueta, como S/N.'),
+                ),
                 const SizedBox(height: 12),
-                TextField(controller: c[1], textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Código de verificación', helperText: 'En la misma etiqueta.')),
+                TextField(
+                  controller: c[1],
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(labelText: 'Código de verificación', helperText: 'En la misma etiqueta.'),
+                ),
                 const SizedBox(height: 12),
-                TextField(controller: c[2], maxLength: 40, decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Cochera')),
+                TextField(
+                  controller: c[2],
+                  maxLength: 40,
+                  decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Cochera'),
+                ),
               ],
             ),
           ),
@@ -271,7 +294,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     r.fold((d) => setState(() => _ohmbox = d), (_) {});
   }
 
-  List<Map<String, dynamic>> get _energizadores => ((_ohmbox?['energizadores'] as List?) ?? const []).whereType<Map>().map((x) => x.cast<String, dynamic>()).toList();
+  List<Map<String, dynamic>> get _energizadores =>
+      ((_ohmbox?['energizadores'] as List?) ?? const []).whereType<Map>().map((x) => x.cast<String, dynamic>()).toList();
   String get _casaNombre => ((_ohmbox?['casa'] as Map?)?['nombre'] ?? 'la casa').toString();
 
   /// OhmBox adicional (2026-10-14): un segundo energizador en la misma casa es un complemento
@@ -400,11 +424,24 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (!mounted) return;
     final fila = _salidas.firstWhere((s) => s['index'] == index, orElse: () => const {});
     if (fila['probada'] != true) return;
-    final funciono = await _preguntar('¿Se encendió?', 'El equipo encendió la salida $index durante 5 segundos. ¿Lo que está conectado (luz, portón, bomba) respondió?');
+    final funciono = await _preguntar(
+      '¿Se encendió?',
+      'El equipo encendió la salida $index durante 5 segundos. ¿Lo que está conectado (luz, portón, bomba) respondió?',
+    );
     if (funciono == null || !mounted) return;
     final alta = await _formSalida(index);
     if (alta == null || !mounted) return;
-    await _run(() => _repo.cableadoRegistrarSalida(_id, index, nombre: alta.nombre, tipo: alta.tipo, modo: alta.modo, pulsoSeg: alta.modo == 'pulso' ? alta.pulsoSeg : null, funciono: funciono));
+    await _run(
+      () => _repo.cableadoRegistrarSalida(
+        _id,
+        index,
+        nombre: alta.nombre,
+        tipo: alta.tipo,
+        modo: alta.modo,
+        pulsoSeg: alta.modo == 'pulso' ? alta.pulsoSeg : null,
+        funciono: funciono,
+      ),
+    );
     if (!funciono && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se guardó: la salida no encendió. Quedó anotado en el reporte.')));
     }
@@ -417,14 +454,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     builder: (ctx) => AlertDialog(
       title: Text(titulo),
       content: Text(texto),
-      actions: [
-        BotonesDialogo(
-          secundario: 'No',
-          onSecundario: () => Navigator.pop(ctx, false),
-          primario: 'Sí',
-          onPrimario: () => Navigator.pop(ctx, true),
-        ),
-      ],
+      actions: [BotonesDialogo(secundario: 'No', onSecundario: () => Navigator.pop(ctx, false), primario: 'Sí', onPrimario: () => Navigator.pop(ctx, true))],
     ),
   );
 
@@ -525,8 +555,11 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   Widget _guardado(String titulo, String subtitulo) => FilaFlujo(titulo: titulo, subtitulo: subtitulo, trailing: const CirculoCheck(marcado: true));
 
   /// Fila para agregar algo nuevo: el botón tiene la forma del «+» del contador del paso 3.
-  Widget _agregar(String titulo, String subtitulo, VoidCallback? onPressed) =>
-      FilaFlujo(titulo: titulo, subtitulo: subtitulo, trailing: BotonFila(etiqueta: 'Agregar', icono: Icons.add, onPressed: onPressed));
+  Widget _agregar(String titulo, String subtitulo, VoidCallback? onPressed) => FilaFlujo(
+    titulo: titulo,
+    subtitulo: subtitulo,
+    trailing: BotonFila(etiqueta: 'Agregar', icono: Icons.add, onPressed: onPressed),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -556,7 +589,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                             padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
                             physics: const BouncingScrollPhysics(),
                             children: [
-                              if (_error != null) MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No pudimos leer el equipo', texto: _error!),
+                              if (_error != null)
+                                MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No pudimos leer el equipo', texto: _error!),
                               if (_e != null && !_firmwareOk)
                                 MensajeFlujo(
                                   icono: Icons.system_update_alt,
@@ -566,7 +600,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                       'Las puertas con cable, la sirena y las salidas piden la versión ${_equipo['firmwareMinimo'] ?? '2.10'} o más nueva. Lo demás sí lo puedes agregar.',
                                 ),
                               if (_e != null && _firmwareOk && !_enLinea)
-                                MensajeFlujo(icono: Icons.wifi_off_rounded, color: cs.error, titulo: 'El energizador no tiene señal', texto: 'Revisa que esté conectado a la corriente y con señal.'),
+                                MensajeFlujo(
+                                  icono: Icons.wifi_off_rounded,
+                                  color: cs.error,
+                                  titulo: 'El energizador no tiene señal',
+                                  texto: 'Revisa que esté conectado a la corriente y con señal.',
+                                ),
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(4, 0, 4, 20),
                                 child: Text(
@@ -603,7 +642,9 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                     ? 'No sonó. Revisa el cable y vuelve a probar.'
                                     : 'Suena 3 segundos',
                                 colorSubtitulo: _sirena['sono'] == false ? cs.error : null,
-                                trailing: _sirena['sono'] == true ? const CirculoCheck(marcado: true) : BotonFila(etiqueta: 'Probar', onPressed: _listo ? _probarSirena : null),
+                                trailing: _sirena['sono'] == true
+                                    ? const CirculoCheck(marcado: true)
+                                    : BotonFila(etiqueta: 'Probar', onPressed: _listo ? _probarSirena : null),
                               ),
 
                               // ---------------- Salidas
@@ -630,26 +671,32 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   'El energizador debe tener señal.',
                                 ],
                               ),
-                              for (final x in _lista('rf', 'dispositivos')) _guardado((x['nombre'] ?? '').toString(), _tipoRfTexto[x['tipo']] ?? 'Sensor inalámbrico'),
+                              for (final x in _lista('rf', 'dispositivos'))
+                                _guardado((x['nombre'] ?? '').toString(), _tipoRfTexto[x['tipo']] ?? 'Sensor inalámbrico'),
                               _agregar(
                                 'Sensor inalámbrico',
-                                !_rfSoportado ? 'Este energizador no los maneja' : (_enLinea ? 'Puerta, movimiento, humo o pánico' : 'Necesita señal para aprenderlo'),
+                                !_rfSoportado
+                                    ? 'Este energizador no los maneja'
+                                    : (_enLinea ? 'Puerta, movimiento, humo o pánico' : 'Necesita señal para aprenderlo'),
                                 _ocupado || _disp == null || !_rfSoportado || !_enLinea ? null : _agregarRf,
                               ),
 
-                              // ---------------- Sensores Wi‑Fi
-                              const SizedBox(height: 12),
-                              const EtiquetaSeccion(
-                                'SENSORES WI‑FI',
-                                tituloAyuda: 'Sensores Wi‑Fi',
-                                ayuda: [
-                                  'Se conectan al internet de la casa, no al energizador.',
-                                  'Aquí registras su ID; el cliente termina de conectarlo desde su app.',
-                                  'El ID viene en la etiqueta o en la app del sensor.',
-                                ],
-                              ),
-                              for (final x in _lista('wifi', 'sensores')) _guardado((x['nombre'] ?? '').toString(), '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · ID ${x['externalId'] ?? ''}'),
-                              _agregar('Sensor Wi‑Fi', 'Puerta, movimiento o humo', _ocupado || _disp == null ? null : _agregarWifi),
+                              // ---------------- Sensores Wi‑Fi (apagados por ahora: ver _wifiHabilitado)
+                              if (_wifiHabilitado || _lista('wifi', 'sensores').isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                const EtiquetaSeccion(
+                                  'SENSORES WI‑FI',
+                                  tituloAyuda: 'Sensores Wi‑Fi',
+                                  ayuda: [
+                                    'Se conectan al internet de la casa, no al energizador.',
+                                    'Aquí registras su ID; el cliente termina de conectarlo desde su app.',
+                                    'El ID viene en la etiqueta o en la app del sensor.',
+                                  ],
+                                ),
+                                for (final x in _lista('wifi', 'sensores'))
+                                  _guardado((x['nombre'] ?? '').toString(), '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · ID ${x['externalId'] ?? ''}'),
+                                if (_wifiHabilitado) _agregar('Sensor Wi‑Fi', 'Puerta, movimiento o humo', _ocupado || _disp == null ? null : _agregarWifi),
+                              ],
 
                               // ---------------- Cámaras
                               const SizedBox(height: 12),
@@ -668,7 +715,11 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   subtitulo: 'Serie ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}',
                                   trailing: CirculoCheck(marcado: x['estado'] == 'online'),
                                 ),
-                              _agregar('Cámara', _hayProveedor ? 'Serie y código de su etiqueta' : 'No disponibles por ahora', _ocupado || !_hayProveedor ? null : _agregarCamara),
+                              _agregar(
+                                'Cámara',
+                                _hayProveedor ? 'Serie y código de su etiqueta' : 'No disponibles por ahora',
+                                _ocupado || !_hayProveedor ? null : _agregarCamara,
+                              ),
 
                               // ---------------- OhmBox: lo menos común, al final.
                               const SizedBox(height: 12),
@@ -681,13 +732,11 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   'Para otra dirección se hace una venta aparte.',
                                 ],
                               ),
-                              for (final x in _energizadores)
-                                FilaFlujo(
-                                  titulo: '${x['serie']}${x['principal'] == true ? ' · principal' : ''}',
-                                  subtitulo: x['enLinea'] == true ? 'En línea' : 'Sin señal todavía',
-                                  trailing: CirculoCheck(marcado: x['enLinea'] == true),
-                                ),
-                              _agregar('OhmBox adicional', 'Escanea su QR o escribe su serie', _ocupado || _ohmbox == null ? null : _agregarOhmbox),
+                              // Lo que ya hay en la casa es INFORMACIÓN, no un botón: bloque gris plano, sin borde ni
+                              // círculo de selección (antes se confundía con la fila de «Agregar» de abajo).
+                              if (_energizadores.isNotEmpty) _EnergizadoresDeLaCasa(energizadores: _energizadores),
+                              const SizedBox(height: 12),
+                              _agregar('Agregar otro OhmBox', 'Escanea su QR o escribe su serie', _ocupado || _ohmbox == null ? null : _agregarOhmbox),
 
                               const SizedBox(height: 20),
                               OhmGradientButton(label: 'Listo, volver a los pasos', loading: _saliendo, onPressed: _ocupado ? null : _salir),
@@ -730,7 +779,11 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
         colorSubtitulo: cs.error,
         trailing: BotonFila(etiqueta: 'Reintentar', onPressed: _listo ? () => _probarEntrada(index) : null),
       ),
-      _ => FilaFlujo(titulo: titulo, subtitulo: 'Sin probar · ahora marca $ahora', trailing: BotonFila(etiqueta: 'Probar', onPressed: _listo ? () => _probarEntrada(index) : null)),
+      _ => FilaFlujo(
+        titulo: titulo,
+        subtitulo: 'Sin probar · ahora marca $ahora',
+        trailing: BotonFila(etiqueta: 'Probar', onPressed: _listo ? () => _probarEntrada(index) : null),
+      ),
     };
   }
 
@@ -738,9 +791,16 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final index = (s['index'] as num).toInt();
     if (s['dadaDeAlta'] == true) {
       final tipo = s['tipo']?.toString();
-      return _guardado((s['nombre'] ?? 'Salida $index').toString(), 'Salida $index · ${_tipoSalidaTexto[tipo] ?? tipo ?? ''} · ${s['modo'] == 'pulso' ? 'pulso' : 'encendido/apagado'}');
+      return _guardado(
+        (s['nombre'] ?? 'Salida $index').toString(),
+        'Salida $index · ${_tipoSalidaTexto[tipo] ?? tipo ?? ''} · ${s['modo'] == 'pulso' ? 'pulso' : 'encendido/apagado'}',
+      );
     }
-    return FilaFlujo(titulo: 'Salida $index', subtitulo: 'Se enciende 5 segundos', trailing: BotonFila(etiqueta: 'Probar', onPressed: _listo ? () => _probarSalida(index) : null));
+    return FilaFlujo(
+      titulo: 'Salida $index',
+      subtitulo: 'Se enciende 5 segundos',
+      trailing: BotonFila(etiqueta: 'Probar', onPressed: _listo ? () => _probarSalida(index) : null),
+    );
   }
 }
 
@@ -750,4 +810,90 @@ class _AltaSalida {
   final String tipo;
   final String modo;
   final int pulsoSeg;
+}
+
+/// Energizadores que ya tiene la casa, como información de sólo lectura: fondo gris del sistema
+/// (sin borde, sin círculo de selección), ícono, serie, etiqueta «Principal» y estado con su color.
+class _EnergizadoresDeLaCasa extends StatelessWidget {
+  const _EnergizadoresDeLaCasa({required this.energizadores});
+
+  final List<Map<String, dynamic>> energizadores;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
+    final apagado = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+    return Semantics(
+      container: true,
+      label: 'Energizadores de esta casa',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(color: ohm.surfaceContainer, borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          children: [
+            for (var i = 0; i < energizadores.length; i++) ...[
+              if (i > 0) Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.4)),
+              _filaEnergizador(energizadores[i], theme, cs, ohm, apagado),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _filaEnergizador(Map<String, dynamic> x, ThemeData theme, ColorScheme cs, OhmColors ohm, Color? apagado) {
+    final enLinea = x['enLinea'] == true;
+    final principal = x['principal'] == true;
+    final estado = enLinea ? ohm.success : apagado;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(color: cs.surface, shape: BoxShape.circle),
+            child: Icon(Icons.bolt_rounded, size: 20, color: enLinea ? cs.primary : apagado),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  (x['serie'] ?? '').toString(),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+                ),
+                if (principal) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(6)),
+                    child: Text(
+                      'Principal',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.3, color: apagado),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Estado real del equipo (no es una casilla): punto + texto del mismo color.
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: estado, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            enLinea ? 'En línea' : 'Sin señal',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: estado),
+          ),
+        ],
+      ),
+    );
+  }
 }

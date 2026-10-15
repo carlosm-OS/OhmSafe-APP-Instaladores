@@ -90,10 +90,17 @@ void main() {
       await _sinErrores(t, tamano, () async {
         await t.pumpWidget(_app(const AgregarDispositivosScreen(ticket: {'id': 'i69'})));
         await t.pump(const Duration(seconds: 2));
-        for (final seccion in ['PUERTAS CON CABLE', 'SIRENA', 'LUCES, PORTÓN', 'SENSORES INALÁMBRICOS', 'SENSORES WI', 'CÁMARAS', 'OTRO ENERGIZADOR']) {
+        for (final seccion in ['PUERTAS CON CABLE', 'SIRENA', 'LUCES, PORTÓN', 'SENSORES INALÁMBRICOS', 'CÁMARAS', 'OTRO ENERGIZADOR']) {
           await _ver(t, find.textContaining(seccion));
         }
-        for (final titulo in ['OhmBox adicional', 'Sensor Wi‑Fi', 'Cámara', 'Sensor inalámbrico']) {
+        // Sensores Wi‑Fi apagados por ahora (_wifiHabilitado): ni sección ni «Agregar».
+        expect(find.textContaining('SENSORES WI'), findsNothing);
+        expect(find.text('Sensor Wi‑Fi'), findsNothing);
+        // Energizadores de la casa: información de sólo lectura (serie, «Principal», estado), sin botón.
+        await _ver(t, find.text('Principal'));
+        expect(find.text('OS-PRUEBA-0001'), findsOneWidget);
+        expect(find.text('En línea'), findsWidgets);
+        for (final titulo in ['Agregar otro OhmBox', 'Cámara', 'Sensor inalámbrico']) {
           // Cada «Agregar» abre su diálogo u hoja; se busca desde arriba de la lista.
           t.state<ScrollableState>(_lista).position.jumpTo(0); // la lista rebota (como los pasos 1-3)
           await t.pump(const Duration(milliseconds: 600));
@@ -150,7 +157,7 @@ void main() {
           ),
         );
         await t.pump(const Duration(seconds: 2));
-        final tarjeta = find.text('Sensor Wi‑Fi');
+        final tarjeta = find.text('Cámara');
         await _ver(t, tarjeta);
         await _tocar(
           t,
@@ -161,12 +168,13 @@ void main() {
         );
         await t.pump(const Duration(milliseconds: 600));
         final campos = find.descendant(of: find.byType(Dialog), matching: find.byType(TextField));
-        expect(campos, findsNWidgets(2));
-        await t.enterText(campos.at(0), 'bf12ab34');
-        await t.enterText(campos.at(1), 'Ventana sala');
+        expect(campos, findsNWidgets(3));
+        await t.enterText(campos.at(0), 'BF1234567');
+        await t.enterText(campos.at(1), 'ABCDEF');
+        await t.enterText(campos.at(2), 'Cochera');
         t.view.viewInsets = const FakeViewPadding(bottom: 900); // teclado abierto
         await t.pump(const Duration(milliseconds: 300));
-        await t.tap(find.text('Guardar'));
+        await t.tap(find.descendant(of: find.byType(Dialog), matching: find.text('Agregar')));
         t.view.viewInsets = FakeViewPadding.zero; // y se cierra al guardar
         for (var i = 0; i < 12; i++) {
           await t.pump(const Duration(milliseconds: 50));
