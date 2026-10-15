@@ -125,6 +125,8 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
+          // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+          scrollable: true,
           title: const Text('¿Dejas la cerca encendida?'),
           content: const Text('Al terminar ya no podrás encenderla ni apagarla desde tu app. Se queda encendida y el control lo tiene sólo el cliente.'),
           actions: [

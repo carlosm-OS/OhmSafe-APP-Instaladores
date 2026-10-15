@@ -412,6 +412,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+        scrollable: true,
         title: const Text('Estás lejos del sitio'),
         content: Text(
           distancia != null

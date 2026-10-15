@@ -172,37 +172,38 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
         builder: (ctx, c) {
           return StatefulBuilder(
             builder: (ctx, set) => AlertDialog(
+              // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+              scrollable: true,
               title: const Text('Sensor Wi‑Fi'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Escribe el ID del sensor. El cliente termina de conectarlo desde su app.', style: Theme.of(ctx).textTheme.bodySmall),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: tipo,
-                      decoration: const InputDecoration(labelText: 'Tipo'),
-                      items: [for (final e in _tipoWifiTexto.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
-                      onChanged: (v) => set(() => tipo = v ?? 'door'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Escribe el ID del sensor. El cliente termina de conectarlo desde su app.', style: Theme.of(ctx).textTheme.bodySmall),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    isExpanded: true, // se ajusta al ancho del diálogo (si no, «Pulso (como un portón)» se desborda)
+                    initialValue: tipo,
+                    decoration: const InputDecoration(labelText: 'Tipo'),
+                    items: [for (final e in _tipoWifiTexto.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+                    onChanged: (v) => set(() => tipo = v ?? 'door'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: c[0],
+                    decoration: const InputDecoration(
+                      labelText: 'ID del sensor',
+                      helperText: 'Viene en la etiqueta o en la app del sensor.',
+                      helperMaxLines: 2,
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: c[0],
-                      decoration: const InputDecoration(
-                        labelText: 'ID del sensor',
-                        helperText: 'Viene en la etiqueta o en la app del sensor.',
-                        helperMaxLines: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: c[1],
-                      maxLength: 40,
-                      decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Ventana de la sala'),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: c[1],
+                    maxLength: 40,
+                    decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Ventana de la sala'),
+                  ),
+                ],
               ),
               actions: [
                 BotonesDialogo(
@@ -236,33 +237,33 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       builder: (_) => ConTextos(
         iniciales: const ['', '', ''],
         builder: (ctx, c) => AlertDialog(
+          // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+          scrollable: true,
           title: const Text('Agregar cámara'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('La cámara debe estar encendida y con internet.', style: Theme.of(ctx).textTheme.bodySmall),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: c[0],
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(labelText: 'Número de serie', helperText: 'En la etiqueta, como S/N.'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: c[1],
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(labelText: 'Código de verificación', helperText: 'En la misma etiqueta.'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: c[2],
-                  maxLength: 40,
-                  decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Cochera'),
-                ),
-              ],
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('La cámara debe estar encendida y con internet.', style: Theme.of(ctx).textTheme.bodySmall),
+              const SizedBox(height: 12),
+              TextField(
+                controller: c[0],
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Número de serie', helperText: 'En la etiqueta, como S/N.'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: c[1],
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Código de verificación', helperText: 'En la misma etiqueta.'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: c[2],
+                maxLength: 40,
+                decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Cochera'),
+              ),
+            ],
           ),
           actions: [
             BotonesDialogo(
@@ -319,6 +320,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       builder: (_) => ConTextos(
         iniciales: const [''],
         builder: (ctx, c) => AlertDialog(
+          // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+          scrollable: true,
           title: const Text('Otro energizador'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -452,6 +455,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     context: context,
     barrierDismissible: false,
     builder: (ctx) => AlertDialog(
+      // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+      scrollable: true,
       title: Text(titulo),
       content: Text(texto),
       actions: [BotonesDialogo(secundario: 'No', onSecundario: () => Navigator.pop(ctx, false), primario: 'Sí', onPrimario: () => Navigator.pop(ctx, true))],
@@ -464,6 +469,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       builder: (_) => ConTextos(
         iniciales: [inicial],
         builder: (ctx, c) => AlertDialog(
+          // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+          scrollable: true,
           title: Text(titulo),
           content: TextField(
             controller: c[0],
@@ -496,6 +503,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
         builder: (ctx, c) {
           return StatefulBuilder(
             builder: (ctx, setLocal) => AlertDialog(
+              // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+              scrollable: true,
               title: Text('¿Qué conectaste a la salida $index?'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -509,6 +518,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true, // se ajusta al ancho del diálogo (si no, «Pulso (como un portón)» se desborda)
                     initialValue: tipo,
                     decoration: const InputDecoration(labelText: '¿Qué es?', border: OutlineInputBorder()),
                     items: const [
@@ -522,6 +532,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true, // se ajusta al ancho del diálogo (si no, «Pulso (como un portón)» se desborda)
                     initialValue: modo,
                     decoration: const InputDecoration(labelText: '¿Cómo funciona?', border: OutlineInputBorder()),
                     items: const [

@@ -130,6 +130,8 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+        scrollable: true,
         title: const Text("Cerrar sesión"),
         content: const Text("¿Seguro que quieres cerrar sesión?"),
         actions: [

@@ -208,6 +208,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           await showDialog<void>(
             context: context,
             builder: (ctx) => AlertDialog(
+              // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+              scrollable: true,
               title: const Text('Vinculado, pero falta la cuenta del cliente'),
               content: Text(aviso),
               actions: [BotonesDialogo(primario: 'Entendido', onPrimario: () => Navigator.pop(ctx))],

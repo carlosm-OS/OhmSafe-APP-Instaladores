@@ -187,6 +187,70 @@ void main() {
     }
   });
 
+  // Teléfonos reales (en píxeles físicos, ×3): pantalla, franjas de arriba/abajo y alto del teclado.
+  const telefonos = <({String nombre, Size tamano, double arriba, double abajo, double teclado, TargetPlatform plataforma})>[
+    (nombre: 'iPhone Pro', tamano: Size(1206, 2622), arriba: 62, abajo: 34, teclado: 336, plataforma: TargetPlatform.iOS),
+    (nombre: 'iPhone SE', tamano: Size(1125, 2001), arriba: 20, abajo: 0, teclado: 216, plataforma: TargetPlatform.iOS),
+    (nombre: 'Android chico', tamano: Size(1080, 1920), arriba: 24, abajo: 0, teclado: 280, plataforma: TargetPlatform.android),
+  ];
+  for (final tel in telefonos) {
+    final tamano = tel.tamano;
+    testWidgets('Con el teclado abierto ningún diálogo con campos se desborda (${tel.nombre})', (t) async {
+      // Captura de Carlos (2026-10-15): «¿Qué conectaste a la salida 2?» con «BOTTOM OVERFLOWED BY 67 PIXELS».
+      debugDefaultTargetPlatformOverride = tel.plataforma;
+      try {
+        await _sinErrores(t, tamano, () async {
+          // Franja superior (isla dinámica) e inferior de un iPhone: le quitan alto al diálogo.
+          t.view.padding = FakeViewPadding(top: tel.arriba * 3, bottom: tel.abajo * 3);
+          Future<void> abrirPantalla() async {
+            await t.pumpWidget(const SizedBox()); // pantalla nueva para cada diálogo
+            await t.pumpWidget(AppStateProvider(
+              notifier: AppState(),
+              child: MaterialApp(theme: AppTheme.light, builder: (_, child) => TecladoGlobal(child: child!), home: const AgregarDispositivosScreen(ticket: {'id': 'i69'})),
+            ));
+            await t.pump(const Duration(seconds: 2));
+          }
+
+          Future<void> conTeclado(String cual) async {
+            await t.pump(const Duration(milliseconds: 600));
+            expect(find.byType(Dialog), findsOneWidget, reason: cual);
+            t.view.viewInsets = FakeViewPadding(bottom: tel.teclado * 3); // en iOS se suma la barra «Listo»
+            await t.pump(const Duration(milliseconds: 300));
+            // El diálogo se desplaza: el último campo se alcanza y el botón principal sigue ahí.
+            final campos = find.descendant(of: find.byType(Dialog), matching: find.byType(TextField));
+            await t.ensureVisible(campos.last);
+            await t.pump(const Duration(milliseconds: 300));
+            expect(find.descendant(of: find.byType(Dialog), matching: find.byType(FilledButton)), findsOneWidget, reason: cual);
+            t.view.viewInsets = FakeViewPadding.zero;
+            await t.pump(const Duration(milliseconds: 300));
+          }
+
+          Future<void> tocarEnFila(String titulo, String boton) async {
+            await _ver(t, find.text(titulo));
+            await _tocar(t, find.descendant(of: find.ancestor(of: find.text(titulo), matching: find.byType(Row)).first, matching: find.text(boton)));
+          }
+
+          // Salida: Probar → «¿Se encendió?» Sí → «¿Qué conectaste a la salida 1?»
+          await abrirPantalla();
+          await tocarEnFila('Salida 1', 'Probar');
+          await t.pump(const Duration(milliseconds: 800));
+          await t.tap(find.text('Sí'));
+          await conTeclado('salida');
+
+          for (final titulo in ['Cámara', 'Agregar otro OhmBox']) {
+            await abrirPantalla();
+            await tocarEnFila(titulo, 'Agregar');
+            await conTeclado(titulo);
+          }
+          await t.pumpWidget(const SizedBox());
+          await t.pump(const Duration(seconds: 1));
+        });
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+  }
+
   testWidgets('Hojas: confirmación de casa y asistente 433 se pintan sin errores', (t) async {
     await _sinErrores(t, const Size(1206, 2622), () async {
       await t.pumpWidget(

@@ -222,6 +222,8 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> pruebaExtender(String id) async { await _ok(); return _prueba(cerca: _mockCerca); }
   @override
   Future<Map<String, dynamic>> pruebaAccion(String id, String accion) async { await _ok(); _mockCerca = accion == 'cerca_on'; return {..._prueba(cerca: _mockCerca), 'resultado': 'sent'}; }
+  /// Como el equipo real: tras «Probar», la salida queda marcada como probada.
+  final Set<int> _salidasProbadas = {};
   Map<String, dynamic> _cableado() => {
         'intervencion': 'i1',
         'equipo': {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'firmware': '2.11.0.14', 'firmwareOk': true, 'firmwareMinimo': '2.10.0.0', 'enLinea': true, 'alarmaArmada': false, 'estadoEntradasEn': null},
@@ -231,8 +233,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
         ],
         'sirena': {'sonando': false, 'probada': false, 'sono': null},
         'salidas': [
-          {'index': 1, 'nombre': null, 'dadaDeAlta': false, 'encendida': false, 'tipo': null, 'modo': null, 'probada': false, 'cerro': null},
-          {'index': 2, 'nombre': null, 'dadaDeAlta': false, 'encendida': false, 'tipo': null, 'modo': null, 'probada': false, 'cerro': null},
+          for (final i in [1, 2]) {'index': i, 'nombre': null, 'dadaDeAlta': false, 'encendida': false, 'tipo': null, 'modo': null, 'probada': _salidasProbadas.contains(i), 'cerro': null},
         ],
       };
   @override
@@ -246,7 +247,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   @override
   Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono}) async { await _ok(); return _cableado(); }
   @override
-  Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async { await _ok(); return _cableado(); }
+  Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async { await _ok(); _salidasProbadas.add(index); return _cableado(); }
   @override
   Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono}) async { await _ok(); return _cableado(); }
   @override
