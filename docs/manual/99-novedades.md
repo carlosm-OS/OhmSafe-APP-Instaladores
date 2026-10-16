@@ -2,7 +2,7 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
-## Próxima build — ajustes del lienzo de diseño (15 de octubre de 2026)
+## Build 45 — 15 de octubre de 2026 (ajustes del lienzo de diseño)
 
 - **Confirmar la casa al vincular:** la hoja pregunta **«¿Estás instalando en esta dirección?»**. Muestra «Casa de» + el nombre del cliente con la etiqueta «Nueva» (o «Ya tiene equipo») y la dirección; la venta va en una línea gris. Botones: **«Sí, vincular aquí»** y **«No es esta dirección»**.
 - **Ficha del energizador oscura** (vincular y prueba): «OHMBOX» arriba; «En línea» y «Encendida» en naranja. En la prueba, la serie va resaltada en blanco.
