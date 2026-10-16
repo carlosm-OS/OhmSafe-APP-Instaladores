@@ -2,6 +2,16 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Próxima build — ajustes del lienzo de diseño (15 de octubre de 2026)
+
+- **Confirmar la casa al vincular:** la hoja pregunta **«¿Estás instalando en esta dirección?»**. Muestra «Casa de» + el nombre del cliente con la etiqueta «Nueva» (o «Ya tiene equipo») y la dirección; la venta va en una línea gris. Botones: **«Sí, vincular aquí»** y **«No es esta dirección»**.
+- **Ficha del energizador oscura** (vincular y prueba): «OHMBOX» arriba; «En línea» y «Encendida» en naranja. En la prueba, la serie va resaltada en blanco.
+- **Agregar dispositivos:** las secciones se llaman **Sensores cableados**, **Salidas auxiliares** y **Agregar otro energizador en esta casa**. El recuadro de los energizadores de la casa es oscuro, y el tipo de sensor se elige en filas con borde.
+- **Ventanas emergentes:** el botón secundario («Cancelar», «No») tiene borde gris y texto oscuro; el naranja queda sólo en la acción principal. Los títulos van en 16.
+- **Avisos de error** en rojo relleno con texto blanco (sin señal, no pudimos conectar, foto fuera del domicilio).
+- **Pasos de la orden:** los pasos hechos van en blanco con borde verde. «Cómo llegar» es un enlace naranja sin contorno.
+- **Cierre:** el recuadro de firma tiene borde oscuro.
+
 ## Build 44 — 15 de octubre de 2026
 
 - **Arreglo:** «Agregar dispositivos» ya no muestra la pantalla de error al guardar el nombre de una puerta (u otro dato) con el teclado abierto.

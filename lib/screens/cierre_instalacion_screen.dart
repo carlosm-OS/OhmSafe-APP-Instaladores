@@ -839,33 +839,33 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(14),
+            // Rojo relleno con texto blanco, como los demás avisos de error (lienzo de Carlos, 2026-10-15).
             decoration: BoxDecoration(
-              color: Colors.red.shade50,
+              color: AvisoRojo.fondo,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.red.shade200, width: 1),
             ),
-            child: Row(
+            child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 22),
-                const SizedBox(width: 12),
+                Icon(Icons.warning_amber_rounded, color: Colors.white, size: 22),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Una foto no se tomó en el domicilio",
                         style: TextStyle(
-                          color: Colors.redAccent,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         "Explica abajo por qué (por ejemplo, no había señal de GPS).",
                         style: TextStyle(
-                          color: Colors.red.shade900,
+                          color: Colors.white,
                           fontSize: 12,
                           height: 1.3,
                         ),
@@ -1795,9 +1795,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 color: context.ohm.surfaceContainer,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: _signatureConfirmed 
-                    ? Colors.green 
-                    : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant),
+                  // Borde oscuro para que el recuadro se vea en exteriores (lienzo de Carlos, 2026-10-15).
+                  color: _signatureConfirmed
+                    ? Colors.green
+                    : (isDark ? theme.colorScheme.outline : theme.colorScheme.onSurface),
                   width: _signatureConfirmed ? 2.0 : 1.0,
                 ),
               ),

@@ -139,17 +139,37 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     final tipo = await showModalBottomSheet<({String id, String etiqueta, IconData icono})>(
       context: context,
       showDragHandle: true,
+      // Con las filas con borde la hoja crece: en teléfonos chicos se desplaza en vez de desbordarse.
+      isScrollControlled: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('¿Qué sensor vas a agregar?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-            ),
-            for (final t in tiposRf) ListTile(leading: Icon(t.icono), title: Text(t.etiqueta), onTap: () => Navigator.pop(ctx, t)),
-            const SizedBox(height: 8),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text('¿Qué sensor vas a agregar?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              ),
+              // Cada tipo en su propia fila con borde e ícono naranja (lienzo de Carlos, 2026-10-15).
+              for (final t in tiposRf)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      leading: Icon(t.icono, color: Theme.of(ctx).colorScheme.primary),
+                      title: Text(t.etiqueta),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: const BorderSide(color: Color(0xFFB9B9B9)),
+                      ),
+                      onTap: () => Navigator.pop(ctx, t),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -628,8 +648,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
                               // ---------------- Entradas
                               const EtiquetaSeccion(
-                                'PUERTAS CON CABLE',
-                                tituloAyuda: 'Puertas con cable',
+                                'SENSORES CABLEADOS',
+                                tituloAyuda: 'Sensores cableados',
                                 ayuda: [
                                   'Sensores de puerta conectados con cable a las entradas del energizador.',
                                   'Toca «Probar», cierra la puerta y espera; luego ábrela.',
@@ -661,8 +681,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               // ---------------- Salidas
                               const SizedBox(height: 12),
                               const EtiquetaSeccion(
-                                'LUCES, PORTÓN Y OTROS',
-                                tituloAyuda: 'Luces, portón y otros',
+                                'SALIDAS AUXILIARES',
+                                tituloAyuda: 'Salidas auxiliares',
                                 ayuda: [
                                   'Son las salidas del energizador para encender algo: una luz, un portón, una bomba.',
                                   'Al probarla se enciende 5 segundos.',
@@ -735,7 +755,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               // ---------------- OhmBox: lo menos común, al final.
                               const SizedBox(height: 12),
                               const EtiquetaSeccion(
-                                'OTRO ENERGIZADOR EN ESTA CASA',
+                                'AGREGAR OTRO ENERGIZADOR EN ESTA CASA',
                                 tituloAyuda: 'Otro energizador (OhmBox)',
                                 ayuda: [
                                   'Sólo si el cliente compró un segundo energizador para la misma casa.',
@@ -835,17 +855,18 @@ class _EnergizadoresDeLaCasa extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
-    final apagado = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+    final apagado = Colors.white.withValues(alpha: 0.6);
     return Semantics(
       container: true,
       label: 'Energizadores de esta casa',
+      // Fondo tinta con texto blanco (lienzo de Carlos, 2026-10-15), igual que la ficha del equipo.
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        decoration: BoxDecoration(color: ohm.surfaceContainer, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: FichaEquipo.fondo, borderRadius: BorderRadius.circular(16)),
         child: Column(
           children: [
             for (var i = 0; i < energizadores.length; i++) ...[
-              if (i > 0) Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.4)),
+              if (i > 0) Divider(height: 1, color: Colors.white.withValues(alpha: 0.15)),
               _filaEnergizador(energizadores[i], theme, cs, ohm, apagado),
             ],
           ],
@@ -857,7 +878,7 @@ class _EnergizadoresDeLaCasa extends StatelessWidget {
   Widget _filaEnergizador(Map<String, dynamic> x, ThemeData theme, ColorScheme cs, OhmColors ohm, Color? apagado) {
     final enLinea = x['enLinea'] == true;
     final principal = x['principal'] == true;
-    final estado = enLinea ? ohm.success : apagado;
+    final estado = enLinea ? FichaEquipo.enLinea : apagado;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -865,8 +886,8 @@ class _EnergizadoresDeLaCasa extends StatelessWidget {
           Container(
             width: 36,
             height: 36,
-            decoration: BoxDecoration(color: cs.surface, shape: BoxShape.circle),
-            child: Icon(Icons.bolt_rounded, size: 20, color: enLinea ? cs.primary : apagado),
+            decoration: BoxDecoration(color: enLinea ? cs.primary : Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
+            child: const Icon(Icons.bolt_rounded, size: 20, color: Colors.white),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -875,16 +896,16 @@ class _EnergizadoresDeLaCasa extends StatelessWidget {
               children: [
                 Text(
                   (x['serie'] ?? '').toString(),
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
                 ),
                 if (principal) ...[
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(6)),
-                    child: Text(
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
+                    child: const Text(
                       'Principal',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.3, color: apagado),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.3, color: FichaEquipo.fondo),
                     ),
                   ),
                 ],

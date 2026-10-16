@@ -348,6 +348,9 @@ class MensajeFlujo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Errores: tarjeta roja rellena con texto blanco (lienzo de Carlos, 2026-10-15); los demás avisos
+    // siguen en tarjeta blanca con el ícono de color.
+    if (color == theme.colorScheme.error) return _relleno(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TarjetaFlujo(
@@ -375,6 +378,124 @@ class MensajeFlujo extends StatelessWidget {
       ),
     );
   }
+
+  Widget _relleno(BuildContext context) {
+    const blanco = Colors.white;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(color: AvisoRojo.fondo, borderRadius: BorderRadius.circular(20)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icono, size: 20, color: blanco),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(titulo, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: blanco)),
+                  if (texto != null) ...[
+                    const SizedBox(height: 2),
+                    Text(texto!, style: const TextStyle(fontSize: 13, height: 1.35, color: blanco)),
+                  ],
+                  if (accion != null) ...[
+                    const SizedBox(height: 10),
+                    // La acción (p. ej. «Intentar de nuevo») va en blanco sobre el rojo.
+                    Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: Theme.of(context).colorScheme.copyWith(primary: blanco),
+                        disabledColor: blanco.withValues(alpha: 0.6),
+                      ),
+                      child: DefaultTextStyle.merge(style: const TextStyle(color: blanco), child: accion!),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Ficha oscura del energizador (lienzo de Carlos, 2026-10-15): fondo tinta, «OHMBOX» arriba y los
+/// datos en blanco; «En línea» y «Encendida» en naranja. Con [serieDestacada] la serie va en una
+/// píldora blanca («Número de serie»), como en la prueba; sin ella, como un renglón más (vincular).
+class FichaEquipo extends StatelessWidget {
+  const FichaEquipo({super.key, required this.datos, this.serieDestacada, this.centrado = true, this.pie});
+
+  /// Renglones «Etiqueta: valor»; un color null pinta el valor en blanco.
+  final List<({String etiqueta, String valor, Color? color, Key? key})> datos;
+  final String? serieDestacada;
+  final bool centrado;
+
+  /// Línea chica al final (p. ej. MAC y firmware).
+  final String? pie;
+
+  /// Colores de los valores sobre el fondo oscuro.
+  static const Color enLinea = Color(0xFFFF8421);
+  static const Color encendida = Color(0xFFFF5A00);
+  static const Color sinSenal = Color(0xFFF87171);
+
+  /// Fondo fijo (también en modo oscuro: ahí `inverseSurface` es claro y el texto blanco no se leería).
+  static const Color fondo = Color(0xFF14202E);
+
+  @override
+  Widget build(BuildContext context) {
+    const blanco = Colors.white;
+    const tinta = fondo;
+    final alineacion = centrado ? CrossAxisAlignment.center : CrossAxisAlignment.stretch;
+    Widget renglon(String etiqueta, String valor, Color? color, {Key? key}) => Padding(
+      key: key,
+      padding: const EdgeInsets.only(top: 10),
+      child: Text.rich(
+        TextSpan(children: [
+          TextSpan(text: '$etiqueta:  ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          TextSpan(text: valor, style: TextStyle(fontWeight: FontWeight.w500, color: color ?? blanco)),
+        ]),
+        textAlign: centrado ? TextAlign.center : TextAlign.start,
+        style: const TextStyle(fontSize: 14, color: blanco),
+      ),
+    );
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+      decoration: BoxDecoration(color: tinta, borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        crossAxisAlignment: alineacion,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Text('OHMBOX', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: blanco)),
+          ),
+          if (serieDestacada != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: blanco, borderRadius: BorderRadius.circular(10)),
+              child: Text.rich(
+                TextSpan(children: [
+                  const TextSpan(text: 'Número de serie:  ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: serieDestacada, style: const TextStyle(fontWeight: FontWeight.w500)),
+                ]),
+                style: const TextStyle(fontSize: 14, color: tinta),
+              ),
+            ),
+          for (final d in datos) renglon(d.etiqueta, d.valor, d.color, key: d.key),
+          if (pie != null) ...[
+            const SizedBox(height: 8),
+            Text(pie!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: blanco)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Rojo de los avisos de error rellenos (lienzo de Carlos, 2026-10-15). El texto va en blanco y bold.
+abstract final class AvisoRojo {
+  static const Color fondo = Color(0xFFFF3A4B);
 }
 
 /// Renglón «Etiqueta:  valor» centrado, como «Cliente:» y «Metraje agendado:» del paso 2.

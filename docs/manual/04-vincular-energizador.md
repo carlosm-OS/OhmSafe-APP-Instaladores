@@ -16,7 +16,7 @@ Este es el paso 4 de la instalación. Sirve para tres cosas:
    - Si dice «Sin señal reciente», **puedes vincularlo igual**; para la prueba del paso 5 sí necesita corriente y señal.
    - Si no es el equipo, toca **«Buscar otro equipo»**.
 4. Toca **«Vincular energizador»** (o «Dar de alta y vincular» si es un equipo nuevo).
-5. Se abre la hoja **«El equipo va a una casa nueva»** o **«El equipo se suma a esta casa»** con la casa, el motivo y la venta. Toca **«Sí, vincular»** (o «Cancelar»). El ⓘ explica por qué esa casa.
+5. Se abre la hoja **«¿Estás instalando en esta dirección?»** con la casa («Casa de» + el cliente, con la etiqueta «Nueva» o «Ya tiene equipo») y su dirección; la venta va en una línea gris abajo. Si estás ahí, toca **«Sí, vincular aquí»**; si no, **«No es esta dirección»** y avisa a operaciones. El ⓘ explica por qué esa casa.
 6. Verás «Energizador vinculado a «casa»» y la app abre sola la **Prueba del energizador** (paso 5).
 
 Si algo sale mal (serie no encontrada, apartada, etc.) el aviso aparece **dentro de la pantalla**, arriba de la tarjeta. «Cancelar instalación» y «Reportar incidencias (opcional)» abren la cancelación en sitio.
@@ -104,11 +104,11 @@ El equipo **sí** quedó vinculado a la instalación, pero no llegó a la app de
 - **Plan nuevo** (la venta es una suscripción nueva): el equipo va a una **casa nueva** con la dirección de la compra, aunque el cliente ya tenga otras casas. Cada dirección del cliente es una casa con su propio plan.
 - **Equipo adicional** (un complemento sobre un contrato que ya existe): el equipo va a la **casa de ese contrato**.
 
-Al tocar **«Vincular energizador»** verás una hoja de confirmación con la casa, el motivo y la venta. Toca **«Sí, vincular»** para seguir o **«Cancelar»** para quedarte en la pantalla.
+Al tocar **«Vincular energizador»** verás la hoja **«¿Estás instalando en esta dirección?»** con la casa y la venta. Toca **«Sí, vincular aquí»** para seguir o **«No es esta dirección»** para quedarte en la pantalla y avisar a operaciones.
 
 Si la hoja dice **«Todavía no se puede vincular»**, la venta es equipo adicional pero no dice a qué casa va. Avisa a operaciones para que la ligue a su contrato en Odoo y vuelve a intentarlo.
 
-**¿Un segundo energizador en la misma casa?** No se vincula aquí como si fuera otra instalación: después de vincular el principal, ve a **Agregar dispositivos → Otro energizador en esta casa → OhmBox adicional → Agregar** (paso 6). Ahí queda como complemento de la misma suscripción.
+**¿Un segundo energizador en la misma casa?** No se vincula aquí como si fuera otra instalación: después de vincular el principal, ve a **Agregar dispositivos → Agregar otro energizador en esta casa → Agregar otro OhmBox → Agregar** (paso 6). Ahí queda como complemento de la misma suscripción.
 
 ## ¿Dónde va este equipo? (desde la build 28) — hasta la build 39
 

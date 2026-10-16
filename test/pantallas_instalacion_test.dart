@@ -90,7 +90,7 @@ void main() {
       await _sinErrores(t, tamano, () async {
         await t.pumpWidget(_app(const AgregarDispositivosScreen(ticket: {'id': 'i69'})));
         await t.pump(const Duration(seconds: 2));
-        for (final seccion in ['PUERTAS CON CABLE', 'SIRENA', 'LUCES, PORTÓN', 'SENSORES INALÁMBRICOS', 'CÁMARAS', 'OTRO ENERGIZADOR']) {
+        for (final seccion in ['SENSORES CABLEADOS', 'SIRENA', 'SALIDAS AUXILIARES', 'SENSORES INALÁMBRICOS', 'CÁMARAS', 'AGREGAR OTRO ENERGIZADOR']) {
           await _ver(t, find.textContaining(seccion));
         }
         // Sensores Wi‑Fi apagados por ahora (_wifiHabilitado): ni sección ni «Agregar».
@@ -131,12 +131,12 @@ void main() {
       await t.tap(infos.first);
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Puertas con cable'), findsOneWidget);
+      expect(find.text('Sensores cableados'), findsOneWidget);
       await t.tapAt(const Offset(200, 120)); // fuera de la hoja
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Puertas con cable'), findsNothing);
+      expect(find.text('Sensores cableados'), findsNothing);
     });
   });
 
@@ -287,8 +287,10 @@ void main() {
       );
       await t.tap(find.text('casa'));
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('El equipo va a una casa nueva'), findsOneWidget);
-      await t.tap(find.text('Cancelar'));
+      expect(find.text('¿Estás instalando en esta dirección?'), findsOneWidget);
+      expect(find.text('Nueva'), findsOneWidget);
+      expect(find.text('Sí, vincular aquí'), findsOneWidget);
+      await t.tap(find.text('No es esta dirección'));
       await t.pump(const Duration(seconds: 1));
     });
   });

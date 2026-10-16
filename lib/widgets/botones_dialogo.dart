@@ -9,11 +9,13 @@ import '../core/theme/app_dimens.dart';
 // (naranja lleno: «Guardar», «Sí») y abajo el secundario (contorno naranja:
 // «Cancelar», «No»). Ajuste del mismo día: primero el primario y el contorno
 // en el naranja de OhmSafe (antes iba negro y abajo). Antes de todo esto el
-// «No» / «Cancelar» era sólo texto naranja suelto.
+// «No» / «Cancelar» era sólo texto naranja suelto. Lienzo de Carlos (mismo día,
+// más tarde): el secundario pasa a borde gris con texto oscuro, igual que
+// «Cancelar instalación», para que el naranja quede sólo en la acción principal.
 // =============================================================================
 
-/// Botón secundario de las ventanas emergentes: contorno de 2 px y texto en el naranja de OhmSafe,
-/// mismo alto y radio que el primario.
+/// Botón secundario de las ventanas emergentes: borde gris y texto oscuro, mismo alto y radio que el
+/// primario (el naranja queda sólo en la acción principal).
 class BotonContornoSecundario extends StatelessWidget {
   const BotonContornoSecundario({super.key, required this.etiqueta, required this.onPressed});
 
@@ -27,9 +29,9 @@ class BotonContornoSecundario extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: cs.primary,
+        foregroundColor: cs.onSurface,
         minimumSize: const Size.fromHeight(AppTouch.primary),
-        side: BorderSide(color: onPressed == null ? cs.primary.withValues(alpha: 0.3) : cs.primary, width: 2),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: onPressed == null ? 0.5 : 1), width: 1.5),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
         // Sin `textStyle` propio: hereda el del tema de botones, igual que el primario. Tomarlo de
         // `theme.textTheme` le ponía la familia Inter (variable), que en el teléfono no engrosa y se

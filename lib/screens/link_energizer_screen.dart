@@ -334,7 +334,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                       const SizedBox(height: 12),
                       Text("Escanea el QR de la etiqueta", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)),
                       const SizedBox(height: 4),
-                      Text("El energizador debe estar encendido.", style: muted),
+                      Text("El energizador debe estar encendido.", style: muted.copyWith(color: cs.primary)),
                     ],
                   ),
                 ),
@@ -363,7 +363,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               onSubmitted: (v) => _startValidation(v),
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
-                hintText: "Número de serie (ej. 26)",
+                hintText: "Número de serie (ej. OS-OBV01-0026)",
                 filled: true,
                 fillColor: ohm.surfaceContainer,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -401,21 +401,15 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               )
             else ...[
               if (_showBanner) _avisoBusqueda(),
-              TarjetaFlujo(
-                child: Column(
-                  children: [
-                    DatoFlujo(etiqueta: "Serie", valor: _diag?['serie']?.toString() ?? '—'),
-                    DatoFlujo(etiqueta: "Conexión", valor: enLinea ? "En línea" : "Sin señal reciente", color: enLinea ? ohm.success : cs.error),
-                    DatoFlujo(etiqueta: "Cerca", valor: cerca ? "Encendida" : "Apagada"),
-                    DatoFlujo(etiqueta: "Último reporte", valor: _formatUltimoReporte(_diag?['ultimoReporte'])),
-                    const SizedBox(height: 8),
-                    Text(
-                      "MAC ${_diag?['mac'] ?? '—'}  ·  Firmware ${_diag?['firmware'] ?? '—'}",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.45)),
-                    ),
-                  ],
-                ),
+              // Ficha oscura del equipo (lienzo de Carlos, 2026-10-15).
+              FichaEquipo(
+                datos: [
+                  (etiqueta: "Serie", valor: _diag?['serie']?.toString() ?? '—', color: null, key: null),
+                  (etiqueta: "Conexión", valor: enLinea ? "En línea" : "Sin señal reciente", color: enLinea ? FichaEquipo.enLinea : FichaEquipo.sinSenal, key: null),
+                  (etiqueta: "Cerca", valor: cerca ? "Encendida" : "Apagada", color: cerca ? FichaEquipo.encendida : null, key: null),
+                  (etiqueta: "Último reporte", valor: _formatUltimoReporte(_diag?['ultimoReporte']), color: null, key: null),
+                ],
+                pie: "MAC ${_diag?['mac'] ?? '—'}  ·  Firmware ${_diag?['firmware'] ?? '—'}",
               ),
               const SizedBox(height: 16),
               Text(

@@ -29,13 +29,14 @@ class _Confirmacion extends StatelessWidget {
     final ohm = context.ohm;
     final venta = destino.venta;
     final bloquea = destino.bloquea;
-    final titulo = bloquea
-        ? 'Todavía no se puede vincular'
-        : destino.esNueva
-            ? 'El equipo va a una casa nueva'
-            : 'El equipo se suma a esta casa';
-    final icono = bloquea ? Icons.help_outline : (destino.esNueva ? Icons.add_home_outlined : Icons.home_outlined);
+    // Textos del lienzo de Carlos (2026-10-15, versión A): lo único que decide el instalador es si
+    // está en esa dirección; «casa nueva», «suscripción» y la venta pasan a segundo plano.
+    final titulo = bloquea ? 'Todavía no se puede vincular' : '¿Estás instalando en esta dirección?';
+    final icono = bloquea ? Icons.help_outline : Icons.home_outlined;
     final acento = bloquea ? cs.error : cs.primary;
+    final explicacion = destino.esNueva
+        ? 'El energizador quedará ligado a esta casa del cliente. Si no es donde estás, no lo vincules y avisa a operaciones.'
+        : 'El energizador se suma a esta casa del cliente. Si no es donde estás, no lo vincules y avisa a operaciones.';
 
     return SafeArea(
       child: Padding(
@@ -46,7 +47,7 @@ class _Confirmacion extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(child: Text(titulo, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
+                Expanded(child: Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, height: 1.35))),
                 const InfoAyuda(
                   titulo: '¿Por qué esta casa?',
                   puntos: [
@@ -65,19 +66,21 @@ class _Confirmacion extends StatelessWidget {
                 icono: icono,
                 color: acento,
                 titulo: destino.casaNombre!,
+                etiqueta: destino.esNueva ? 'Nueva' : 'Ya tiene equipo',
                 texto: (destino.direccion ?? '').isEmpty ? null : destino.direccion,
                 resaltado: true,
               ),
-              const SizedBox(height: 10),
-            ],
-            Text(destino.motivo, style: theme.textTheme.bodyMedium?.copyWith(color: bloquea ? cs.error : cs.onSurfaceVariant, height: 1.4)),
-            if (venta != null) ...[
               const SizedBox(height: 12),
-              _Bloque(
-                icono: Icons.receipt_long_outlined,
-                color: cs.onSurfaceVariant,
-                titulo: 'Venta ${venta.nombre}',
-                texto: venta.resumen,
+            ],
+            // Al bloquear, el motivo del backend explica qué falta; si no, el texto fijo de arriba.
+            Text(bloquea ? destino.motivo : explicacion, style: theme.textTheme.bodyMedium?.copyWith(color: bloquea ? cs.error : cs.onSurfaceVariant, height: 1.45)),
+            if (venta != null) ...[
+              const SizedBox(height: 10),
+              // La venta, discreta: una línea gris (le sirve a soporte, no compite con la dirección).
+              Text(
+                ['Venta ${venta.nombre}', venta.esServicioNuevo ? (venta.plan ?? 'Plan nuevo') : 'Equipo adicional', ...venta.equipos.map((e) => '${e.cantidad} ${e.nombre}')]
+                    .join(' · '),
+                style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
               ),
             ],
             if (destino.aviso != null) ...[
@@ -89,9 +92,9 @@ class _Confirmacion extends StatelessWidget {
               BotonesDialogo(primario: 'Entendido', onPrimario: () => Navigator.pop(context, false))
             else
               BotonesDialogo(
-                secundario: 'Cancelar',
+                secundario: 'No es esta dirección',
                 onSecundario: () => Navigator.pop(context, false),
-                primario: 'Sí, vincular',
+                primario: 'Sí, vincular aquí',
                 onPrimario: () => Navigator.pop(context, true),
               ),
           ],
@@ -102,10 +105,13 @@ class _Confirmacion extends StatelessWidget {
 }
 
 class _Bloque extends StatelessWidget {
-  const _Bloque({required this.icono, required this.color, required this.titulo, this.texto, this.resaltado = false});
+  const _Bloque({required this.icono, required this.color, required this.titulo, this.etiqueta, this.texto, this.resaltado = false});
   final IconData icono;
   final Color color;
   final String titulo;
+
+  /// Etiqueta junto al nombre («Nueva» / «Ya tiene equipo»).
+  final String? etiqueta;
   final String? texto;
   final bool resaltado;
 
@@ -129,7 +135,23 @@ class _Bloque extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(titulo, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(titulo, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                    if (etiqueta != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, borderRadius: BorderRadius.circular(6)),
+                        child: Text(
+                          etiqueta!,
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: theme.colorScheme.onPrimaryContainer),
+                        ),
+                      ),
+                  ],
+                ),
                 if (texto != null) ...[
                   const SizedBox(height: 2),
                   Text(texto!, style: theme.textTheme.bodySmall),

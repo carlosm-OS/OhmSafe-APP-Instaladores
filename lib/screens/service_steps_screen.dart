@@ -1062,7 +1062,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     Color chevronColor;
 
     if (isCompleted) {
-      cardBg = isDark ? ohm.success.withValues(alpha: 0.2) : ohm.successContainer;
+      // Lienzo de Carlos (2026-10-15): fondo blanco; el verde queda en borde, número y texto.
+      cardBg = isDark ? ohm.success.withValues(alpha: 0.2) : theme.cardColor;
       borderSide = BorderSide(
         color: ohm.success,
         width: 1.5,

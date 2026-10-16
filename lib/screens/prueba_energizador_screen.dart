@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../core/di/injection_container.dart';
 import '../core/network/actividad.dart';
 import '../core/error/failures.dart';
-import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
@@ -159,7 +158,6 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final ohm = context.ohm;
     final muted = TextStyle(fontSize: 14, height: 1.4, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6));
     final serie = (_equipo['serie'] ?? '').toString();
     final puedeMandar = _estado != null && _enLinea && !_enviando;
@@ -204,22 +202,25 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                                   titulo: 'El energizador no tiene señal',
                                   texto: 'Revisa que esté conectado a la corriente y con señal. Esta pantalla se actualiza sola.',
                                 ),
-                              TarjetaFlujo(
-                                child: Column(
-                                  children: [
-                                    DatoFlujo(etiqueta: 'Serie', valor: serie.isEmpty ? '—' : serie),
-                                    DatoFlujo(etiqueta: 'Conexión', valor: _enLinea ? 'En línea' : 'Sin señal', color: _enLinea ? ohm.success : cs.error),
-                                    DatoFlujo(
-                                      key: const Key('prueba-estado-cerca'),
-                                      etiqueta: 'Cerca',
-                                      valor: _cercaEncendida ? 'Encendida' : 'Apagada',
-                                      color: _cercaEncendida ? cs.primary : null,
-                                    ),
-                                  ],
-                                ),
+                              // Ficha oscura con la serie en píldora blanca (lienzo de Carlos, 2026-10-15).
+                              FichaEquipo(
+                                serieDestacada: serie.isEmpty ? '—' : serie,
+                                centrado: false,
+                                datos: [
+                                  (etiqueta: 'Conexión', valor: _enLinea ? 'En línea' : 'Sin señal', color: _enLinea ? FichaEquipo.enLinea : FichaEquipo.sinSenal, key: null),
+                                  (
+                                    etiqueta: 'Cerca',
+                                    valor: _cercaEncendida ? 'Encendida' : 'Apagada',
+                                    color: _cercaEncendida ? FichaEquipo.encendida : null,
+                                    key: const Key('prueba-estado-cerca'),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 16),
-                              Text('Enciende y apaga la cerca frente al cliente para que vea que funciona.', textAlign: TextAlign.center, style: muted),
+                              Text(
+                                'Enciende y apaga la cerca frente al cliente para que vea que funciona.',
+                                style: muted.copyWith(color: theme.textTheme.bodyLarge?.color),
+                              ),
                               const SizedBox(height: 16),
                               if (!_demostrada)
                                 OhmGradientButton(

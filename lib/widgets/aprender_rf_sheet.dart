@@ -175,7 +175,7 @@ class _AprenderRfState extends State<_AprenderRf> {
           children: [
             Row(
               children: [
-                Expanded(child: Text('Agregar ${widget.etiqueta.toLowerCase()}', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
+                Expanded(child: Text('Agregar ${widget.etiqueta.toLowerCase()}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, height: 1.35))),
                 const InfoAyuda(
                   titulo: 'Cómo se agrega un sensor inalámbrico',
                   puntos: [
