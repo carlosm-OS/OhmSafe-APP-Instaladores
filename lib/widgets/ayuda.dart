@@ -527,3 +527,51 @@ class DatoFlujo extends StatelessWidget {
     );
   }
 }
+
+/// «Esperando señal del equipo…» con barra de progreso (Carlos, 2026-10-15). Un instalador en prueba
+/// vio «Sin señal» recién encendido el equipo y se puso a revisar cables, cuando sólo faltaba esperar
+/// a que reportara. Se muestra mientras la pantalla vuelve a consultar sola.
+class EsperandoSenal extends StatelessWidget {
+  const EsperandoSenal({
+    super.key,
+    this.titulo = 'Esperando señal del equipo…',
+    this.texto = 'Si lo acabas de encender, puede tardar 1 o 2 minutos en aparecer en línea. La pantalla se actualiza sola.',
+  });
+
+  final String titulo;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TarjetaFlujo(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.wifi_tethering_rounded, size: 20, color: cs.primary),
+                const SizedBox(width: 12),
+                Expanded(child: Text(titulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color))),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 32),
+              child: Text(texto, style: TextStyle(fontSize: 13, height: 1.35, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(minHeight: 6, color: cs.primary, backgroundColor: cs.primary.withValues(alpha: 0.15)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

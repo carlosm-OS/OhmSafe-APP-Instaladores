@@ -51,8 +51,18 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
     super.initState();
     _abrir();
     // El equipo reporta solo; cada 15 s se refresca cómo quedó (cerca, en línea) y se renueva la ventana.
-    _refresco = Timer.periodic(const Duration(seconds: 15), (_) => Actividad.enSilencio(_refrescar));
+    // Sin señal se consulta cada 5 s: recién vinculado tarda 1 o 2 minutos en aparecer (2026-10-15).
+    _refresco = Timer.periodic(const Duration(seconds: 5), (_) {
+      _ticks++;
+      if (!_enLinea || _ticks % 3 == 0) Actividad.enSilencio(_refrescar);
+    });
   }
+
+  int _ticks = 0;
+  final DateTime _abiertaDesde = DateTime.now();
+
+  /// Los primeros minutos sin señal son espera normal (el equipo recién se conectó), no un error.
+  bool get _esperandoSenal => DateTime.now().difference(_abiertaDesde) < const Duration(minutes: 3);
 
   @override
   void dispose() {
@@ -195,7 +205,8 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                                   texto: _error!,
                                   accion: BotonFila(etiqueta: 'Intentar de nuevo', icono: Icons.refresh, onPressed: _abrir),
                                 ),
-                              if (!_enLinea && _estado != null)
+                              if (!_enLinea && _estado != null && _esperandoSenal) const EsperandoSenal(),
+                              if (!_enLinea && _estado != null && !_esperandoSenal)
                                 MensajeFlujo(
                                   icono: Icons.wifi_off_rounded,
                                   color: cs.error,

@@ -12,8 +12,10 @@ Este es el paso 4 de la instalación. Sirve para tres cosas:
 2. En **«Busca el energizador»**:
    - **Escanear (lo normal):** toca **«Escanear QR»** (o la tarjeta del código) y apunta al código de la etiqueta. Puedes prender la linterna. Al leerlo, la app busca el equipo sola.
    - **Escribir:** si no se puede escanear, escribe la serie en el campo de «O ESCRIBE LA SERIE» y toca la **flecha** del campo. Basta con el número final (`26`); los guiones se ponen solos. El ⓘ junto a la etiqueta dice dónde está la serie.
-3. Aparece la tarjeta del equipo con la serie, la conexión («En línea» en verde o «Sin señal reciente» en rojo), si la cerca está encendida y el último reporte; abajo, en gris, la MAC y el firmware.
-   - Si dice «Sin señal reciente», **puedes vincularlo igual**; para la prueba del paso 5 sí necesita corriente y señal.
+3. Aparece la ficha oscura del equipo («OHMBOX») con la serie, la conexión, si la cerca está encendida y el último reporte; abajo, la MAC y el firmware.
+   - Si dice **«Esperando señal…»** con una barra naranja, no revises cables todavía: un equipo recién encendido tarda 1 o 2 minutos en aparecer en línea y la pantalla se actualiza sola. Si a los 3 minutos sigue sin señal, cambia a «Sin señal reciente» en rojo.
+   - Si es un **equipo nuevo** dice «Se ve al vincularlo»: su conexión sólo se puede ver después de vincularlo.
+   - Sin señal **puedes vincularlo igual**; para la prueba del paso 5 sí necesita corriente y señal. En la prueba también verás «Esperando señal…» los primeros minutos.
    - Si no es el equipo, toca **«Buscar otro equipo»**.
 4. Toca **«Vincular energizador»** (o «Dar de alta y vincular» si es un equipo nuevo).
 5. Se abre la hoja **«¿Estás instalando en esta dirección?»** con la casa («Casa de» + el cliente, con la etiqueta «Nueva» o «Ya tiene equipo») y su dirección; la venta va en una línea gris abajo. Si estás ahí, toca **«Sí, vincular aquí»**; si no, **«No es esta dirección»** y avisa a operaciones. El ⓘ explica por qué esa casa.

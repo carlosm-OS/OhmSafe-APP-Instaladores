@@ -12,6 +12,7 @@ import '../widgets/cancellation_flow.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import '../core/di/injection_container.dart';
+import '../core/network/actividad.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/utils/fechas_odoo.dart';
 import '../core/utils/ligado_cliente.dart';
@@ -48,8 +49,46 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
 
   @override
   void dispose() {
+    _sondeoSenal?.cancel();
     _macController.dispose();
     super.dispose();
+  }
+
+  /// Equipo ya dado de alta pero sin señal: se vuelve a consultar cada 5 s, en silencio, hasta que
+  /// aparezca en línea o pasen 3 minutos (2026-10-15). Recién encendido tarda en reportar; antes la
+  /// ficha se quedaba en «Sin señal reciente» y el instalador se ponía a revisar cables.
+  Timer? _sondeoSenal;
+  DateTime? _esperandoDesde;
+  static const _esperaMaxima = Duration(minutes: 3);
+  bool get _esperandoSenal => _sondeoSenal != null;
+
+  void _vigilarSenal(String serie) {
+    _sondeoSenal?.cancel();
+    _sondeoSenal = null;
+    if (_diag == null || _diag?['enLinea'] == true || _equipoNuevo) return;
+    _esperandoDesde = DateTime.now();
+    _sondeoSenal = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (!mounted) return;
+      if (DateTime.now().difference(_esperandoDesde!) > _esperaMaxima) {
+        setState(() {
+          _sondeoSenal?.cancel();
+          _sondeoSenal = null;
+        });
+        return;
+      }
+      await Actividad.enSilencio(() => _refrescarFicha(serie));
+      if (mounted && _diag?['enLinea'] == true) {
+        setState(() {
+          _sondeoSenal?.cancel();
+          _sondeoSenal = null;
+        });
+      }
+    });
+  }
+
+  void _dejarDeVigilar() {
+    _sondeoSenal?.cancel();
+    _sondeoSenal = null;
   }
 
   // MAC real del equipo, detectada por el diagnóstico (se guarda en Odoo).
@@ -87,6 +126,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// Diagnóstico REAL por número de serie: lee la telemetría del equipo y pinta
   /// cada prueba. La tierra física no tiene telemetría → la confirma el instalador.
   Future<void> _startValidation(String serie) async {
+    _dejarDeVigilar();
     final s = normalizarSerie(serie);
     if (s.isNotEmpty && s != _macController.text) _macController.text = s;
     if (s.isEmpty) {
@@ -147,6 +187,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         // la cerca sigue visible como dato informativo más abajo.
         _showBanner = false; // la ficha ya dice «¿Es este el equipo?»
       });
+      _vigilarSenal(s);
     }, (f) {
       setState(() {
         _isLoading = false;
@@ -287,6 +328,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                   titulo: "Vincular energizador",
                   alVolver: () {
                     if (_currentState == LinkState.validating && !_vinculado) {
+                      _dejarDeVigilar();
                       setState(() {
                         _currentState = LinkState.input;
                         _showBanner = false;
@@ -405,19 +447,30 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               FichaEquipo(
                 datos: [
                   (etiqueta: "Serie", valor: _diag?['serie']?.toString() ?? '—', color: null, key: null),
-                  (etiqueta: "Conexión", valor: enLinea ? "En línea" : "Sin señal reciente", color: enLinea ? FichaEquipo.enLinea : FichaEquipo.sinSenal, key: null),
+                  (
+                    etiqueta: "Conexión",
+                    valor: enLinea
+                        ? "En línea"
+                        : (_equipoNuevo ? "Se ve al vincularlo" : (_esperandoSenal ? "Esperando señal…" : "Sin señal reciente")),
+                    // Rojo sólo cuando ya se esperó: equipo nuevo o en espera van en blanco.
+                    color: enLinea ? FichaEquipo.enLinea : (_equipoNuevo || _esperandoSenal ? null : FichaEquipo.sinSenal),
+                    key: null,
+                  ),
                   (etiqueta: "Cerca", valor: cerca ? "Encendida" : "Apagada", color: cerca ? FichaEquipo.encendida : null, key: null),
                   (etiqueta: "Último reporte", valor: _formatUltimoReporte(_diag?['ultimoReporte']), color: null, key: null),
                 ],
                 pie: "MAC ${_diag?['mac'] ?? '—'}  ·  Firmware ${_diag?['firmware'] ?? '—'}",
               ),
               const SizedBox(height: 16),
+              if (!_vinculado && !enLinea && _esperandoSenal) const EsperandoSenal(),
               Text(
                 _vinculado
                     ? "Ya quedó ligado a esta instalación."
                     : (enLinea
                         ? "Revisa que la serie coincida con la etiqueta."
-                        : "Puedes vincularlo sin señal. Para la prueba del siguiente paso sí necesita corriente y señal."),
+                        : _equipoNuevo
+                            ? "Es un equipo nuevo: su conexión se ve después de vincularlo y puede tardar 1 o 2 minutos en aparecer en línea. Ya puedes vincularlo."
+                            : "Puedes vincularlo sin señal. Para la prueba del siguiente paso sí necesita corriente y señal."),
                 textAlign: TextAlign.center,
                 style: muted,
               ),
@@ -434,6 +487,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                   onPressed: _isSending
                       ? null
                       : () => setState(() {
+                            _dejarDeVigilar();
                             _currentState = LinkState.input;
                             _showBanner = false;
                             _diag = null;

@@ -2,6 +2,11 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Próxima build — 15 de octubre de 2026
+
+- **«Esperando señal del equipo…»** con barra de progreso en Vincular y en la Prueba: un equipo recién encendido tarda 1 o 2 minutos en aparecer en línea. La pantalla vuelve a revisar sola cada 5 segundos; el aviso rojo de «sin señal» sólo sale si a los 3 minutos sigue sin reportar.
+- **Equipo nuevo:** la conexión dice «Se ve al vincularlo» en vez de «Sin señal reciente» en rojo (antes de vincularlo no hay forma de saberla).
+
 ## Build 45 — 15 de octubre de 2026 (ajustes del lienzo de diseño)
 
 - **Confirmar la casa al vincular:** la hoja pregunta **«¿Estás instalando en esta dirección?»**. Muestra «Casa de» + el nombre del cliente con la etiqueta «Nueva» (o «Ya tiene equipo») y la dirección; la venta va en una línea gris. Botones: **«Sí, vincular aquí»** y **«No es esta dirección»**.
