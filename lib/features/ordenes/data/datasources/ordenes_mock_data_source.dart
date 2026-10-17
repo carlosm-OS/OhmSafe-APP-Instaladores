@@ -197,6 +197,12 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo}) async { await _ok(); _mockWifi.add({'id': externalId, 'tipo': tipo, 'nombre': nombre, 'externalId': externalId}); return {'sensor': {'name': nombre}}; }
   @override
   Future<Map<String, dynamic>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre}) async { await _ok(); _mockCams.add({'id': serie, 'proveedor': proveedor ?? 'cam', 'nombre': nombre, 'serie': serie, 'estado': 'online'}); return {'camara': {'name': nombre}}; }
+  @override
+  Future<Map<String, dynamic>> wifiSesion(String id, String proveedor) async { await _ok(); return {'provider': proveedor, 'appKey': 'mock', 'areaDomain': 'https://iusopen.ezvizlife.com', 'region': 'na', 'accountName': 'mock', 'accessToken': 'mock', 'expiresAt': DateTime.now().add(const Duration(days: 7)).toIso8601String()}; }
+  @override
+  Future<Map<String, dynamic>> ezvizSondeo(String id, String serie) async { await _ok(); return {'state': 'online_unbound'}; }
+  @override
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red}) async { await _ok(); _mockCams.add({'id': externalId, 'proveedor': proveedor, 'nombre': nombre, 'serie': externalId, 'estado': 'online', 'red': red}); return {'dispositivo': {'name': nombre}}; }
   final List<Map<String, dynamic>> _mockOhmbox = [
     {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'nombre': 'Cerca', 'enLinea': true, 'principal': true},
   ];

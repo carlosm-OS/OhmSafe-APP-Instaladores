@@ -20,5 +20,10 @@ import UserNotifications
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    // Puente de cámaras EZVIZ (2026-10-17): conectar la cámara a la Wi-Fi de la casa desde el
+    // teléfono del instalador. Sin el pod (OHMSAFE_EZVIZ=0) contesta EZVIZ_NOT_LINKED.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "EzvizPlugin") {
+      EzvizPlugin.register(with: registrar)
+    }
   }
 }

@@ -8,8 +8,14 @@ import '../core/utils/serie_qr.dart';
 /// Cámara para leer el QR del energizador. Devuelve (pop) el número de serie
 /// leído, o null si el instalador regresa sin escanear. El permiso de cámara lo
 /// pide el sistema la primera vez (NSCameraUsageDescription en iOS).
+///
+/// [leer] permite reutilizarla para otras etiquetas (2026-10-17: la de las cámaras EZVIZ): recibe
+/// el texto crudo del QR y devuelve lo que se regresa, o '' si no lo reconoce y hay que seguir.
 class EscanearSerieScreen extends StatefulWidget {
-  const EscanearSerieScreen({super.key});
+  const EscanearSerieScreen({super.key, this.leer = serieDesdeQr, this.indicacion = 'Apunta al código QR del energizador OhmSafe'});
+
+  final String Function(String crudo) leer;
+  final String indicacion;
 
   @override
   State<EscanearSerieScreen> createState() => _EscanearSerieScreenState();
@@ -28,7 +34,7 @@ class _EscanearSerieScreenState extends State<EscanearSerieScreen> {
   void _alDetectar(BarcodeCapture captura) {
     if (_leido) return;
     for (final b in captura.barcodes) {
-      final serie = serieDesdeQr(b.rawValue ?? '');
+      final serie = widget.leer(b.rawValue ?? '');
       if (serie.isNotEmpty) {
         _leido = true;
         Navigator.of(context).pop(serie);
@@ -84,12 +90,12 @@ class _EscanearSerieScreenState extends State<EscanearSerieScreen> {
                   ),
                 ),
                 const Spacer(),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(32, 0, 32, 48),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 0, 32, 48),
                   child: Text(
-                    'Apunta al código QR del energizador OhmSafe',
+                    widget.indicacion,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],

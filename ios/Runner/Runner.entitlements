@@ -8,5 +8,16 @@
 	     on TestFlight". -->
 	<key>aps-environment</key>
 	<string>development</string>
+	<!-- Access Wi-Fi Information (capacidad gratuita del App ID). Sin esto NEHotspotNetwork
+	     devuelve nulo y «Conectar cámara a la Wi-Fi» no puede prellenar la red del teléfono
+	     ni comprobar que se unió a la de la cámara (2026-10-17). Pide además ubicación. -->
+	<key>com.apple.developer.networking.wifi-info</key>
+	<true/>
+	<!-- Hotspot Configuration (capacidad gratuita del App ID). El EZOpenSDK NO enlaza
+	     NetworkExtension, así que es la app la que une el teléfono al punto de acceso de la
+	     cámara (modo AP) con NEHotspotConfigurationManager. Con firma automática Xcode activa
+	     las dos capacidades en el App ID com.ohmsafe.instalador al archivar. -->
+	<key>com.apple.developer.networking.HotspotConfiguration</key>
+	<true/>
 </dict>
 </plist>

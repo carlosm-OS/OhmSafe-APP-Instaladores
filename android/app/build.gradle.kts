@@ -49,6 +49,13 @@ android {
         }
     }
 
+    // EZVIZ Open SDK global (2026-10-17): sin paquete privado, sale entero de Maven Central. El AAR trae
+    // mbedTLS, iconv, SRT y JNA propios; hoy nada choca, la lista evita que un AAR nuevo tumbe el merge.
+    packaging {
+        jniLibs.pickFirsts += listOf("**/libmbedcrypto.so", "**/libmbedtls.so", "**/libmbedx509.so", "**/libiconv.so", "**/libsrt.so", "**/libjnidispatch.so")
+        resources.excludes += setOf("META-INF/LICENSE*", "META-INF/NOTICE*", "META-INF/INDEX.LIST", "META-INF/DEPENDENCIES")
+    }
+
     buildTypes {
         release {
             // Con key.properties se firma con la llave de subida; sin ella (simulador, CI sin secretos)
@@ -69,4 +76,12 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // EZVIZ Open SDK global (`com.videogo.openapi.EZGlobalSDK`). okhttp y gson los exige el SDK y su POM
+    // NO los declara: sin ellos revienta en ejecución (NoClassDefFoundError), no al compilar.
+    implementation("io.github.ezviz-open:ezviz-sdk:5.32")
+    implementation("com.squareup.okhttp3:okhttp:3.12.1")
+    implementation("com.google.code.gson:gson:2.8.5")
 }

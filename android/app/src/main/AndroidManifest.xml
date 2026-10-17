@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!-- Ubicación sólo mientras se usa (geolocator): llegada al domicilio, cancelación y cierre. Nunca en segundo plano. -->
@@ -7,6 +8,20 @@
     <!-- Cámara: escanear el QR del energizador y fotos de evidencia (mobile_scanner la declara; explícita para la ficha de Play). -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Conectar cámaras EZVIZ a la Wi-Fi de la casa (2026-10-17): el SDK une el teléfono al punto de
+         acceso de la cámara y le pasa la red; leer el nombre de la red pide ubicación (ya arriba).
+         READ_PHONE_STATE lo pide el SDK para su terminalId; no se pide en tiempo de ejecución. -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Hardware opcional: Play deduce «funciones necesarias» de los permisos. -->
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
     <application
         android:label="OhmSafe Installer"
         android:name="${applicationName}"
@@ -33,6 +48,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- EZVIZ: el SDK resuelve esta actividad por nombre aunque nunca se abra su login; sin
+             declararla la app se cae con ActivityNotFoundException. No exportada. -->
+        <activity
+            android:name="com.videogo.main.EzvizWebViewActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|keyboardHidden" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

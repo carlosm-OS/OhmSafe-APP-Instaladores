@@ -50,6 +50,11 @@ abstract class OrdenesDataSource {
   Future<Map<String, dynamic>> rfCancelar(String id, String sid);
   Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo});
   Future<Map<String, dynamic>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre});
+  /// Emparejamiento Wi‑Fi desde el teléfono (2026-10-17): sesión del fabricante de la casa (`tuya`|`ezviz`),
+  /// sondeo de una cámara EZVIZ y alta de lo emparejado con el nombre de la red (nunca la contraseña).
+  Future<Map<String, dynamic>> wifiSesion(String id, String proveedor);
+  Future<Map<String, dynamic>> ezvizSondeo(String id, String serie);
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red});
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Historial del instalador: intervenciones completadas y canceladas en sitio

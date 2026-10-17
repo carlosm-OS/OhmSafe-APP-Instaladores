@@ -4,6 +4,18 @@ platform :ios, '15.0'
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+# --- EZVIZ EZOpenSDK (2026-10-17: conectar cámaras a la Wi-Fi de la casa) ----
+# Pod público del CDN (`EZOpenSDK`, repo `Ezviz-OpenBiz/SDK-iOS`), sin paquete privado. La
+# AppKey no viaja aquí: la manda el backend en la sesión de la casa y el lado Dart la pasa en
+# `configure`. Misma versión que la app del cliente.
+#
+# TRAMPA: el xcframework trae UNA sola slice (`ios-arm64`), sin simulador. Enlazarlo deja la app
+# sin simulador de Apple silicon. Para trabajar la interfaz en el simulador:
+#     OHMSAFE_EZVIZ=0 pod install
+# y el puente contesta EZVIZ_NOT_LINKED. Por omisión va enlazado (dispositivo y TestFlight).
+OHMSAFE_EZVIZ_POD_VERSION = '~> 5.32'
+OHMSAFE_EZVIZ_LINKED = ENV['OHMSAFE_EZVIZ'] != '0'
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
@@ -33,6 +45,9 @@ target 'Runner' do
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
+  # El módulo que se importa en Swift se llama `EZOpenSDKFramework`, no `EZOpenSDK`.
+  pod 'EZOpenSDK', OHMSAFE_EZVIZ_POD_VERSION if OHMSAFE_EZVIZ_LINKED
+
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -47,6 +62,12 @@ post_install do |installer|
       # la compilacion falla con "the range of supported deployment target
       # versions is 15.0 to 27.0.x". Se alinean con el platform del Podfile.
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+
+      # EZOpenSDK no trae slice arm64 de simulador: su podspec la excluye y hay que excluirla
+      # en todo el workspace o el enlazado del simulador falla a medias.
+      if OHMSAFE_EZVIZ_LINKED
+        config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+      end
     end
   end
 end

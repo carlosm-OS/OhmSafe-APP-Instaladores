@@ -164,6 +164,22 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
       _data(await dioClient.post('/instalador/ordenes/$id/camaras', body: {if (proveedor != null) 'proveedor': proveedor, 'serie': serie, 'codigo': codigo, 'nombre': nombre}));
 
   @override
+  Future<Map<String, dynamic>> wifiSesion(String id, String proveedor) async =>
+      _data(await dioClient.get('/instalador/ordenes/$id/wifi/sesion?proveedor=$proveedor', sinReintento: true));
+  @override
+  Future<Map<String, dynamic>> ezvizSondeo(String id, String serie) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/wifi/ezviz/sondeo', body: {'serie': serie}, sinReintento: true));
+  @override
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/dispositivos-wifi', body: {
+        'proveedor': proveedor,
+        'clase': clase,
+        'externalId': externalId,
+        'nombre': nombre,
+        if (codigo != null && codigo.isNotEmpty) 'codigo': codigo,
+        if (red != null && red.isNotEmpty) 'red': red,
+      }));
+  @override
   Future<Map<String, dynamic>> ohmboxEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/ohmbox'));
   @override
   Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac}) async =>

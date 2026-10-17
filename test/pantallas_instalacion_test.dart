@@ -100,7 +100,7 @@ void main() {
         await _ver(t, find.text('Principal'));
         expect(find.text('OS-PRUEBA-0001'), findsOneWidget);
         expect(find.text('En línea'), findsWidgets);
-        for (final titulo in ['Agregar otro OhmBox', 'Cámara', 'Sensor inalámbrico']) {
+        for (final titulo in ['Agregar otro OhmBox', 'Cámara ya conectada', 'Sensor inalámbrico']) {
           // Cada «Agregar» abre su diálogo u hoja; se busca desde arriba de la lista.
           t.state<ScrollableState>(_lista).position.jumpTo(0); // la lista rebota (como los pasos 1-3)
           await t.pump(const Duration(milliseconds: 600));
@@ -157,7 +157,7 @@ void main() {
           ),
         );
         await t.pump(const Duration(seconds: 2));
-        final tarjeta = find.text('Cámara');
+        final tarjeta = find.text('Cámara ya conectada');
         await _ver(t, tarjeta);
         await _tocar(
           t,
@@ -237,7 +237,7 @@ void main() {
           await t.tap(find.text('Sí'));
           await conTeclado('salida');
 
-          for (final titulo in ['Cámara', 'Agregar otro OhmBox']) {
+          for (final titulo in ['Cámara ya conectada', 'Agregar otro OhmBox']) {
             await abrirPantalla();
             await tocarEnFila(titulo, 'Agregar');
             await conTeclado(titulo);

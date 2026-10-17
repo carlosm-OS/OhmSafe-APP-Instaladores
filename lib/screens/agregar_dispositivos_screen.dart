@@ -11,6 +11,7 @@ import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
+import 'conectar_camara_wifi_screen.dart';
 import 'escanear_serie_screen.dart';
 import '../widgets/aprender_rf_sheet.dart';
 import '../widgets/con_textos.dart';
@@ -121,6 +122,10 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   bool get _camarasOn => _sec('camaras')['habilitadas'] == true;
   Map<String, dynamic> get _proveedores => (_sec('camaras')['proveedores'] as Map?)?.cast<String, dynamic>() ?? const {};
   bool get _hayProveedor => _camarasOn && (_proveedores['ezviz'] == true || _proveedores['imou'] == true);
+
+  /// Qué se puede emparejar a la Wi‑Fi desde este teléfono (2026-10-17): lo dice el backend según
+  /// lo que tenga encendido en el ambiente (`wifi.emparejar`).
+  bool get _emparejarEzviz => (_sec('wifi')['emparejar'] as Map?)?['ezviz'] == true;
 
   static const _tipoRfTexto = {'door': 'Puerta', 'pir': 'Movimiento', 'smoke': 'Humo', 'panic_button': 'Botón de pánico', 'fob': 'Control remoto'};
 
@@ -251,6 +256,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   }
 
   // ---------------------------------------------------------------- Cámaras
+  /// Cámara EZVIZ nueva: el teléfono le pasa la Wi‑Fi de la casa y la registra (2026-10-17).
+  Future<void> _conectarCamaraWifi() async {
+    final ok = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => ConectarCamaraWifiScreen(ordenId: _id)));
+    if (ok == true && mounted) await _cargarDisp();
+  }
+
   Future<void> _agregarCamara() async {
     final datos = await showDialog<({String serie, String codigo, String nombre})>(
       context: context,
@@ -259,12 +270,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
         builder: (ctx, c) => AlertDialog(
           // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
           scrollable: true,
-          title: const Text('Agregar cámara'),
+          title: const Text('Cámara ya conectada'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('La cámara debe estar encendida y con internet.', style: Theme.of(ctx).textTheme.bodySmall),
+              Text('Para una cámara que ya está en internet (por ejemplo, conectada con la app del fabricante).', style: Theme.of(ctx).textTheme.bodySmall),
               const SizedBox(height: 12),
               TextField(
                 controller: c[0],
@@ -735,20 +746,23 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 'CÁMARAS',
                                 tituloAyuda: 'Cámaras',
                                 ayuda: [
-                                  'La cámara debe estar encendida y conectada al internet de la casa.',
-                                  'Necesitas el número de serie y el código de verificación de su etiqueta.',
+                                  'Cámara EZVIZ nueva: «Conectar a la Wi‑Fi». El teléfono le pasa la red de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
+                                  'Cámara que ya está en internet (Imou, o conectada con la app del fabricante): «Cámara ya conectada», con la serie y el código de su etiqueta.',
                                   'Al guardarla, el cliente la ve en su app.',
                                 ],
                               ),
                               for (final x in _lista('camaras', 'lista'))
                                 FilaFlujo(
                                   titulo: (x['nombre'] ?? '').toString(),
-                                  subtitulo: 'Serie ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}',
+                                  subtitulo:
+                                      'Serie ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}${(x['red'] ?? '').toString().isNotEmpty ? ' · Wi‑Fi ${x['red']}' : ''}',
                                   trailing: CirculoCheck(marcado: x['estado'] == 'online'),
                                 ),
+                              if (_emparejarEzviz)
+                                _agregar('Conectar cámara a la Wi‑Fi', 'EZVIZ nueva: el teléfono le pasa la red', _ocupado ? null : _conectarCamaraWifi),
                               _agregar(
-                                'Cámara',
-                                _hayProveedor ? 'Serie y código de su etiqueta' : 'No disponibles por ahora',
+                                'Cámara ya conectada',
+                                _hayProveedor ? 'Ya está en internet: serie y código' : 'No disponibles por ahora',
                                 _ocupado || !_hayProveedor ? null : _agregarCamara,
                               ),
 

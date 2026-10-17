@@ -321,6 +321,51 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
+  Future<Result<Map<String, dynamic>>> wifiSesion(String id, String proveedor) async {
+    try {
+      return Success(await dataSource.wifiSesion(id, proveedor));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> ezvizSondeo(String id, String serie) async {
+    try {
+      return Success(await dataSource.ezvizSondeo(id, serie));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red}) async {
+    try {
+      return Success(await dataSource.dispositivoWifiAgregar(id, proveedor: proveedor, clase: clase, externalId: externalId, nombre: nombre, codigo: codigo, red: red));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Result<Map<String, dynamic>>> ohmboxEstado(String id) async {
     try {
       return Success(await dataSource.ohmboxEstado(id));

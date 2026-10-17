@@ -77,9 +77,11 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Esta aplicación usa la cámara para tomar fotos de evidencia de la instalación y escanear el número de serie del equipo.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Esta aplicación usa tu ubicación para registrar dónde se realizó la instalación al cerrar el servicio.</string>
+	<string>Esta aplicación usa tu ubicación para registrar dónde se realizó la instalación al cerrar el servicio y para leer el nombre de la red Wi-Fi al conectar una cámara.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Esta aplicación usa tu ubicación para registrar dónde se realizó la instalación al cerrar el servicio.</string>
+	<string>Esta aplicación usa tu ubicación para registrar dónde se realizó la instalación al cerrar el servicio y para leer el nombre de la red Wi-Fi al conectar una cámara.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Esta aplicación se comunica con la cámara en la red local para conectarla a la Wi-Fi de la casa.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
