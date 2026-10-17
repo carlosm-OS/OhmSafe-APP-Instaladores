@@ -234,7 +234,7 @@ class _Repo implements OrdenesRepository {
   }
 
   @override
-  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red}) async {
+  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category}) async {
     altas.add({'proveedor': proveedor, 'clase': clase, 'externalId': externalId, 'nombre': nombre, 'codigo': codigo, 'red': red});
     return Success({'dispositivo': {'id': 'cam1', 'name': nombre}});
   }

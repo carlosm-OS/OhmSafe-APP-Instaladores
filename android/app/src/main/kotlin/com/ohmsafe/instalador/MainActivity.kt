@@ -10,5 +10,7 @@ class MainActivity : FlutterFragmentActivity() {
     // Puente de cámaras EZVIZ (2026-10-17): conectar la cámara a la Wi-Fi de la casa desde el
     // teléfono del instalador. Canal propio `ohmsafe/ezviz`.
     flutterEngine.plugins.add(EzvizPlugin())
+    // Puente de Tuya (2026-10-17): emparejar sensores/cámaras Tuya con el token de la casa.
+    flutterEngine.plugins.add(TuyaPlugin())
   }
 }

@@ -12,6 +12,7 @@ import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import 'conectar_camara_wifi_screen.dart';
+import 'conectar_tuya_wifi_screen.dart';
 import 'escanear_serie_screen.dart';
 import '../widgets/aprender_rf_sheet.dart';
 import '../widgets/con_textos.dart';
@@ -126,6 +127,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   /// Qué se puede emparejar a la Wi‑Fi desde este teléfono (2026-10-17): lo dice el backend según
   /// lo que tenga encendido en el ambiente (`wifi.emparejar`).
   bool get _emparejarEzviz => (_sec('wifi')['emparejar'] as Map?)?['ezviz'] == true;
+  bool get _emparejarTuya => (_sec('wifi')['emparejar'] as Map?)?['tuya'] == true;
+
+  /// Sensor o cámara Tuya nueva: el teléfono le pasa la Wi‑Fi con el permiso de la casa (2026-10-17).
+  Future<void> _conectarTuya(String clase) async {
+    final ok = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => ConectarTuyaWifiScreen(ordenId: _id, clase: clase)));
+    if (ok == true && mounted) await _cargarDisp();
+  }
 
   static const _tipoRfTexto = {'door': 'Puerta', 'pir': 'Movimiento', 'smoke': 'Humo', 'panic_button': 'Botón de pánico', 'fob': 'Control remoto'};
 
@@ -724,7 +732,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               ),
 
                               // ---------------- Sensores Wi‑Fi (apagados por ahora: ver _wifiHabilitado)
-                              if (_wifiHabilitado || _lista('wifi', 'sensores').isNotEmpty) ...[
+                              if (_wifiHabilitado || _emparejarTuya || _lista('wifi', 'sensores').isNotEmpty) ...[
                                 const SizedBox(height: 12),
                                 const EtiquetaSeccion(
                                   'SENSORES WI‑FI',
@@ -737,6 +745,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 ),
                                 for (final x in _lista('wifi', 'sensores'))
                                   _guardado((x['nombre'] ?? '').toString(), '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · ID ${x['externalId'] ?? ''}'),
+                                if (_emparejarTuya)
+                                  _agregar('Conectar sensor Wi‑Fi', 'Tuya nuevo: el teléfono le pasa la red', _ocupado ? null : () => _conectarTuya('sensor')),
                                 if (_wifiHabilitado) _agregar('Sensor Wi‑Fi', 'Puerta, movimiento o humo', _ocupado || _disp == null ? null : _agregarWifi),
                               ],
 
@@ -760,6 +770,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 ),
                               if (_emparejarEzviz)
                                 _agregar('Conectar cámara a la Wi‑Fi', 'EZVIZ nueva: el teléfono le pasa la red', _ocupado ? null : _conectarCamaraWifi),
+                              if (_emparejarTuya)
+                                _agregar('Conectar cámara Tuya', 'Tuya nueva: el teléfono le pasa la red', _ocupado ? null : () => _conectarTuya('camara')),
                               _agregar(
                                 'Cámara ya conectada',
                                 _hayProveedor ? 'Ya está en internet: serie y código' : 'No disponibles por ahora',

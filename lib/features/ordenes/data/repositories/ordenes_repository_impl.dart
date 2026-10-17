@@ -351,9 +351,39 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
-  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red}) async {
+  Future<Result<Map<String, dynamic>>> tuyaToken(String id, {required String modo, String? zonaHoraria}) async {
     try {
-      return Success(await dataSource.dispositivoWifiAgregar(id, proveedor: proveedor, clase: clase, externalId: externalId, nombre: nombre, codigo: codigo, red: red));
+      return Success(await dataSource.tuyaToken(id, modo: modo, zonaHoraria: zonaHoraria));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> tuyaTokenResultado(String id, String token) async {
+    try {
+      return Success(await dataSource.tuyaTokenResultado(id, token));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category}) async {
+    try {
+      return Success(await dataSource.dispositivoWifiAgregar(id, proveedor: proveedor, clase: clase, externalId: externalId, nombre: nombre, codigo: codigo, red: red, tipo: tipo, productId: productId, category: category));
     } on UnauthorizedException {
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {

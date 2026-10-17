@@ -1,7 +1,25 @@
+// Tuya Smart Life App SDK (2026-10-17: emparejar sensores/cámaras Tuya). Los repos Maven de Tuya se
+// agregan SÓLO si el paquete de seguridad propio de la app (security-algorithm*.aar, generado por la
+// consola de Tuya para com.ohmsafe.instalador) existe fuera del repo; sin él la app compila igual y
+// el puente contesta TUYA_NOT_LINKED.
+val ohmsafeTuyaAndroidSdk: java.io.File = file(
+    System.getenv("OHMSAFE_TUYA_ANDROID_SDK")
+        ?: "${System.getProperty("user.home")}/dev/ohmsafe/keys/tuya-instalador/android/sec"
+)
+val ohmsafeTuyaLinked: Boolean = System.getenv("OHMSAFE_TUYA") != "0" &&
+    ohmsafeTuyaAndroidSdk.isDirectory &&
+    (ohmsafeTuyaAndroidSdk.listFiles { _, name -> name.endsWith(".aar") }?.isNotEmpty() == true)
+extra["ohmsafeTuyaAndroidSdk"] = ohmsafeTuyaAndroidSdk
+extra["ohmsafeTuyaLinked"] = ohmsafeTuyaLinked
+
 allprojects {
     repositories {
         google()
         mavenCentral()
+        if (ohmsafeTuyaLinked) {
+            maven { setUrl("https://maven-other.tuya.com/repository/maven-releases/") }
+            maven { setUrl("https://maven-other.tuya.com/repository/maven-commercial-releases/") }
+        }
     }
 }
 

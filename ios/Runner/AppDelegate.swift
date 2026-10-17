@@ -25,5 +25,10 @@ import UserNotifications
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "EzvizPlugin") {
       EzvizPlugin.register(with: registrar)
     }
+    // Puente de Tuya (2026-10-17): emparejar sensores/cámaras Tuya con el token de la casa. Sin el
+    // paquete de seguridad (pod ThingSmartCryption) contesta TUYA_NOT_LINKED.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "TuyaPlugin") {
+      TuyaPlugin.register(with: registrar)
+    }
   }
 }

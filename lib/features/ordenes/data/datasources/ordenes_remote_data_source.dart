@@ -170,7 +170,13 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> ezvizSondeo(String id, String serie) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/wifi/ezviz/sondeo', body: {'serie': serie}, sinReintento: true));
   @override
-  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red}) async =>
+  Future<Map<String, dynamic>> tuyaToken(String id, {required String modo, String? zonaHoraria}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/wifi/tuya/token', body: {'modo': modo, if (zonaHoraria != null && zonaHoraria.isNotEmpty) 'zonaHoraria': zonaHoraria}, sinReintento: true));
+  @override
+  Future<Map<String, dynamic>> tuyaTokenResultado(String id, String token) async =>
+      _data(await dioClient.get('/instalador/ordenes/$id/wifi/tuya/token/${Uri.encodeComponent(token)}', sinReintento: true));
+  @override
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category}) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/dispositivos-wifi', body: {
         'proveedor': proveedor,
         'clase': clase,
@@ -178,6 +184,9 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
         'nombre': nombre,
         if (codigo != null && codigo.isNotEmpty) 'codigo': codigo,
         if (red != null && red.isNotEmpty) 'red': red,
+        if (tipo != null && tipo.isNotEmpty) 'tipo': tipo,
+        if (productId != null && productId.isNotEmpty) 'productId': productId,
+        if (category != null && category.isNotEmpty) 'category': category,
       }));
   @override
   Future<Map<String, dynamic>> ohmboxEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/ohmbox'));

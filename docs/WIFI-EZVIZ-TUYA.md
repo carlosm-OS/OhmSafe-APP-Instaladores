@@ -87,3 +87,49 @@ se lleva a la otra.
 - Probar con una cámara EZVIZ real y una casa de dev (api-dev tiene EZVIZ encendido).
 - Tuya (sensores y cámaras Tuya): espera la app de Tuya del instalador y sus llaves (Dan).
 - Imou: v1 sigue siendo «Cámara ya conectada» (conectar con Imou Life y registrar aquí).
+
+---
+
+# Sensores y cámaras Tuya: emparejar con el token de la casa (2026-10-17)
+
+Misma idea que EZVIZ, con una diferencia de fondo: **la app del instalador no inicia sesión en
+Tuya**. Cada app con SDK de Tuya tiene su propio schema de usuarios y la cuenta de la casa vive en
+el de OhmSafe GO; por eso el backend pide a Tuya un **token de emparejamiento** ligado al uid y al
+hogar de la casa (`POST /instalador/ordenes/:id/wifi/tuya/token`) y la app sólo se lo transmite al
+equipo. El equipo queda en la cuenta de la casa, visible y controlable desde GO; el backend lo ve por
+el proyecto de nube. La contraseña Tuya de la casa nunca sale del servidor.
+
+| Pieza | Archivo |
+|---|---|
+| Puente Dart | `lib/core/tuya/tuya_puente.dart` (`ohmsafe/tuya`: `configure`, `pairStart {mode, ssid, password, token, timeoutS}`, `pairCancel`, `currentSsid`) |
+| Lógica | `lib/core/tuya/emparejador_tuya.dart` (token → configure → pairStart → `pairDone` del SDK **o** sondeo del backend `GET …/tuya/token/:token` → alta con la red) |
+| Pantalla | `lib/screens/conectar_tuya_wifi_screen.dart` (sensor: puerta/movimiento/humo; cámara; modo Rápido (EZ) o Punto de acceso (AP)) |
+| iOS | `ios/Runner/TuyaPlugin.swift` (`ThingSmartActivator.startConfigWiFi(_:ssid:password:token:timeout:)`); pods `ThingSmartHomeKit ~> 7.8.0` + `ThingSmartCryption` (paquete de seguridad fuera del repo) |
+| Android | `TuyaPlugin.kt` (común) + `src/tuyaOn|tuyaOff/…/TuyaBridgeFactory.kt` (`ActivatorBuilder().setToken(token)`), `thingsmart:7.8.0` + `security-algorithm*.aar` fuera del repo |
+| Pruebas | `test/tuya_wifi_test.dart` |
+
+## Llaves y paquetes (nunca en git)
+
+- Cuenta de Tuya de OhmSafe (`admin@ohmsafe.com`): app «OhmSafe Installer» (Smart Life App SDK 7.8.0,
+  `com.ohmsafe.instalador`). Cada plataforma tiene su propio AppKey/AppSecret.
+- `~/dev/ohmsafe/keys/tuya-instalador/`: `ios/ios_core_sdk/` (pod `ThingSmartCryption` con `t_s.bmp`),
+  `android/sec/security-algorithm-*.aar`, y `tuya-defines.json` con `TUYA_IOS_APP_KEY`,
+  `TUYA_IOS_APP_SECRET`, `TUYA_ANDROID_APP_KEY`, `TUYA_ANDROID_APP_SECRET`.
+- Build: `flutter build … --dart-define-from-file=$HOME/dev/ohmsafe/keys/tuya-instalador/tuya-defines.json`.
+  Sin el archivo la app compila y la pantalla dice «Esta versión no puede emparejar equipos Tuya».
+- `OHMSAFE_TUYA=0` (pod install / gradle) deja el SDK fuera (puente `TUYA_NOT_LINKED`); hace falta
+  para el simulador de Apple silicon, igual que EZVIZ.
+
+## Trampas
+
+- El SDK sin sesión puede no avisar `pairDone` (sondea la nube con la sesión del usuario): por eso el
+  emparejador también pregunta al backend cada 5 s y un `pairError` del SDK no tumba el intento.
+- Sin uid Tuya de la casa el backend contesta 409 `TUYA_UID_DESCONOCIDO`: el cliente debe entrar una
+  vez a GO (GO reporta el uid al guardar el hogar) o el servidor necesita `TUYA_APP_SCHEMA`.
+- **Android con AGP 9:** varios AAR del SDK 7.8.0 comparten el namespace `com.thingclips.sdk.devicecore`
+  y AGP 9 lo trata como error; `android/gradle.properties` lleva `android.uniquePackageNames=false`.
+- **iOS con Tuya + EZVIZ:** los dos traen su propio OpenSSL/mbedTLS; el Podfile mueve
+  `EZOpenSDKFramework` al final del enlazado (`ohmsafe_fix_crypto_link_order`, copiado de la app del
+  cliente) para que Tuya no llame a un OpenSSL ajeno.
+- Pendiente de probar con un sensor real: GO aún no existe en la cuenta nueva de Tuya (el bundle
+  `com.ohmSafe` sigue en la cuenta de Dan).

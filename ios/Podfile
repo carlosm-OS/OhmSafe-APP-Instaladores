@@ -16,6 +16,25 @@ ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 OHMSAFE_EZVIZ_POD_VERSION = '~> 5.32'
 OHMSAFE_EZVIZ_LINKED = ENV['OHMSAFE_EZVIZ'] != '0'
 
+# --- Tuya Smart Life App SDK (2026-10-17: emparejar sensores/cámaras Tuya) -----
+# El paquete de seguridad propio de la app (ThingSmartCryption) vive FUERA del repo, como el
+# AppSecret: ~/dev/ohmsafe/keys/tuya-instalador/ios/ios_core_sdk (lo generó la consola de Tuya para
+# com.ohmsafe.instalador). Si no está, la app compila igual y el puente contesta TUYA_NOT_LINKED.
+OHMSAFE_TUYA_IOS_SDK = File.expand_path(
+  ENV['OHMSAFE_TUYA_IOS_SDK'] || File.join(Dir.home, 'dev', 'ohmsafe', 'keys', 'tuya-instalador', 'ios', 'ios_core_sdk')
+)
+OHMSAFE_TUYA_LINKED = ENV['OHMSAFE_TUYA'] != '0' &&
+  File.exist?(File.join(OHMSAFE_TUYA_IOS_SDK, 'ThingSmartCryption.podspec'))
+if OHMSAFE_TUYA_LINKED
+  # Declarar cualquier `source` desactiva el CDN implícito: hay que nombrarlo.
+  source 'https://cdn.cocoapods.org/'
+  source 'https://github.com/TuyaInc/TuyaPublicSpecs.git'
+  source 'https://github.com/tuya/tuya-pod-specs.git'
+  puts "[ohmsafe] Tuya SDK enlazado desde #{OHMSAFE_TUYA_IOS_SDK}"
+else
+  puts '[ohmsafe] Tuya SDK ausente: build sin emparejamiento Tuya (TUYA_NOT_LINKED)'
+end
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
@@ -48,12 +67,40 @@ target 'Runner' do
   # El módulo que se importa en Swift se llama `EZOpenSDKFramework`, no `EZOpenSDK`.
   pod 'EZOpenSDK', OHMSAFE_EZVIZ_POD_VERSION if OHMSAFE_EZVIZ_LINKED
 
+  # Smart Life App SDK (sólo emparejamiento; sin cámaras IPC). Las llaves llegan por dart-define.
+  if OHMSAFE_TUYA_LINKED
+    pod 'ThingSmartHomeKit', '~> 7.8.0'
+    pod 'ThingSmartCryption', :path => OHMSAFE_TUYA_IOS_SDK
+  end
+
   target 'RunnerTests' do
     inherit! :search_paths
   end
 end
 
+# --- Orden de enlazado: quién gana los símbolos de OpenSSL/mbedTLS ------------
+# EZOpenSDKFramework lleva OpenSSL y mbedTLS compilados dentro y los exporta; Tuya trae los suyos
+# (ThingOpenSSLSDK, ThingMbedtls) con estructuras de otro tamaño. Si EZVIZ gana por orden
+# alfabético, Tuya llama a un OpenSSL ajeno y corrompe memoria. Misma cura que la app del cliente:
+# EZOpenSDKFramework al FINAL del enlazado, para que sólo se quede con los símbolos que nadie más define.
+def ohmsafe_fix_crypto_link_order(installer)
+  last = 'EZOpenSDKFramework'
+  Dir.glob(File.join(installer.sandbox.target_support_files_root.to_s, 'Pods-Runner*', '*.xcconfig')).each do |path|
+    text = File.read(path)
+    changed = text.lines.map do |line|
+      next line unless line.start_with?('OTHER_LDFLAGS')
+      next line unless line.include?(%(-framework "#{last}"))
+      line.sub(%( -framework "#{last}"), '').rstrip + %( -framework "#{last}"\n)
+    end.join
+    next if changed == text
+    File.write(path, changed)
+    puts "[ohmsafe] #{last} movido al final del enlazado en #{File.basename(path)}"
+  end
+end
+
 post_install do |installer|
+  ohmsafe_fix_crypto_link_order(installer) if OHMSAFE_TUYA_LINKED && OHMSAFE_EZVIZ_LINKED
+
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
@@ -65,7 +112,7 @@ post_install do |installer|
 
       # EZOpenSDK no trae slice arm64 de simulador: su podspec la excluye y hay que excluirla
       # en todo el workspace o el enlazado del simulador falla a medias.
-      if OHMSAFE_EZVIZ_LINKED
+      if OHMSAFE_EZVIZ_LINKED || OHMSAFE_TUYA_LINKED
         config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
       end
     end
