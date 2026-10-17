@@ -1432,10 +1432,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         const SizedBox(height: 32),
         Row(
           children: [
-            // El boton de conclusion lleva la etiqueta larga, asi que se le da
-            // el doble de espacio que a "Atras" para que no se trunque.
+            // «Siguiente» (con ícono) lleva el doble de espacio que «Atrás» para que no se trunque.
+            // Hasta el 2026-10-17 estaba al revés (Atrás flex 2): en un teléfono chico se cortaba.
             Expanded(
-              flex: 2,
               child: SizedBox(
                 height: 52,
                 child: OutlinedButton(
@@ -1454,6 +1453,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
+              flex: 2,
               child: OhmGradientButton(
                 label: "Siguiente",
                 icon: Icons.arrow_forward_rounded,

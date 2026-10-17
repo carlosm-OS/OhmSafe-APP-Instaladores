@@ -2,6 +2,11 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Próxima build
+
+- **Cierre, paso Entrega:** el botón «Siguiente» ocupa ahora el doble que «Atrás» y ya no se corta en teléfonos chicos.
+- **Avisos de error en rojo:** un rojo un poco más oscuro para que el texto blanco se lea bien al sol.
+
 ## Build 48 (TestFlight, producción) — 17 de octubre de 2026
 
 - **Notificaciones:** al cerrar sesión, el teléfono deja de recibir los avisos de esa cuenta. Antes, si cambiabas de cuenta en el mismo teléfono (por ejemplo, de Juan a Chuck), te llegaban los avisos de las dos.

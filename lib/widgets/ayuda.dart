@@ -494,8 +494,10 @@ class FichaEquipo extends StatelessWidget {
 }
 
 /// Rojo de los avisos de error rellenos (lienzo de Carlos, 2026-10-15). El texto va en blanco y bold.
+/// 2026-10-17: del #FF3A4B del lienzo (3.5:1 con blanco, se leía mal al sol) al mismo tono más oscuro,
+/// #DC2638 (4.8:1, pasa el mínimo de accesibilidad 4.5:1 para texto normal).
 abstract final class AvisoRojo {
-  static const Color fondo = Color(0xFFFF3A4B);
+  static const Color fondo = Color(0xFFDC2638);
 }
 
 /// Renglón «Etiqueta:  valor» centrado, como «Cliente:» y «Metraje agendado:» del paso 2.
