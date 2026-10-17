@@ -35,3 +35,12 @@
 -keepattributes Signature
 -keepattributes *Annotation*
 -keepattributes InnerClasses,EnclosingMethod
+
+# Tuya Smart Life App SDK (2026-10-17). Reglas que pide Tuya + las clases opcionales que el SDK
+# referencia y no vienen (módulos de escenas, audio, sweeper, Play Core): R8 las trata como error.
+-keep class com.thingclips.** { *; }
+-dontwarn com.thingclips.**
+-keep class com.alibaba.fastjson.** { *; }
+-dontwarn com.alibaba.fastjson.**
+-dontwarn com.facebook.soloader.SoLoader
+-dontwarn com.google.android.play.core.**
