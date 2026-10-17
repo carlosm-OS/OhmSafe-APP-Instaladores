@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../features/auth/domain/entities/sesion.dart';
 import '../error/exceptions.dart';
 import '../network/dio_client.dart';
+import '../push/push_service.dart';
 import 'session_store.dart';
 
 /// Se lanza cuando no hay forma de recuperar la sesión: toca volver al login.
@@ -107,7 +108,10 @@ class SessionManager {
     final refresh = await _store.leer(ClavesSesion.refreshToken);
     if (refresh != null && refresh.isNotEmpty) {
       try {
-        await _dio.post('/instalador/auth/logout', body: {'refreshToken': refresh}, sinReintento: true);
+        // Con el token del teléfono, el backend deja de mandarle avisos de esta cuenta (2026-10-17:
+        // un teléfono que cambiaba de Juan a Chuck recibía los avisos de los dos).
+        final push = await PushService.instance.tokenActual();
+        await _dio.post('/instalador/auth/logout', body: {'refreshToken': refresh, 'pushToken': ?push}, sinReintento: true);
       } catch (_) {}
     }
     await _store.limpiarSesion();

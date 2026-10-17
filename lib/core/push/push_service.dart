@@ -55,6 +55,17 @@ class PushService {
     }
   }
 
+  /// Token FCM de este teléfono (o null si no hay push). Se manda al cerrar sesión para que el
+  /// backend lo dé de baja: si no, el teléfono seguía recibiendo los avisos de la cuenta anterior.
+  Future<String?> tokenActual() async {
+    if (!soportado) return null;
+    try {
+      return await _fm.getToken().timeout(const Duration(seconds: 3));
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Registra el token FCM del instalador en el backend. Llamar tras el login
   /// (el endpoint requiere sesión: el token del dispositivo se liga al partner).
   Future<void> registrarToken() async {
