@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 47 (producción: Google Play y App Store) — 17 de octubre de 2026
+
+Primera build de tienda con todo lo de las builds 38 a 46 (prueba en sitio, agregar dispositivos, ajustes del lienzo de diseño y «Esperando señal del equipo…»). Apunta a producción.
+
 ## Build 46 — 15 de octubre de 2026
 
 - **«Esperando señal del equipo…»** con barra de progreso en Vincular y en la Prueba: un equipo recién encendido tarda 1 o 2 minutos en aparecer en línea. La pantalla vuelve a revisar sola cada 5 segundos; el aviso rojo de «sin señal» sólo sale si a los 3 minutos sigue sin reportar.
