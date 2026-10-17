@@ -20,8 +20,36 @@ abstract class OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo);
   /// Devuelve el resultado del ligado a la cuenta del cliente (`dashboard`:
   /// `ligado`, y si no, `motivo` CLIENTE_SIN_CUENTA | EQUIPO_DE_OTRO_TITULAR | SIN_SERIE).
-  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino});
+  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
   Future<Map<String, dynamic>> casasParaVincular(String id);
+
+  /// Prueba en sitio del energizador (build 39): ventana temporal para encender/apagar la cerca.
+  /// `GET/POST /instalador/ordenes/:id/prueba[/abrir|extender|accion|terminar]`.
+  Future<Map<String, dynamic>> pruebaEstado(String id);
+  Future<Map<String, dynamic>> pruebaAbrir(String id);
+  Future<Map<String, dynamic>> pruebaExtender(String id);
+  Future<Map<String, dynamic>> pruebaAccion(String id, String accion);
+  Future<Map<String, dynamic>> pruebaTerminar(String id);
+
+  /// «Agregar dispositivos» cableado con prueba en vivo (build 39): `GET/POST /instalador/ordenes/:id/cableado…`.
+  Future<Map<String, dynamic>> cableadoEstado(String id);
+  Future<Map<String, dynamic>> cableadoProbarEntrada(String id, int index);
+  Future<Map<String, dynamic>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono});
+  Future<Map<String, dynamic>> cableadoProbarSirena(String id);
+  Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono});
+  Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index);
+  Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
+  /// OhmBox adicional en la misma casa (2026-10-14): `GET/POST /instalador/ordenes/:id/ohmbox`.
+  Future<Map<String, dynamic>> ohmboxEstado(String id);
+  Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac});
+  /// Sensores 433, Wi‑Fi y cámaras (2026-10-14): `/instalador/ordenes/:id/{dispositivos,rf/aprender…,sensores-wifi,camaras}`.
+  Future<Map<String, dynamic>> dispositivosEstado(String id);
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre});
+  Future<Map<String, dynamic>> rfSesion(String id, String sid);
+  Future<Map<String, dynamic>> rfTerminar(String id, String sid, {required String nombre});
+  Future<Map<String, dynamic>> rfCancelar(String id, String sid);
+  Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo});
+  Future<Map<String, dynamic>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre});
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Historial del instalador: intervenciones completadas y canceladas en sitio

@@ -34,11 +34,38 @@ abstract class OrdenesRepository {
 
   /// Vincula el energizador (por QR o número de serie).
   /// Devuelve el resultado del ligado a la cuenta del cliente (`ligado`, `motivo`).
-  /// `destino`: casa existente (`{'casaId'}`) o casa nueva (`{'nueva': {...}}`); sin él, como siempre.
-  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino});
+  /// La casa la decide la venta en el backend (2026-10-14); la app ya no manda `destino`.
+  Future<Result<Map<String, dynamic>>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada});
 
-  /// Casas del cliente de la orden en el dashboard, para decidir dónde va el equipo.
+  /// A dónde va el equipo (`destino`, decidido por la venta) y qué se vendió; ya no hay casas que elegir.
   Future<Result<Map<String, dynamic>>> casasParaVincular(String id);
+
+  /// Prueba en sitio del energizador (ventana temporal para encender/apagar la cerca).
+  Future<Result<Map<String, dynamic>>> pruebaEstado(String id);
+  Future<Result<Map<String, dynamic>>> pruebaAbrir(String id);
+  Future<Result<Map<String, dynamic>>> pruebaExtender(String id);
+  Future<Result<Map<String, dynamic>>> pruebaAccion(String id, String accion);
+  Future<Result<Map<String, dynamic>>> pruebaTerminar(String id);
+
+  /// «Agregar dispositivos» cableado con prueba en vivo.
+  Future<Result<Map<String, dynamic>>> cableadoEstado(String id);
+  Future<Result<Map<String, dynamic>>> cableadoProbarEntrada(String id, int index);
+  Future<Result<Map<String, dynamic>>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono});
+  Future<Result<Map<String, dynamic>>> cableadoProbarSirena(String id);
+  Future<Result<Map<String, dynamic>>> cableadoConfirmarSirena(String id, {required bool sono});
+  Future<Result<Map<String, dynamic>>> cableadoProbarSalida(String id, int index);
+  Future<Result<Map<String, dynamic>>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
+  /// OhmBox adicional en la misma casa (add-on de su suscripción, 2026-10-14).
+  Future<Result<Map<String, dynamic>>> ohmboxEstado(String id);
+  Future<Result<Map<String, dynamic>>> ohmboxAgregar(String id, {required String serie, String? mac});
+  /// Sensores 433, Wi‑Fi y cámaras desde «Agregar dispositivos» (2026-10-14).
+  Future<Result<Map<String, dynamic>>> dispositivosEstado(String id);
+  Future<Result<Map<String, dynamic>>> rfAprender(String id, {required String tipo, String? nombre});
+  Future<Result<Map<String, dynamic>>> rfSesion(String id, String sid);
+  Future<Result<Map<String, dynamic>>> rfTerminar(String id, String sid, {required String nombre});
+  Future<Result<Map<String, dynamic>>> rfCancelar(String id, String sid);
+  Future<Result<Map<String, dynamic>>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo});
+  Future<Result<Map<String, dynamic>>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre});
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 

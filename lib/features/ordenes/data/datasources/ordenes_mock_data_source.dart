@@ -153,7 +153,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<void> guardarReparacion(String id, Map<String, dynamic> costeo) => _ok();
 
   @override
-  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
+  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
     await _ok();
     return {'ligado': true};
   }
@@ -162,13 +162,96 @@ class OrdenesMockDataSource implements OrdenesDataSource {
     await _ok();
     return {
       'clienteConCuenta': true,
-      'casas': [
-        {'id': 'casa-1', 'nombre': 'Casa Mock', 'direccion': 'Av. Insurgentes Sur 1234, CDMX', 'energizadores': 1},
-      ],
-      'sugerida': 'casa-1',
+      'casas': [],
+      'sugerida': null,
       'nueva': {'nombre': 'Av. Insurgentes Sur 1234', 'direccion': 'Av. Insurgentes Sur 1234, CDMX'},
+      'venta': {'nombre': 'S00170', 'esServicioNuevo': true, 'plan': 'Plan Hogar Seguro - Mensual', 'equipos': [{'nombre': 'Ohmbox/Energizador', 'cantidad': 1}]},
+      'destino': {'tipo': 'nueva', 'nombre': 'Av. Insurgentes Sur 1234', 'direccion': 'Av. Insurgentes Sur 1234, CDMX', 'motivo': 'S00170 es un plan nuevo: va a una casa nueva con la dirección de la compra.', 'aviso': null},
     };
   }
+  final List<Map<String, dynamic>> _mockRf = [];
+  final List<Map<String, dynamic>> _mockWifi = [];
+  final List<Map<String, dynamic>> _mockCams = [];
+  int _mockPaso = 0;
+  @override
+  Future<Map<String, dynamic>> dispositivosEstado(String id) async {
+    await _ok();
+    return {
+      'equipo': {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'firmware': '2.11.0.14'},
+      'rf': {'soportado': true, 'dispositivos': _mockRf, 'limites': {}, 'aprendizaje': null},
+      'wifi': {'sensores': _mockWifi, 'limites': {}, 'usados': {}},
+      'camaras': {'habilitadas': true, 'proveedores': {'ezviz': true, 'imou': true}, 'lista': _mockCams, 'max': 32},
+    };
+  }
+  Map<String, dynamic> _sesion(String tipo, {String status = 'listening'}) => {'sid': 'mock1', 'kind': tipo, 'status': status, 'phase': tipo == 'door' ? (_mockPaso == 0 ? 'open' : 'close') : 'btn', 'step': _mockPaso + 1, 'steps': tipo == 'door' ? 2 : 1, 'frames': 0, 'need': 2, 'addr': status == 'listening' ? null : 'A1B2C3', 'captured': []};
+  String _mockTipo = 'door';
+  @override
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre}) async { await _ok(); _mockTipo = tipo; _mockPaso = 0; return {'sesion': _sesion(tipo)}; }
+  @override
+  Future<Map<String, dynamic>> rfSesion(String id, String sid) async { await _ok(); _mockPaso++; return {'sesion': _sesion(_mockTipo, status: _mockPaso >= 2 ? 'done' : 'listening')}; }
+  @override
+  Future<Map<String, dynamic>> rfTerminar(String id, String sid, {required String nombre}) async { await _ok(); _mockRf.add({'id': 'rf${_mockRf.length}', 'tipo': _mockTipo, 'nombre': nombre}); return {'device': {'name': nombre}}; }
+  @override
+  Future<Map<String, dynamic>> rfCancelar(String id, String sid) async { await _ok(); return {'sesion': _sesion(_mockTipo, status: 'cancelled')}; }
+  @override
+  Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo}) async { await _ok(); _mockWifi.add({'id': externalId, 'tipo': tipo, 'nombre': nombre, 'externalId': externalId}); return {'sensor': {'name': nombre}}; }
+  @override
+  Future<Map<String, dynamic>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre}) async { await _ok(); _mockCams.add({'id': serie, 'proveedor': proveedor ?? 'cam', 'nombre': nombre, 'serie': serie, 'estado': 'online'}); return {'camara': {'name': nombre}}; }
+  final List<Map<String, dynamic>> _mockOhmbox = [
+    {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'nombre': 'Cerca', 'enLinea': true, 'principal': true},
+  ];
+  @override
+  Future<Map<String, dynamic>> ohmboxEstado(String id) async { await _ok(); return {'casa': {'id': 'casa-1', 'nombre': 'Casa Mock'}, 'energizadores': _mockOhmbox}; }
+  @override
+  Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac}) async {
+    await _ok();
+    _mockOhmbox.add({'id': 'dev-${_mockOhmbox.length + 1}', 'serie': serie, 'nombre': 'Cerca', 'enLinea': false, 'principal': false});
+    return {'casa': {'id': 'casa-1', 'nombre': 'Casa Mock'}, 'energizadores': _mockOhmbox};
+  }
+  Map<String, dynamic> _prueba({bool abierta = true, bool cerca = false}) => {
+        'intervencion': 'i1',
+        'ventana': {'abierta': abierta, 'vence': DateTime.now().add(const Duration(minutes: 30)).toIso8601String(), 'segundosRestantes': abierta ? 1800 : 0, 'propia': abierta},
+        'equipo': {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'nombre': 'Cerca', 'enLinea': true, 'ultimoReporte': DateTime.now().toIso8601String(), 'cercaEncendida': cerca, 'alarmaActiva': false, 'sirenaSonando': false},
+      };
+  bool _mockCerca = false;
+  @override
+  Future<Map<String, dynamic>> pruebaEstado(String id) async { await _ok(); return _prueba(cerca: _mockCerca); }
+  @override
+  Future<Map<String, dynamic>> pruebaAbrir(String id) async { await _ok(); return _prueba(cerca: _mockCerca); }
+  @override
+  Future<Map<String, dynamic>> pruebaExtender(String id) async { await _ok(); return _prueba(cerca: _mockCerca); }
+  @override
+  Future<Map<String, dynamic>> pruebaAccion(String id, String accion) async { await _ok(); _mockCerca = accion == 'cerca_on'; return {..._prueba(cerca: _mockCerca), 'resultado': 'sent'}; }
+  /// Como el equipo real: tras «Probar», la salida queda marcada como probada.
+  final Set<int> _salidasProbadas = {};
+  Map<String, dynamic> _cableado() => {
+        'intervencion': 'i1',
+        'equipo': {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'firmware': '2.11.0.14', 'firmwareOk': true, 'firmwareMinimo': '2.10.0.0', 'enLinea': true, 'alarmaArmada': false, 'estadoEntradasEn': null},
+        'entradas': [
+          {'index': 1, 'nombre': 'Puerta 1', 'dadaDeAlta': false, 'enUso': true, 'abierta': true, 'prueba': null},
+          {'index': 2, 'nombre': 'Puerta 2', 'dadaDeAlta': false, 'enUso': true, 'abierta': true, 'prueba': null},
+        ],
+        'sirena': {'sonando': false, 'probada': false, 'sono': null},
+        'salidas': [
+          for (final i in [1, 2]) {'index': i, 'nombre': null, 'dadaDeAlta': false, 'encendida': false, 'tipo': null, 'modo': null, 'probada': _salidasProbadas.contains(i), 'cerro': null},
+        ],
+      };
+  @override
+  Future<Map<String, dynamic>> cableadoEstado(String id) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoProbarEntrada(String id, int index) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono}) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoProbarSirena(String id) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono}) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async { await _ok(); _salidasProbadas.add(index); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono}) async { await _ok(); return _cableado(); }
+  @override
+  Future<Map<String, dynamic>> pruebaTerminar(String id) async { await _ok(); return _prueba(abierta: false, cerca: _mockCerca); }
   @override
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion}) async => {'estado': 'cancelado'};
 

@@ -1,4 +1,6 @@
 import 'core/teclado/teclado.dart';
+import 'core/network/actividad.dart';
+import 'widgets/barra_progreso_global.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -67,7 +69,7 @@ class _OhmSafeAppContainerState extends State<OhmSafeAppContainer> {
   void initState() {
     super.initState();
     // Push con la app abierta: la campana se actualiza al instante.
-    PushService.instance.onMensajeEnPrimerPlano = (_) => _appState.refreshNotificaciones();
+    PushService.instance.onMensajeEnPrimerPlano = (_) => Actividad.enSilencio(_appState.refreshNotificaciones);
   }
 
   @override
@@ -167,7 +169,8 @@ class _OhmSafeAppState extends State<OhmSafeApp> with WidgetsBindingObserver {
       supportedLocales: const [Locale('es', 'MX'), Locale('es'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       // Teclado: barra «Listo» en iOS, tocar fuera lo cierra y se cierra al navegar.
-      builder: (context, child) => TecladoGlobal(child: child ?? const SizedBox.shrink()),
+      // Barra de progreso global: toda espera de red o GPS se ve (nada de «se trabó»).
+      builder: (context, child) => TecladoGlobal(child: BarraProgresoGlobal(child: child ?? const SizedBox.shrink())),
       navigatorObservers: [CerrarTecladoAlNavegar()],
       home: ArranqueScreen(onToggleTheme: _toggleTheme),
     );

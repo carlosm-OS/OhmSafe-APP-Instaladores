@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import '../error/exceptions.dart';
+import 'actividad.dart';
 import '../config/env_config.dart';
 
 abstract class HttpClientRequest {
@@ -54,7 +55,13 @@ class DioClient {
   /// Reintenta una vez si el backend contestó 401 y hay quien refresque. Las
   /// rutas de auth (`sinReintento`) nunca entran aquí: un 401 en el login son
   /// credenciales malas y en el refresh es una sesión muerta.
-  Future<Map<String, dynamic>> _conReintento(Future<Map<String, dynamic>> Function() intento, {required bool sinReintento}) async {
+  ///
+  /// Toda petición cuenta como espera visible ([Actividad]): la barra de progreso global se pinta
+  /// mientras dure, salvo que se haya lanzado dentro de `Actividad.enSilencio`.
+  Future<Map<String, dynamic>> _conReintento(Future<Map<String, dynamic>> Function() intento, {required bool sinReintento}) =>
+      Actividad.seguir(() => _intentar(intento, sinReintento: sinReintento));
+
+  Future<Map<String, dynamic>> _intentar(Future<Map<String, dynamic>> Function() intento, {required bool sinReintento}) async {
     try {
       return await intento();
     } on UnauthorizedException {

@@ -280,14 +280,23 @@ class _ReparacionesScreenState extends State<ReparacionesScreen> {
                       ),
                     ],
                   ),
-                  if (orden.urgente)
-                    Row(
-                      children: const [
-                        Icon(Icons.circle, size: 8, color: Colors.red),
-                        SizedBox(width: 6),
-                        Text("Urgente", style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Row(
+                    children: [
+                      if (orden.urgente) ...[
+                        const Icon(Icons.circle, size: 8, color: Colors.red),
+                        const SizedBox(width: 6),
+                        const Text("Urgente", style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
                       ],
-                    ),
+                      if (orden.numero.isNotEmpty) ...[
+                        if (orden.urgente) const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+                          child: Text(orden.numero, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.primary)),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
               if (isOpen) ...[

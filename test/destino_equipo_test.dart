@@ -12,9 +12,7 @@ void main() {
           {'nombre': 'Ohmbox/Energizador', 'cantidad': 1}
         ],
       });
-      expect(v, isNotNull);
-      expect(v!.esServicioNuevo, isTrue);
-      expect(v.resumen, 'Servicio nuevo: Plan Hogar Seguro - Mensual · 1 Ohmbox/Energizador');
+      expect(v!.resumen, 'Servicio nuevo: Plan Hogar Seguro - Mensual · 1 Ohmbox/Energizador');
     });
 
     test('equipo adicional sin plan', () {
@@ -23,24 +21,39 @@ void main() {
       ]});
       expect(v!.resumen, 'Equipo adicional · 2 Ohmbox/Energizador');
     });
+  });
 
-    test('backend anterior sin venta → null y las opciones siguen funcionando', () {
-      expect(VentaResumen.fromJson(null), isNull);
-      final o = OpcionesDestino.fromJson({'casas': [], 'nueva': {'nombre': 'Casa', 'direccion': 'Calle 1'}});
-      expect(o.venta, isNull);
-      expect(o.hayQuePreguntar, isFalse);
+  // Una vivienda = una suscripción (2026-10-14): la venta decide la casa y la app sólo confirma.
+  group('DestinoDecidido', () {
+    test('backend anterior sin destino → null (se vincula sin confirmar)', () {
+      expect(DestinoDecidido.fromCasas({'casas': [], 'nueva': {'nombre': 'Casa'}}), isNull);
     });
 
-    test('la venta viaja dentro de las opciones', () {
-      final o = OpcionesDestino.fromJson({
-        'casas': [
-          {'id': 'a', 'nombre': 'Casa A', 'equipos': 1}
-        ],
-        'nueva': {'nombre': 'Casa', 'direccion': 'Calle 1'},
-        'venta': {'nombre': 'S00255', 'esServicioNuevo': true, 'plan': 'Plan', 'equipos': []},
-      });
-      expect(o.venta?.nombre, 'S00255');
-      expect(o.venta?.resumen, 'Servicio nuevo: Plan');
+    test('plan nuevo → casa nueva con la dirección de la compra', () {
+      final d = DestinoDecidido.fromCasas({
+        'destino': {'tipo': 'nueva', 'nombre': 'Nellie 12', 'direccion': 'Nellie 12, CDMX', 'motivo': 'plan nuevo', 'aviso': null},
+        'venta': {'nombre': 'S00170', 'esServicioNuevo': true, 'plan': 'Plan', 'equipos': []},
+      })!;
+      expect(d.esNueva, isTrue);
+      expect(d.bloquea, isFalse);
+      expect(d.casaNombre, 'Nellie 12');
+      expect(d.direccion, 'Nellie 12, CDMX');
+      expect(d.aviso, isNull);
+      expect(d.venta?.nombre, 'S00170');
+    });
+
+    test('equipo adicional → casa existente del contrato', () {
+      final d = DestinoDecidido.fromCasas({
+        'destino': {'tipo': 'existente', 'casa': {'id': 'c1', 'nombre': 'Casa Lomas', 'direccion': 'Lomas 1'}, 'motivo': 'contrato', 'aviso': null},
+      })!;
+      expect(d.esExistente, isTrue);
+      expect(d.casaNombre, 'Casa Lomas');
+    });
+
+    test('indeterminada bloquea y trae el aviso vacío como null', () {
+      final d = DestinoDecidido.fromCasas({'destino': {'tipo': 'indeterminada', 'motivo': 'avisa a operaciones', 'aviso': ''}})!;
+      expect(d.bloquea, isTrue);
+      expect(d.aviso, isNull);
     });
   });
 }

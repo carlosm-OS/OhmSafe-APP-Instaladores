@@ -751,7 +751,15 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 children: [
                   Icon(Icons.person_outline_rounded, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                   const SizedBox(width: 8),
-                  Text(orden.cliente, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
+                  Expanded(
+                    child: Text(orden.cliente, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
+                  ),
+                  // Número de intervención («i69»): el mismo que ve operaciones
+                  // en Odoo, para hablar de la misma orden por teléfono.
+                  if (orden.numero.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    _numeroPill(cs, orden.numero),
+                  ],
                 ],
               ),
               if (isOpen) ...[
@@ -783,6 +791,21 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Pastilla con el número de intervención, a la derecha del cliente.
+  Widget _numeroPill(ColorScheme cs, String numero) {
+    return Semantics(
+      label: 'Intervención $numero',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: cs.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(numero, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.primary, letterSpacing: 0.2)),
       ),
     );
   }
@@ -854,6 +877,10 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         return "Continuar · Registrar instalación";
       case 'vinculacion':
         return "Continuar · Vincular energizador";
+      case 'prueba':
+        return "Continuar · Probar energizador";
+      case 'dispositivos':
+        return "Continuar · Dispositivos y cierre";
       case 'cierre':
         return "Continuar · Cierre y firma";
       default:
@@ -869,7 +896,9 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       'inspeccion': 2,
       'instalacion': 3,
       'vinculacion': 4,
-      'cierre': 5,
+      'prueba': 5,
+      'dispositivos': 6,
+      'cierre': 7,
     };
     await Navigator.push(
       context,

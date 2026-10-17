@@ -105,16 +105,15 @@ class BotonComoLlegar extends StatelessWidget {
     if (destino.vacio) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
+      // Lienzo de Carlos (2026-10-15): sólo texto naranja con ícono, sin contorno; el borde naranja
+      // competía con el botón principal de la pantalla.
       child: SizedBox(
         width: double.infinity,
-        child: OutlinedButton.icon(
+        child: TextButton.icon(
           onPressed: () => mostrarComoLlegar(context, destino),
           icon: const Icon(Icons.directions_rounded, size: 20),
-          label: const Text('Cómo llegar'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
+          label: const Text('Cómo llegar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          style: TextButton.styleFrom(minimumSize: const Size.fromHeight(48)),
         ),
       ),
     );
