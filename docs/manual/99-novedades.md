@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 48 (TestFlight, producción) — 17 de octubre de 2026
+
+- **Notificaciones:** al cerrar sesión, el teléfono deja de recibir los avisos de esa cuenta. Antes, si cambiabas de cuenta en el mismo teléfono (por ejemplo, de Juan a Chuck), te llegaban los avisos de las dos.
+
 ## Build 47 (producción: Google Play y App Store) — 17 de octubre de 2026
 
 Primera build de tienda con todo lo de las builds 38 a 46 (prueba en sitio, agregar dispositivos, ajustes del lienzo de diseño y «Esperando señal del equipo…»). Apunta a producción.
