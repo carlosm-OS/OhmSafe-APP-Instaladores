@@ -92,7 +92,85 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada, Map<String, dynamic>? destino}) async {
+  Future<Map<String, dynamic>> pruebaEstado(String id) async {
+    final res = await dioClient.get('/instalador/ordenes/$id/prueba');
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pruebaAbrir(String id) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/prueba/abrir', body: const {});
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pruebaExtender(String id) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/prueba/extender', body: const {});
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pruebaAccion(String id, String accion) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/prueba/accion', body: {'accion': accion});
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pruebaTerminar(String id) async {
+    final res = await dioClient.post('/instalador/ordenes/$id/prueba/terminar', body: const {});
+    return (res['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  Map<String, dynamic> _data(Map<String, dynamic> res) => (res['data'] as Map<String, dynamic>?) ?? const {};
+
+  @override
+  Future<Map<String, dynamic>> cableadoEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/cableado'));
+  @override
+  Future<Map<String, dynamic>> cableadoProbarEntrada(String id, int index) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/entradas/$index/probar', body: const {}));
+  @override
+  Future<Map<String, dynamic>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/entradas/$index/registrar', body: {'nombre': nombre, if (icono != null) 'icono': icono}));
+  @override
+  Future<Map<String, dynamic>> cableadoProbarSirena(String id) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/sirena/probar', body: const {}));
+  @override
+  Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/sirena/confirmar', body: {'sono': sono}));
+  @override
+  Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/salidas/$index/probar', body: const {}));
+  @override
+  Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/salidas/$index/registrar', body: {'nombre': nombre, 'tipo': tipo, 'modo': modo, if (pulsoSeg != null) 'pulsoSeg': pulsoSeg, 'funciono': funciono}));
+
+  @override
+  Future<Map<String, dynamic>> dispositivosEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/dispositivos'));
+  @override
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender', body: {'tipo': tipo, if (nombre != null && nombre.isNotEmpty) 'nombre': nombre}));
+  @override
+  Future<Map<String, dynamic>> rfSesion(String id, String sid) async => _data(await dioClient.get('/instalador/ordenes/$id/rf/aprender/$sid'));
+  @override
+  Future<Map<String, dynamic>> rfTerminar(String id, String sid, {required String nombre}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender/$sid/terminar', body: {'nombre': nombre}));
+  @override
+  Future<Map<String, dynamic>> rfCancelar(String id, String sid) async => _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender/$sid/cancelar', body: const {}));
+  @override
+  Future<Map<String, dynamic>> sensorWifiAgregar(String id, {required String externalId, required String nombre, required String tipo}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/sensores-wifi', body: {'externalId': externalId, 'nombre': nombre, 'tipo': tipo}));
+  @override
+  Future<Map<String, dynamic>> camaraAgregar(String id, {String? proveedor, required String serie, required String codigo, required String nombre}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/camaras', body: {if (proveedor != null) 'proveedor': proveedor, 'serie': serie, 'codigo': codigo, 'nombre': nombre}));
+
+  @override
+  Future<Map<String, dynamic>> ohmboxEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/ohmbox'));
+  @override
+  Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/ohmbox', body: {'serie': serie, if (mac != null && mac.isNotEmpty) 'mac': mac}));
+
+  @override
+  Future<Map<String, dynamic>> vincularEnergizador(String id, {required String codigo, String? serie, bool? tierraConfirmada}) async {
     // `codigo` = MAC del energizador (Odoo x_mac_address). `serie` = número de
     // serie del inventario de Ohmbox en Odoo (OS-OBV01-####).
     final res = await dioClient.post('/instalador/ordenes/$id/vincular-energizador',
@@ -101,7 +179,6 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
           'mac': codigo,
           if (serie != null) 'serial': serie,
           if (tierraConfirmada != null) 'tierraConfirmada': tierraConfirmada,
-          if (destino != null) 'destino': destino,
         });
     final data = (res['data'] as Map<String, dynamic>?) ?? const {};
     return (data['dashboard'] as Map<String, dynamic>?) ?? const {'ligado': true};

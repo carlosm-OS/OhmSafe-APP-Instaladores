@@ -62,7 +62,8 @@ class OrdenModel extends Orden {
       fechaPagoConfirmado: json['fechaPagoConfirmado'] as String?,
       contratoFirmado: json['contratoFirmado'] == true,
       condicionesTerreno: (json['condicionesTerreno'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      pasoActual: s(json['pasoActual']).isEmpty ? 'iniciar_ruta' : s(json['pasoActual']),
+      // `pasoDetalle` (backend build 40) afina el tramo vincular→cierre: prueba / dispositivos.
+      pasoActual: s(json['pasoDetalle']).isNotEmpty ? s(json['pasoDetalle']) : (s(json['pasoActual']).isEmpty ? 'iniciar_ruta' : s(json['pasoActual'])),
       origen: s(json['origen']),
       ordenVenta: s(json['ordenVenta']),
       hojaTrabajo: (json['hojaTrabajo'] as List?)

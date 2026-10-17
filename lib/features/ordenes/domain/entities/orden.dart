@@ -75,10 +75,14 @@ class Orden {
 
   bool get esIntervencion => origen == 'intervencion';
 
+  /// Número de intervención tal como lo ve operaciones en Odoo («i69»):
+  /// el id público ya es el mismo x_numero_intervencion de Planificación.
+  String get numero => esIntervencion ? id : '';
+
   /// true cuando el servicio ya arrancó: la acción de la tarjeta debe
   /// retomar el paso pendiente, no volver a "iniciar ruta".
   bool get enCurso => const {
-        'marcar_llegada', 'inspeccion', 'instalacion', 'vinculacion', 'cierre',
+        'marcar_llegada', 'inspeccion', 'instalacion', 'vinculacion', 'prueba', 'dispositivos', 'cierre',
       }.contains(pasoActual);
 
   bool get esReparacion {

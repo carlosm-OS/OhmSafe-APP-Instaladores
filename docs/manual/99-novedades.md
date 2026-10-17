@@ -2,6 +2,65 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 46 — 15 de octubre de 2026
+
+- **«Esperando señal del equipo…»** con barra de progreso en Vincular y en la Prueba: un equipo recién encendido tarda 1 o 2 minutos en aparecer en línea. La pantalla vuelve a revisar sola cada 5 segundos; el aviso rojo de «sin señal» sólo sale si a los 3 minutos sigue sin reportar.
+- **Equipo nuevo:** la conexión dice «Se ve al vincularlo» en vez de «Sin señal reciente» en rojo (antes de vincularlo no hay forma de saberla).
+
+## Build 45 — 15 de octubre de 2026 (ajustes del lienzo de diseño)
+
+- **Confirmar la casa al vincular:** la hoja pregunta **«¿Estás instalando en esta dirección?»**. Muestra «Casa de» + el nombre del cliente con la etiqueta «Nueva» (o «Ya tiene equipo») y la dirección; la venta va en una línea gris. Botones: **«Sí, vincular aquí»** y **«No es esta dirección»**.
+- **Ficha del energizador oscura** (vincular y prueba): «OHMBOX» arriba; «En línea» y «Encendida» en naranja. En la prueba, la serie va resaltada en blanco.
+- **Agregar dispositivos:** las secciones se llaman **Sensores cableados**, **Salidas auxiliares** y **Agregar otro energizador en esta casa**. El recuadro de los energizadores de la casa es oscuro, y el tipo de sensor se elige en filas con borde.
+- **Ventanas emergentes:** el botón secundario («Cancelar», «No») tiene borde gris y texto oscuro; el naranja queda sólo en la acción principal. Los títulos van en 16.
+- **Avisos de error** en rojo relleno con texto blanco (sin señal, no pudimos conectar, foto fuera del domicilio).
+- **Pasos de la orden:** los pasos hechos van en blanco con borde verde. «Cómo llegar» es un enlace naranja sin contorno.
+- **Cierre:** el recuadro de firma tiene borde oscuro.
+
+## Build 44 — 15 de octubre de 2026
+
+- **Arreglo:** «Agregar dispositivos» ya no muestra la pantalla de error al guardar el nombre de una puerta (u otro dato) con el teclado abierto.
+- **Ventanas emergentes con botones claros:** arriba el botón principal naranja («Guardar», «Sí») y abajo el secundario con contorno naranja («Cancelar», «No»).
+- **Con el teclado abierto**, las ventanas emergentes se desplazan en vez de cortarse (p. ej. «¿Qué conectaste a la salida?»).
+- **Sensores Wi‑Fi:** por ahora no se pueden agregar.
+- **Otro energizador en esta casa:** los energizadores que ya tiene la casa se ven en un recuadro gris de sólo información (serie, «Principal», «En línea»); debajo, «Agregar otro OhmBox».
+- El aviso «Sigue cargando…» sale abajo, sobre la barra, en vez de tapar el título.
+
+## Build 43 — 15 de octubre de 2026
+
+- **Barra de progreso** arriba de la pantalla cuando la app espera al servidor o al GPS; si tarda más de 6 segundos dice «Sigue cargando… la señal está lenta». Ya no parece trabada.
+- **Mismo diseño que los pasos 1 a 3** en vincular, prueba y agregar dispositivos (encabezado, tarjetas blancas, filas con su botón a la derecha). Íconos ⓘ discretos junto a las etiquetas explican lo que puede confundir (cómo se prueba una puerta, qué debe verse en cada foto, por qué esa casa…).
+- **Vincular**: «Escanear QR» es la acción principal; la serie escrita se busca con la flecha del campo. Los avisos salen dentro de la pantalla.
+- **Prueba del energizador**: un solo botón que enciende o apaga, y la lista «Muéstrale al cliente» que se marca sola.
+- **Agregar dispositivos**: secciones con nombres claros (Puertas con cable, Luces y portón, Sensores inalámbricos…), la prueba de puertas va «1 de 2 / 2 de 2» y el OhmBox adicional pasa al final.
+- **Cierre**: textos más simples, indicación «Firma aquí con el dedo» y, si el botón final está apagado, «Para terminar falta: …».
+
+## Build 42 — 14 de octubre de 2026
+
+- «Agregar dispositivos» ya no muestra marcas. Las cámaras se agregan sólo con número de serie, código de verificación y nombre; los sensores Wi‑Fi con su id.
+
+## Build 41 — 14 de octubre de 2026
+
+- Corrige la build 40: «Prueba del energizador» y «Agregar dispositivos» salían en gris (la barra inferior y los botones estaban mal armados).
+- Al retomar una instalación ya vinculada, la app vuelve a la **prueba del energizador** (o a Agregar dispositivos si la prueba ya se hizo), no al cierre. En la lista, el botón dice «Continuar · Probar energizador» / «Continuar · Dispositivos y cierre».
+- Los pasos se activan en orden: prueba → agregar dispositivos (opcional, se puede volver a abrir) → cierre.
+- El aviso «Técnico en camino» ya no aparece al retomar, y la fecha de creación sale en hora local.
+
+## Build 40 — 14 de octubre de 2026
+
+- **Ya no eliges la casa al vincular.** Se retira «¿Dónde va este equipo?». La venta decide: plan nuevo va a una casa nueva con la dirección de la compra y equipo adicional va a la casa de su contrato. Ves una hoja de confirmación antes de vincular.
+- **Sensores 433, sensores Wi‑Fi y cámaras** en «Agregar dispositivos», además de las entradas cableadas, sirena y salidas.
+- **OhmBox adicional** en «Agregar dispositivos»: el segundo energizador de una casa se agrega ahí y queda como complemento de la misma suscripción.
+- En la lista de instalaciones y reparaciones, cada tarjeta muestra su número de intervención («i69») junto al cliente.
+- **Prueba del energizador sin reloj**: el control del equipo dura lo que estés en la pantalla y se retira al salir. Al terminar regresas a la lista de pasos.
+- **Agregar dispositivos** se abre sólo al tocarlo, regresa a la lista al terminar y sigue disponible hasta el cierre.
+
+## Build 39 — 13 de octubre de 2026
+
+- **Nuevo paso 5, «Prueba del energizador»** (opcional): al vincular, la app abre una ventana de 30 minutos (ampliable de 15 en 15 hasta 2 horas) para **encender y apagar la cerca** y mostrarle al cliente que el equipo trabaja (alto voltaje en la línea). Al tocar «Terminar prueba y cerrar» u «Omitir», el control del equipo se retira y sigue el cierre, que ahora es el paso 6. Mientras dura la prueba, lo que dispare el equipo (por ejemplo, tocar las líneas) no manda avisos ni llamadas a nadie.
+- **Nuevo paso 6, «Agregar dispositivos»** (opcional): puertas, sirena y salidas cableadas al OhmBox, probadas en vivo. Entradas: toca «Probar», cierra la puerta (el equipo debe verla cerrada 3 segundos), ábrela y, cuando diga «Verificada», ponle nombre y dala de alta; un lazo sin sensor nunca pasa. Sirena: «Probar 3 s» y contesta si sonó. Salidas: «Encender 5 s», contesta si se encendió y di qué es (luz, bomba, portón, sirena externa, otro) y cómo funciona (encendido/apagado o pulso). Todo queda en el acta de la instalación. Sólo con equipos de firmware 2.10 o superior.
+- El cierre pasa a ser el paso 7.
+
 ## Build 37 — 9 de octubre de 2026
 
 - **Vincular energizador → cierre, sin toques extra**: al tocar «Vincular energizador» (o «Vincular y dar de alta el equipo») y quedar vinculado, la app ya no se queda en la ficha esperando «Continuar»: muestra «Vinculación exitosa · casa «…»» y abre sola el **Cierre de instalación**. Si regresas a la ficha, el botón sigue diciendo «Continuar con cierre de instalación».

@@ -2,19 +2,21 @@ import 'escanear_serie_screen.dart';
 import '../core/utils/serie_formato.dart';
 import '../core/error/failures.dart';
 import 'dart:async';
-import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
 
 import '../core/utils/destino_equipo.dart';
-import '../widgets/destino_equipo_sheet.dart';
+import '../widgets/destino_equipo_confirmacion.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
 import '../widgets/ohm_gradient_button.dart';
+import '../widgets/ayuda.dart';
 import '../core/di/injection_container.dart';
+import '../core/network/actividad.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/utils/fechas_odoo.dart';
 import '../core/utils/ligado_cliente.dart';
+import '../widgets/botones_dialogo.dart';
 
 enum LinkState { input, validating }
 
@@ -47,8 +49,46 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
 
   @override
   void dispose() {
+    _sondeoSenal?.cancel();
     _macController.dispose();
     super.dispose();
+  }
+
+  /// Equipo ya dado de alta pero sin señal: se vuelve a consultar cada 5 s, en silencio, hasta que
+  /// aparezca en línea o pasen 3 minutos (2026-10-15). Recién encendido tarda en reportar; antes la
+  /// ficha se quedaba en «Sin señal reciente» y el instalador se ponía a revisar cables.
+  Timer? _sondeoSenal;
+  DateTime? _esperandoDesde;
+  static const _esperaMaxima = Duration(minutes: 3);
+  bool get _esperandoSenal => _sondeoSenal != null;
+
+  void _vigilarSenal(String serie) {
+    _sondeoSenal?.cancel();
+    _sondeoSenal = null;
+    if (_diag == null || _diag?['enLinea'] == true || _equipoNuevo) return;
+    _esperandoDesde = DateTime.now();
+    _sondeoSenal = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (!mounted) return;
+      if (DateTime.now().difference(_esperandoDesde!) > _esperaMaxima) {
+        setState(() {
+          _sondeoSenal?.cancel();
+          _sondeoSenal = null;
+        });
+        return;
+      }
+      await Actividad.enSilencio(() => _refrescarFicha(serie));
+      if (mounted && _diag?['enLinea'] == true) {
+        setState(() {
+          _sondeoSenal?.cancel();
+          _sondeoSenal = null;
+        });
+      }
+    });
+  }
+
+  void _dejarDeVigilar() {
+    _sondeoSenal?.cancel();
+    _sondeoSenal = null;
   }
 
   // MAC real del equipo, detectada por el diagnóstico (se guarda en Odoo).
@@ -86,11 +126,12 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// Diagnóstico REAL por número de serie: lee la telemetría del equipo y pinta
   /// cada prueba. La tierra física no tiene telemetría → la confirma el instalador.
   Future<void> _startValidation(String serie) async {
+    _dejarDeVigilar();
     final s = normalizarSerie(serie);
     if (s.isNotEmpty && s != _macController.text) _macController.text = s;
     if (s.isEmpty) {
       setState(() => _currentState = LinkState.input);
-      _triggerBanner(false, "Ingresa o escanea el número de serie del equipo");
+      _triggerBanner(false, "Escanea el QR o escribe el número de serie.");
       return;
     }
     setState(() {
@@ -117,7 +158,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             _equipoNuevo = true;
             _redLteStatus = 'Gris';
             _retornoStatus = 'Gris';
-            _triggerBanner(true, "Equipo nuevo. Al vincular se dará de alta y se ligará al cliente.");
+            _triggerBanner(true, "Equipo nuevo: se da de alta al vincularlo.");
             return;
           }
           // De vuelta al input: sin equipo no hay nada que diagnosticar. Antes
@@ -129,8 +170,8 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           _triggerBanner(
               false,
               d['motivo'] == 'SIN_ALTA'
-                  ? "El equipo $s no tiene MAC registrada en su lote de Odoo. Pide a almacén que la capture y vuelve a escanear."
-                  : "No se encontró un equipo con la serie \"$s\"");
+                  ? "Al equipo $s le falta un dato en almacén (su MAC). Pide a almacén que lo capture y vuelve a escanear."
+                  : "No encontramos el equipo $s. Revisa el número o escanea el QR.");
           return;
         }
         _diag = Map<String, dynamic>.from(d);
@@ -144,13 +185,14 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         // La prueba de alto voltaje (cerca energizada) se retiró por ahora: los equipos
         // todavía no traen ese sensor en la telemetría (Carlos, 2026-10-06). El estado de
         // la cerca sigue visible como dato informativo más abajo.
-        _triggerBanner(true, "Equipo identificado. Revisa la ficha y vincúlalo.");
+        _showBanner = false; // la ficha ya dice «¿Es este el equipo?»
       });
+      _vigilarSenal(s);
     }, (f) {
       setState(() {
         _isLoading = false;
         _currentState = LinkState.input;
-        _triggerBanner(false, _mensajeError(f, "No se pudo leer el equipo"));
+        _triggerBanner(false, _mensajeError(f, "No pudimos leer el equipo"));
       });
     });
   }
@@ -176,20 +218,19 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     setState(() => _isSending = true);
     final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     final serie = _macController.text.trim();
-    // ¿Dónde va el equipo? Sólo se pregunta si el cliente ya tiene casas en su
-    // app (si no, el backend crea la casa como siempre). Si falla la consulta,
-    // se vincula sin destino: nunca bloquea la instalación.
+    // A dónde va el equipo lo decide la venta (2026-10-14, una vivienda = una suscripción):
+    // la app sólo lo muestra para confirmar. Si la consulta falla o el backend es anterior,
+    // se vincula sin confirmar y el backend decide igual: nunca bloquea por la red.
     final repo = sl.get<OrdenesRepository>();
-    Map<String, dynamic>? destino;
     final casas = await repo.casasParaVincular(id);
     if (!mounted) return;
-    OpcionesDestino? opciones;
-    casas.fold((d) => opciones = OpcionesDestino.fromJson(d), (_) {});
-    if (opciones != null && opciones!.hayQuePreguntar) {
-      destino = await elegirDestinoEquipo(context, opciones!);
+    DestinoDecidido? destino;
+    casas.fold((d) => destino = DestinoDecidido.fromCasas(d), (_) {});
+    if (destino != null && destino!.tipo != 'sin_cuenta') {
+      final ok = await confirmarDestinoEquipo(context, destino!);
       if (!mounted) return;
-      if (destino == null) {
-        setState(() => _isSending = false); // canceló: se queda en la pantalla
+      if (!ok) {
+        setState(() => _isSending = false); // canceló o la venta no dice a qué casa va
         return;
       }
     }
@@ -197,7 +238,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           id,
           codigo: _macDetectada.isNotEmpty ? _macDetectada : serie,
           serie: serie,
-          destino: destino,
         );
     if (!mounted) return;
     result.fold(
@@ -209,9 +249,11 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           await showDialog<void>(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: const Text('Equipo vinculado, falta la cuenta del cliente'),
+              // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+              scrollable: true,
+              title: const Text('Vinculado, pero falta la cuenta del cliente'),
               content: Text(aviso),
-              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
+              actions: [BotonesDialogo(primario: 'Entendido', onPrimario: () => Navigator.pop(ctx))],
             ),
           );
           if (!mounted) return;
@@ -221,7 +263,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         // resultado se muestra en un aviso sobre la pantalla de pasos.
         final casaMap = (dashboard['casa'] as Map?)?.cast<String, dynamic>();
         final casa = casaMap?['nombre']?.toString();
-        // Qué pasó con la suscripción de la venta al elegir casa (servicio nuevo): se dice tal cual.
+        // Qué pasó con la suscripción de la venta (plan nuevo): se dice tal cual.
         final suscripcion = (casaMap?['suscripcion'] as Map?)?['detalle']?.toString();
         setState(() {
           _vinculado = true;
@@ -230,7 +272,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text([
-            casa != null ? "Vinculación exitosa · casa «$casa»" : "Vinculación exitosa",
+            casa != null ? "Energizador vinculado a «$casa»" : "Energizador vinculado",
             if (suscripcion != null && suscripcion.isNotEmpty) suscripcion,
           ].join('\n')),
           duration: const Duration(seconds: 5),
@@ -240,7 +282,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       (failure) {
         setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_mensajeError(failure, "No se pudo vincular el energizador"))),
+          SnackBar(content: Text(_mensajeError(failure, "No pudimos vincular el energizador"))),
         );
       },
     );
@@ -258,9 +300,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// Botón principal: «Vincular» (si el equipo es nuevo, eso lo da de alta). Al vincular la
   /// pantalla se cierra sola; «Continuar» sólo queda por si se regresa a ella ya vinculado.
   String get _ctaLabel => _vinculado
-      ? "Continuar con cierre de instalación"
-      : (_equipoNuevo ? "Vincular y dar de alta el equipo" : "Vincular energizador");
-  bool get _ctaHabilitado => !_isSending && _diag != null;
+      ? "Continuar"
+      : (_equipoNuevo ? "Dar de alta y vincular" : "Vincular energizador");
+  // Mientras envía, el botón sigue naranja con su spinner (loading ya ignora los toques).
+  bool get _ctaHabilitado => _diag != null;
   void _onCta() {
     if (_vinculado) {
       Navigator.pop(context, 'device_linked');
@@ -272,9 +315,6 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
@@ -284,105 +324,24 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header (Logo centrado, iconos derecha)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Image.asset(
-                          isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                          height: 28,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "OHM",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: theme.textTheme.bodyLarge?.color,
-                                ),
-                              ),
-                              Text(
-                                "SAFE",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: cs.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: const NotificationBell(),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // Back chevron and Centered Title Row
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: SizedBox(
-                      height: 48,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            alignment: Alignment.center,
-                            child: Text(
-                              _currentState == LinkState.input ? "Vincular energizador" : "Vincular energizador",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: theme.textTheme.titleLarge?.color,
-                              ),
-                            ),
-                          ),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: IconButton(
-                              onPressed: () {
-                                if (_currentState == LinkState.validating) {
-                                  setState(() {
-                                    _currentState = LinkState.input;
-                                  });
-                                } else {
-                                  Navigator.pop(context);
-                                }
-                              },
-                              style: IconButton.styleFrom(
-                                padding: const EdgeInsets.all(6),
-                                shape: const CircleBorder(),
-                              ),
-                              icon: Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                size: 20,
-                                color: theme.iconTheme.color,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // State Content
-                Expanded(
-                  child: _buildStateContent(context),
+                EncabezadoFlujo(
+                  titulo: "Vincular energizador",
+                  alVolver: () {
+                    if (_currentState == LinkState.validating && !_vinculado) {
+                      _dejarDeVigilar();
+                      setState(() {
+                        _currentState = LinkState.input;
+                        _showBanner = false;
+                      });
+                    } else {
+                      Navigator.pop(context);
+                    }
+                  },
                 ),
+                Expanded(child: _buildStateContent(context)),
               ],
             ),
           ),
-
-          // Banner notification at the top (under SafeArea)
-          _buildNotificationBanner(),
-
-          // Shared bottom navigation bar
           const AppBottomNav(),
         ],
       ),
@@ -393,6 +352,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
+    final muted = TextStyle(fontSize: 14, height: 1.4, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6));
 
     switch (_currentState) {
       case LinkState.input:
@@ -400,75 +360,40 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
           physics: const BouncingScrollPhysics(),
           children: [
-            const SizedBox(height: 12),
-            Text(
-              "Identifica el energizador",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: theme.textTheme.bodyLarge?.color,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              "Escribe el número de serie del energizador OhmSafe o escanea su código QR",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // QR Illustration Box with horizontal scan line
-            Center(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: theme.dividerColor.withValues(alpha: 0.3),
+            if (_showBanner) _avisoBusqueda(),
+            // La tarjeta del QR abre la cámara: es lo más rápido en sitio.
+            Semantics(
+              button: true,
+              label: 'Escanear el QR del energizador',
+              child: GestureDetector(
+                key: const Key('vincular-escanear'),
+                onTap: _startScanning,
+                child: TarjetaFlujo(
+                  padding: const EdgeInsets.symmetric(vertical: 28),
+                  child: Column(
+                    children: [
+                      Icon(Icons.qr_code_2_rounded, size: 96, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8)),
+                      const SizedBox(height: 12),
+                      Text("Escanea el QR de la etiqueta", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)),
+                      const SizedBox(height: 4),
+                      Text("El energizador debe estar encendido.", style: muted.copyWith(color: cs.primary)),
+                    ],
                   ),
                 ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Mock QR Image/Icon
-                    Icon(
-                      Icons.qr_code_2_rounded,
-                      size: 130,
-                      color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-                    ),
-                    // Red/Orange Scan Line moving vertically or static
-                    Positioned(
-                      left: 15,
-                      right: 15,
-                      child: Container(
-                        height: 2,
-                        color: cs.primary,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            OhmGradientButton(label: "Escanear QR", icon: Icons.qr_code_scanner_rounded, onPressed: _startScanning),
+            const SizedBox(height: 28),
 
-            Text(
-              "Asegúrate de que el energizador esté encendido y mantente cerca del equipo para iniciar la vinculación",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                height: 1.4,
-              ),
+            const EtiquetaSeccion(
+              "O ESCRIBE LA SERIE",
+              tituloAyuda: '¿Dónde está la serie?',
+              ayuda: [
+                'En la etiqueta del energizador, junto al código QR. Empieza con OS-OBV01.',
+                'Basta con el número final (por ejemplo 26). Los guiones se ponen solos.',
+              ],
             ),
-            const SizedBox(height: 40),
-
-            // Input número de serie del equipo
             TextField(
               controller: _macController,
               textCapitalization: TextCapitalization.characters,
@@ -476,169 +401,116 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
               inputFormatters: [SerieInputFormatter()],
               autocorrect: false,
               enableSuggestions: false,
-              textInputAction: TextInputAction.done,
+              textInputAction: TextInputAction.search,
               onSubmitted: (v) => _startValidation(v),
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
-                labelText: "Número de serie del equipo",
-                labelStyle: TextStyle(
-                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                ),
-                hintText: "Ej: 26 u OS-OBV01-0026 (o escanéalo del QR)",
+                hintText: "Número de serie (ej. OS-OBV01-0026)",
                 filled: true,
                 fillColor: ohm.surfaceContainer,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Vincular con la serie escrita; o escanear el QR con la cámara.
-            OhmGradientButton(
-              label: "Vincular",
-              icon: Icons.link_rounded,
-              onPressed: () => _startValidation(_macController.text),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _startScanning,
-                icon: const Icon(Icons.qr_code_scanner_rounded),
-                label: const Text("Escanear QR", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: cs.primary,
-                  side: BorderSide(color: cs.primary, width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                suffixIcon: IconButton(
+                  key: const Key('vincular-buscar'),
+                  tooltip: 'Buscar',
+                  icon: Icon(Icons.arrow_forward_rounded, color: cs.primary),
+                  onPressed: () => _startValidation(_macController.text),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => showCancellationFlow(context, widget.ticket),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.textTheme.bodyLarge?.color,
-                  side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text(
-                  "Cancelar instalación",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            const SizedBox(height: 32),
+            BotonSecundario(etiqueta: "Cancelar instalación", onPressed: () => showCancellationFlow(context, widget.ticket)),
           ],
         );
 
       case LinkState.validating:
+        final enLinea = _diag?['enLinea'] == true;
+        final cerca = _diag?['cercaActiva'] == true;
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
           physics: const BouncingScrollPhysics(),
           children: [
-            const SizedBox(height: 12),
-            Text(
-              _vinculado ? "Equipo vinculado" : "Ficha del equipo",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: theme.textTheme.bodyLarge?.color,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _vinculado
-                  ? "Vinculación exitosa. Continúa con el cierre de la instalación."
-                  : "Revisa la ficha del equipo y vincúlalo a esta instalación.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Validaciones de batería, línea y tierra RETIRADAS por ahora (Carlos, 2026-10-06):
-            // los equipos aún no reportan esos sensores de forma confiable. Se vuelven a poner
-            // cuando la telemetría esté lista. Queda sólo la ficha del equipo y «Vincular».
-            // Energizer Details Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: theme.dividerColor.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                children: [
-                  _buildDetailRow("Número de serie", _diag?['serie']?.toString() ?? '—'),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("MAC", _diag?['mac']?.toString() ?? '—'),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("Estado de la cerca", _diag?['cercaActiva'] == true ? "Activa" : "Desarmada"),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("Equipo en línea", _diag?['enLinea'] == true ? "Sí" : "Sin reporte reciente"),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("Firmware", _diag?['firmware']?.toString() ?? '—'),
-                  const SizedBox(height: 8),
-                  _buildDetailRow("Último reporte", _formatUltimoReporte(_diag?['ultimoReporte'])),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Main CTA Button
             if (_isLoading)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(top: 48),
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(cs.primary)),
+                    const SizedBox(height: 16),
+                    Text("Buscando el equipo…", style: muted),
+                  ],
                 ),
               )
             else ...[
+              if (_showBanner) _avisoBusqueda(),
+              // Ficha oscura del equipo (lienzo de Carlos, 2026-10-15).
+              FichaEquipo(
+                datos: [
+                  (etiqueta: "Serie", valor: _diag?['serie']?.toString() ?? '—', color: null, key: null),
+                  (
+                    etiqueta: "Conexión",
+                    valor: enLinea
+                        ? "En línea"
+                        : (_equipoNuevo ? "Se ve al vincularlo" : (_esperandoSenal ? "Esperando señal…" : "Sin señal reciente")),
+                    // Rojo sólo cuando ya se esperó: equipo nuevo o en espera van en blanco.
+                    color: enLinea ? FichaEquipo.enLinea : (_equipoNuevo || _esperandoSenal ? null : FichaEquipo.sinSenal),
+                    key: null,
+                  ),
+                  (etiqueta: "Cerca", valor: cerca ? "Encendida" : "Apagada", color: cerca ? FichaEquipo.encendida : null, key: null),
+                  (etiqueta: "Último reporte", valor: _formatUltimoReporte(_diag?['ultimoReporte']), color: null, key: null),
+                ],
+                pie: "MAC ${_diag?['mac'] ?? '—'}  ·  Firmware ${_diag?['firmware'] ?? '—'}",
+              ),
+              const SizedBox(height: 16),
+              if (!_vinculado && !enLinea && _esperandoSenal) const EsperandoSenal(),
+              Text(
+                _vinculado
+                    ? "Ya quedó ligado a esta instalación."
+                    : (enLinea
+                        ? "Revisa que la serie coincida con la etiqueta."
+                        : _equipoNuevo
+                            ? "Es un equipo nuevo: su conexión se ve después de vincularlo y puede tardar 1 o 2 minutos en aparecer en línea. Ya puedes vincularlo."
+                            : "Puedes vincularlo sin señal. Para la prueba del siguiente paso sí necesita corriente y señal."),
+                textAlign: TextAlign.center,
+                style: muted,
+              ),
+              const SizedBox(height: 24),
               OhmGradientButton(
                 label: _ctaLabel,
+                loading: _isSending,
                 onPressed: _ctaHabilitado ? _onCta : null,
               ),
               const SizedBox(height: 12),
-
-              // Report Incidences / Cancel button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => showCancellationFlow(context, widget.ticket),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.textTheme.bodyLarge?.color,
-                    side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    "Reportar incidencias (opcional)",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+              if (!_vinculado) ...[
+                BotonSecundario(
+                  etiqueta: "Buscar otro equipo",
+                  onPressed: _isSending
+                      ? null
+                      : () => setState(() {
+                            _dejarDeVigilar();
+                            _currentState = LinkState.input;
+                            _showBanner = false;
+                            _diag = null;
+                          }),
                 ),
-              ),
+                const SizedBox(height: 12),
+              ],
+              BotonSecundario(etiqueta: "Reportar incidencias (opcional)", onPressed: () => showCancellationFlow(context, widget.ticket)),
             ],
           ],
         );
     }
+  }
+
+  /// Resultado de la búsqueda, dentro de la pantalla (antes un cartel flotante tapaba el encabezado).
+  Widget _avisoBusqueda() {
+    final cs = Theme.of(context).colorScheme;
+    final ohm = context.ohm;
+    return MensajeFlujo(
+      icono: _bannerIsSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+      color: _bannerIsSuccess ? ohm.success : cs.error,
+      titulo: _bannerText,
+    );
   }
 
   /// Casilla explícita de la tierra física. Va aparte de las pruebas del
@@ -808,96 +680,5 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   String _formatUltimoReporte(dynamic iso) {
     if (iso == null || iso.toString().isEmpty) return "Nunca";
     return FechasOdoo.fechaHora(iso.toString());
-  }
-
-  Widget _buildDetailRow(String key, String value) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          "$key:",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: theme.textTheme.bodyLarge?.color,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNotificationBanner() {
-    if (!_showBanner) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
-    final bannerBg = _bannerIsSuccess
-        ? (isDark ? cs.surface : ohm.successContainer)
-        : (isDark ? cs.surface : cs.errorContainer);
-    final bannerBorder = _bannerIsSuccess
-        ? ohm.success
-        : (isDark ? cs.onErrorContainer : cs.error);
-    final bannerTextColor = _bannerIsSuccess
-        ? (isDark ? Colors.white : ohm.onSuccessContainer)
-        : (isDark ? Colors.white : cs.onErrorContainer);
-
-    return Positioned(
-      top: 64,
-      left: 20,
-      right: 20,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: bannerBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: bannerBorder, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: _bannerIsSuccess ? ohm.success : cs.error,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _bannerIsSuccess ? Icons.check : Icons.close,
-                color: Colors.white,
-                size: 16,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _bannerText,
-                style: TextStyle(
-                  color: bannerTextColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

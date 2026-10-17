@@ -7,6 +7,7 @@ import '../widgets/app_bottom_nav.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
+import '../widgets/botones_dialogo.dart';
 import 'datos_bancarios_screen.dart';
 import 'contrasenas_screen.dart';
 import 'facturacion_screen.dart';
@@ -126,21 +127,19 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
   }
 
   Future<void> _cerrarSesion(BuildContext context) async {
-    final cs = Theme.of(context).colorScheme;
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
+        scrollable: true,
         title: const Text("Cerrar sesión"),
         content: const Text("¿Seguro que quieres cerrar sesión?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancelar"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: cs.primary),
-            child: const Text("Cerrar sesión"),
+          BotonesDialogo(
+            secundario: "Cancelar",
+            onSecundario: () => Navigator.pop(ctx, false),
+            primario: "Cerrar sesión",
+            onPrimario: () => Navigator.pop(ctx, true),
           ),
         ],
       ),

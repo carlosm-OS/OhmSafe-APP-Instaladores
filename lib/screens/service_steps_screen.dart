@@ -3,6 +3,7 @@ import '../core/navigation/volver_a_listado.dart';
 import 'dart:async';
 import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
+import '../core/utils/fechas_odoo.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
@@ -11,6 +12,8 @@ import 'perimeter_inspection_screen.dart';
 import 'fence_installation_screen.dart';
 import 'reparacion_screen.dart';
 import 'link_energizer_screen.dart';
+import 'prueba_energizador_screen.dart';
+import 'agregar_dispositivos_screen.dart';
 import 'instalaciones_screen.dart';
 import 'reparaciones_screen.dart';
 import 'cierre_instalacion_screen.dart';
@@ -348,7 +351,33 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   bool _step2Completed = false;
   bool _step3Completed = false;
   bool _step4Completed = false;
+  /// Prueba del energizador (build 39): paso opcional entre vincular y cierre; no lo guarda Odoo.
+  bool _pruebaHecha = false;
+  /// «Agregar dispositivos» (build 39): cableado con prueba en vivo; opcional, antes del cierre.
+  bool _dispositivosHechos = false;
+
+  /// «Agregar dispositivos» se abre sólo al tocar el paso y al terminar regresa aquí. Queda
+  /// abierto hasta el cierre: si el cliente compra algo más en sitio se vuelve a entrar (Carlos, 2026-10-14).
+  Future<void> _abrirDispositivos(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => AgregarDispositivosScreen(ticket: widget.ticket)),
+    );
+    if (!mounted) return;
+    if (result == 'dispositivos_listos') setState(() => _dispositivosHechos = true);
+  }
   bool _step5Completed = false;
+
+  /// Prueba del energizador: se abre sola al vincular y al terminar (u omitir) regresa a la
+  /// lista de pasos; la ventana de control se cierra al salir (2026-10-14).
+  Future<void> _abrirPrueba(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PruebaEnergizadorScreen(ticket: widget.ticket)),
+    );
+    if (!mounted) return;
+    if (result == 'prueba_terminada') setState(() => _pruebaHecha = true);
+  }
 
   /// Abre el cierre (paso 5 en instalaciones, 4 en reparaciones) y marca el paso al terminar.
   Future<void> _abrirCierre(BuildContext context) async {
@@ -381,6 +410,10 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     _step3Completed = widget.pasoInicial > 3;
     // En reparación no hay paso de vinculación; el cierre sigue al paso 3.
     _step4Completed = widget.pasoInicial > 4 || (_isReparacion && widget.pasoInicial > 3);
+    // Build 40: 5 = prueba pendiente, 6 = prueba hecha (dispositivos/cierre abiertos), 7 = cierre.
+    _pruebaHecha = !_isReparacion && widget.pasoInicial > 5;
+    // El aviso «Técnico en camino» sólo aplica al arrancar la ruta, no al retomar.
+    _showToast = widget.pasoInicial <= 1;
     // Hide the toast automatically after 4 seconds
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
@@ -529,8 +562,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 text: TextSpan(
                                   style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
-                                    const TextSpan(text: "Fecha de Creación: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                    TextSpan(text: details["createdDate"]),
+                                    const TextSpan(text: "Fecha de creación: ", style: TextStyle(fontWeight: FontWeight.w700)),
+                                    TextSpan(text: FechasOdoo.fechaHora(details["createdDate"])),
                                   ],
                                 ),
                               ),
@@ -733,8 +766,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         _buildStepItem(
                           context,
                           number: "4",
-                          title: "Vinculación del energizador",
-                          subtitle: "Requiere escanear QR",
+                          title: "Vincular el energizador",
+                          subtitle: "Escanea el QR del equipo y lígalo al cliente",
                           isActive: _step3Completed && !_step4Completed,
                           isCompleted: _step4Completed,
                           onTap: (_step3Completed && !_step4Completed)
@@ -749,22 +782,46 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                     setState(() {
                                       _step4Completed = true;
                                     });
-                                    // Sin volver a tocar: vinculado → cierre (Carlos, 2026-10-09).
-                                    if (context.mounted) await _abrirCierre(context);
+                                    // Vinculado → prueba del energizador → de vuelta a los pasos (build 40).
+                                    if (context.mounted) await _abrirPrueba(context);
                                   }
                                 }
                               : null,
                         ),
-                      // Cierre: paso 4 en reparaciones (sin energizador) o 5 en
+                      if (!_isReparacion)
+                        _buildStepItem(
+                          context,
+                          number: "5",
+                          title: "Prueba del energizador",
+                          subtitle: "Enciende y apaga la cerca frente al cliente",
+                          isActive: _step4Completed && !_pruebaHecha && !_step5Completed,
+                          isCompleted: _pruebaHecha,
+                          onTap: (_step4Completed && !_step5Completed) ? () => _abrirPrueba(context) : null,
+                        ),
+                      if (!_isReparacion)
+                        _buildStepItem(
+                          context,
+                          number: "6",
+                          title: "Agregar dispositivos",
+                          subtitle: _dispositivosHechos
+                              ? "Listo. Puedes volver a entrar si el cliente compra algo más"
+                              : "Opcional · sensores, sirena, cámaras u otro OhmBox",
+                          // Sólo después de la prueba; sigue tocable aunque ya esté hecho, hasta el cierre.
+                          isActive: _pruebaHecha && !_dispositivosHechos && !_step5Completed,
+                          isCompleted: _dispositivosHechos,
+                          onTap: (_pruebaHecha && !_step5Completed) ? () => _abrirDispositivos(context) : null,
+                        ),
+                      // Cierre: paso 4 en reparaciones (sin energizador) o 7 en
                       // instalaciones. Se habilita tras el paso 3 en reparaciones.
                       _buildStepItem(
                         context,
-                        number: _isReparacion ? "4" : "5",
+                        number: _isReparacion ? "4" : "7",
                         title: _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
-                        subtitle: "Configuración final",
-                        isActive: (_isReparacion ? _step3Completed : _step4Completed) && !_step5Completed,
+                        subtitle: _isReparacion ? "Fotos, entrega y firma del cliente" : "Fotos, entrega del equipo y firma del cliente",
+                        // Instalación: el cierre es lo último, después de la prueba (dispositivos es opcional).
+                        isActive: (_isReparacion ? _step3Completed : _pruebaHecha) && !_step5Completed,
                         isCompleted: _step5Completed,
-                        onTap: ((_isReparacion ? _step3Completed : _step4Completed) && !_step5Completed)
+                        onTap: ((_isReparacion ? _step3Completed : _pruebaHecha) && !_step5Completed)
                             ? () => _abrirCierre(context)
                             : null,
                       ),
@@ -877,7 +934,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
               ),
               const SizedBox(height: 20),
               const Text(
-                "Enviando Cierre...",
+                "Enviando el cierre…",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -885,7 +942,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                "Verificando localización y firmas",
+                "Subiendo fotos, ubicación y firma",
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey,
@@ -946,7 +1003,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    isRep ? "¡Reparación Finalizada!" : "¡Instalación Finalizada!",
+                    isRep ? "¡Reparación terminada!" : "¡Instalación terminada!",
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -956,8 +1013,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                   const SizedBox(height: 12),
                   Text(
                     isRep
-                        ? "El costeo de la reparación, las evidencias fotográficas geo-localizadas y la firma de conformidad han sido enviados con éxito."
-                        : "Los datos de cierre, evidencias fotográficas geo-localizadas y la firma de conformidad han sido enviados con éxito.",
+                        ? "Enviamos el costeo, las fotos con su ubicación y la firma del cliente."
+                        : "Enviamos las fotos con su ubicación, la entrega del equipo y la firma del cliente.",
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
@@ -967,7 +1024,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                   ),
                   const SizedBox(height: 24),
                   OhmGradientButton(
-                    label: isRep ? "Volver a Reparaciones" : "Volver a Instalaciones",
+                    label: isRep ? "Volver a reparaciones" : "Volver a instalaciones",
                     onPressed: () {
                       Navigator.pop(context); // Close dialog
                       volverAListado(context, isRep ? const ReparacionesScreen() : InstalacionesScreen(completedTicketTitle: widget.ticket["title"]));
@@ -1005,7 +1062,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     Color chevronColor;
 
     if (isCompleted) {
-      cardBg = isDark ? ohm.success.withValues(alpha: 0.2) : ohm.successContainer;
+      // Lienzo de Carlos (2026-10-15): fondo blanco; el verde queda en borde, número y texto.
+      cardBg = isDark ? ohm.success.withValues(alpha: 0.2) : theme.cardColor;
       borderSide = BorderSide(
         color: ohm.success,
         width: 1.5,

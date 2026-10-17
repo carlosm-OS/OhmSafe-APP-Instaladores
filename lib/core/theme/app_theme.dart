@@ -275,7 +275,9 @@ abstract final class AppTheme {
         backgroundColor: scheme.surface,
         elevation: AppElevation.sheet,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brXl),
-        titleTextStyle: textTheme.titleLarge,
+        // Lienzo de Carlos (2026-10-15): títulos de diálogo en 16 bold, sin Lexend (como el resto de
+        // la pantalla). Estilo propio, no de `textTheme`: la Inter variable no engrosa en iOS desde ahí.
+        titleTextStyle: TextStyle(fontSize: 16, height: 1.35, fontWeight: FontWeight.w700, color: scheme.onSurface),
         contentTextStyle: textTheme.bodyMedium,
       ),
       bottomSheetTheme: BottomSheetThemeData(

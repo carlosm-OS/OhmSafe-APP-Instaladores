@@ -49,7 +49,7 @@ void main() {
     });
   });
 
-  testWidgets('«Vincular» valida la serie escrita y el error de serie ya instalada sale ahí, sin cámara simulada', (t) async {
+  testWidgets('La flecha «Buscar» valida la serie escrita y el error de serie ya instalada sale ahí, sin cámara simulada', (t) async {
     t.view.physicalSize = const Size(1200, 4200);
     t.view.devicePixelRatio = 2.5; // 480 x 1680: la pantalla completa sin desplazar
     addTearDown(t.view.reset);
@@ -59,17 +59,17 @@ void main() {
       notifier: AppState(),
       child: MaterialApp(theme: AppTheme.light, home: const LinkEnergizerScreen(ticket: {'id': 'i24', 'title': 'Instalación'})),
     ));
-    expect(find.text('Vincular'), findsOneWidget);
+    expect(find.byKey(const Key('vincular-buscar')), findsOneWidget);
     expect(find.text('Escanear QR'), findsOneWidget);
 
     await t.enterText(find.byType(TextField), 'OHM-CARLOS-DEV-2');
-    await t.tap(find.text('Vincular'));
+    await t.tap(find.byKey(const Key('vincular-buscar')));
     await t.pump();
     await t.pump(const Duration(milliseconds: 100));
 
     expect(repo.llamadas, ['OHM-CARLOS-DEV-2@i24'], reason: 'manda la orden para revisar la serie contra Odoo');
     expect(find.textContaining('ya está registrado como instalado'), findsOneWidget);
-    expect(find.textContaining('No se pudo leer el equipo'), findsNothing);
+    expect(find.textContaining('No pudimos leer el equipo'), findsNothing);
     await t.pump(const Duration(seconds: 5)); // deja vencer los temporizadores del aviso
   });
 }

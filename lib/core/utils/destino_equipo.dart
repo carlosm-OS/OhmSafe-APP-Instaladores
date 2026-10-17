@@ -1,31 +1,12 @@
-/// Dónde va el energizador al vincular (decisión del instalador, 2026-10-06):
-/// a una casa que el cliente ya tiene en el dashboard o a una casa nueva.
+/// A dónde va el energizador al vincular (2026-10-14, una vivienda = una suscripción).
 ///
-/// `casas` es lo que devuelve `GET /instalador/ordenes/:id/casas`. Sólo se
-/// pregunta cuando hay al menos una casa; con cero, el backend crea la casa
-/// como siempre.
-class CasaCliente {
-  const CasaCliente({required this.id, required this.nombre, this.direccion, this.energizadores = 0, this.equipos = 0});
-  final String id;
-  final String nombre;
-  final String? direccion;
-  final int energizadores;
-
-  /// Todos los equipos de la casa (energizadores, cámaras, sensores…). El backend sólo manda
-  /// casas con al menos uno (2026-10-09); con un backend anterior se cuentan los energizadores.
-  final int equipos;
-
-  static CasaCliente fromJson(Map<String, dynamic> j) {
-    final energizadores = (j['energizadores'] as num?)?.toInt() ?? 0;
-    return CasaCliente(
-      id: (j['id'] ?? '').toString(),
-      nombre: (j['nombre'] ?? '').toString(),
-      direccion: j['direccion']?.toString(),
-      energizadores: energizadores,
-      equipos: (j['equipos'] as num?)?.toInt() ?? energizadores,
-    );
-  }
-}
+/// Ya no lo elige el instalador: lo decide la venta en el backend (`destino` de
+/// `GET /instalador/ordenes/:id/casas`) y la app sólo lo muestra para confirmar.
+///   · plan nuevo → casa nueva con la dirección de la compra;
+///   · equipo adicional → la casa del contrato;
+///   · `indeterminada` → no se puede vincular hasta que operaciones ligue la venta.
+/// Un segundo energizador en la misma casa se instala desde «Agregar dispositivos → OhmBox».
+library;
 
 /// Qué se vendió en la venta de la intervención (backend `venta` de `GET /ordenes/:id/casas`, 2026-10-09):
 /// un servicio nuevo (plan) va normalmente en una casa nueva; el equipo adicional se suma a una casa.
@@ -58,56 +39,42 @@ class VentaResumen {
   }
 }
 
-class OpcionesDestino {
-  const OpcionesDestino({required this.casas, this.sugerida, required this.nombreNueva, required this.direccionNueva, this.ventaNueva, this.latNueva, this.lngNueva, this.venta});
+class DestinoDecidido {
+  const DestinoDecidido({required this.tipo, required this.motivo, this.casaNombre, this.direccion, this.aviso, this.venta});
 
-  /// Qué se vendió (null con un backend anterior o una intervención sin venta).
+  /// 'nueva' | 'existente' | 'sin_cuenta' | 'indeterminada'.
+  final String tipo;
+
+  /// Nombre de la casa (la nueva o la existente).
+  final String? casaNombre;
+  final String? direccion;
+
+  /// Por qué va ahí (texto del backend, listo para mostrar).
+  final String motivo;
+
+  /// Aviso para operaciones (p. ej. «dirección parecida a otra casa»), si lo hay.
+  final String? aviso;
   final VentaResumen? venta;
-  final List<CasaCliente> casas;
-  final String? sugerida;
-  final String nombreNueva;
 
-  /// Dirección de la COMPRA (entrega de la venta en Odoo); es la que lleva la casa nueva.
-  final String direccionNueva;
+  bool get esNueva => tipo == 'nueva';
+  bool get esExistente => tipo == 'existente';
 
-  /// Venta de la que viene (S00…), para mostrarla junto a la dirección.
-  final String? ventaNueva;
+  /// No se puede vincular: la venta no dice a qué casa va.
+  bool get bloquea => tipo == 'indeterminada';
 
-  /// Coordenadas de la dirección de la compra, si Odoo las tiene.
-  final double? latNueva;
-  final double? lngNueva;
-
-  /// ¿Hay que preguntar? Sólo si el cliente ya tiene casas.
-  bool get hayQuePreguntar => casas.isNotEmpty;
-
-  /// Valor de «casa nueva» en el selector.
-  static const nueva = '__nueva__';
-
-  /// Preselección: la casa que coincide con la dirección de la orden; si ninguna
-  /// coincide, «Casa nueva» (la primera opción), porque la dirección del ticket
-  /// manda (Carlos, 2026-10-06).
-  String get seleccionInicial {
-    if (sugerida != null && casas.any((c) => c.id == sugerida)) return sugerida!;
-    return nueva;
-  }
-
-  static OpcionesDestino fromJson(Map<String, dynamic> j) {
-    final nueva = (j['nueva'] as Map?)?.cast<String, dynamic>() ?? const {};
-    return OpcionesDestino(
-      casas: ((j['casas'] as List?) ?? const []).whereType<Map>().map((e) => CasaCliente.fromJson(e.cast<String, dynamic>())).toList(),
-      sugerida: j['sugerida']?.toString(),
-      nombreNueva: (nueva['nombre'] ?? 'Casa nueva').toString(),
-      direccionNueva: (nueva['direccion'] ?? '').toString(),
-      ventaNueva: nueva['venta']?.toString(),
-      latNueva: ((nueva['coordenadas'] as Map?)?['lat'] as num?)?.toDouble(),
-      lngNueva: ((nueva['coordenadas'] as Map?)?['lng'] as num?)?.toDouble(),
+  /// `null` con un backend anterior (sin `destino`): se vincula sin confirmar y el backend decide.
+  static DestinoDecidido? fromCasas(Map<String, dynamic> j) {
+    final d = j['destino'];
+    if (d is! Map) return null;
+    final m = d.cast<String, dynamic>();
+    final casa = (m['casa'] as Map?)?.cast<String, dynamic>();
+    return DestinoDecidido(
+      tipo: (m['tipo'] ?? '').toString(),
+      motivo: (m['motivo'] ?? '').toString(),
+      casaNombre: (casa?['nombre'] ?? m['nombre'])?.toString(),
+      direccion: (casa?['direccion'] ?? m['direccion'])?.toString(),
+      aviso: (m['aviso'] as String?)?.trim().isEmpty ?? true ? null : m['aviso'] as String,
       venta: VentaResumen.fromJson(j['venta']),
     );
   }
 }
-
-/// Cuerpo `destino` para `vincular-energizador`.
-Map<String, dynamic> destinoCasaExistente(String casaId) => {'casaId': casaId};
-Map<String, dynamic> destinoCasaNueva({required String nombre, String? direccion}) => {
-      'nueva': {'nombre': nombre.trim(), if ((direccion ?? '').trim().isNotEmpty) 'direccion': direccion!.trim()},
-    };
