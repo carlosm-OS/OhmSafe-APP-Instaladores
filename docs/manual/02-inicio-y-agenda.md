@@ -50,6 +50,8 @@ Al final verás «Pendientes de agendar»: servicios que ya son tuyos pero aún 
 
 ### Tarjeta del servicio
 
+Cada tarjeta muestra el cliente y, a su derecha, el **número de intervención** en una pastilla naranja (por ejemplo **i69**). Es el número con el que operaciones y soporte encuentran tu servicio: dalo siempre que reportes algo.
+
 Toca una tarjeta para abrirla. Muestra el estado («Por hacer», «En curso») y, abierta:
 
 - «Abierto por N días», «Fecha de Creación», «Metraje», «Dirección», «Ciudad», «CP», «Teléfono».
@@ -61,6 +63,10 @@ Toca una tarjeta para abrirla. Muestra el estado («Por hacer», «En curso») y
 El botón de abajo cambia según el avance: «Iniciar ruta de servicio» o «Continuar · [paso pendiente]». Ver [03](03-instalacion-paso-a-paso.md).
 
 Si la agenda no carga verás «No se pudieron cargar las instalaciones» y el botón «Reintentar».
+
+### Cuando la app está esperando
+
+Mientras la app espera al servidor o al GPS verás una **barra naranja delgada arriba de la pantalla**. Si tarda más de unos segundos aparece abajo «Sigue cargando… la señal está lenta»: la app no está trabada, sólo espera señal.
 
 ## Notificaciones
 

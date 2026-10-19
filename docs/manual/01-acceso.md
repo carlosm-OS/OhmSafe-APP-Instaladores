@@ -54,7 +54,7 @@ Si ya entraste antes en ese teléfono, la app abre directo en «Contraseña» co
 2. Baja y toca «Cerrar sesión».
 3. Confirma con «Cerrar sesión».
 
-Al cerrar sesión la app borra tus datos del teléfono (foto, nombre) para que la siguiente persona no los vea.
+Al cerrar sesión la app borra tus datos del teléfono (foto, nombre) para que la siguiente persona no los vea, y el teléfono **deja de recibir los avisos de esa cuenta**. Si dos instaladores usan el mismo teléfono, cada uno recibe sólo los avisos de la cuenta con la que está dentro.
 
 ## Olvidé mi contraseña
 

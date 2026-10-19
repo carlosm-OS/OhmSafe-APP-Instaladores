@@ -50,9 +50,11 @@ Cada servicio cerrado desde la app crea una **factura de proveedor en borrador**
 
 Mientras el costo sea $0, la factura nace en $0 con la nota «Sin tarifa configurada» y hay que corregir el importe a mano antes de confirmarla.
 
+> **Vigente (decisión de Carlos, 8 de octubre de 2026):** por unos meses se opera **sin tabulador**: no se fija el Costo de los productos `PAGO-*` y operaciones captura en cada factura el monto negociado con el instalador. Lo que sigue explica cómo se fijaría el tabulador cuando se decida.
+
 **Para fijar el tabulador (una sola vez):** Compras › Productos › buscar `PAGO-` › abrir el producto › campo **Costo** › guardar. A partir de ese momento cada cierre nuevo trae el importe correcto. Si el pago depende del caso (metraje, distancia, material que puso el instalador), se deja el costo base en el producto y operaciones ajusta o agrega líneas en la factura antes de confirmarla.
 
-Lo que el instalador ve en **Mis pagos** es exactamente esa factura: importe y estado (borrador / confirmada / pagada).
+Lo que el instalador ve en **Mis pagos** es exactamente esa factura: importe y estado (borrador / confirmada / pagada). Debe seguir siendo **Factura de proveedor**: si se cambia a «Recibo de compra», deja de aparecerle. La parte contable (cuenta de gasto, IVA, retenciones, CFDI) está en el Manual de Contabilidad.
 
 ## 4. Comisión por venta
 

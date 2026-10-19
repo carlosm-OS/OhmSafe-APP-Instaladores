@@ -2,7 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
-## Próxima build
+## Build 49 (TestFlight, servidor de pruebas) — 17 de octubre de 2026
+
+Sólo para pruebas internas: apunta al **servidor de pruebas** (api-dev), no a producción. Los instaladores siguen con la 47 de la tienda o la 48 de TestFlight.
+
 
 - **Sensores y cámaras Tuya desde la app.** En «Agregar dispositivos» aparecen **«Conectar sensor Wi‑Fi»** y **«Conectar cámara Tuya»** (cuando el servidor tiene Tuya encendido): el teléfono le pasa la red de la casa al equipo con el permiso de la casa, y el equipo queda en la cuenta del cliente (lo ve en OhmSafe GO). La contraseña no se guarda; el nombre de la red sí. Si la casa aún no tiene cuenta Tuya, la app lo dice: el cliente debe entrar una vez a OhmSafe GO.
 - **Conectar cámaras EZVIZ a la Wi‑Fi desde la app.** En «Agregar dispositivos» → Cámaras hay una fila nueva, **«Conectar cámara a la Wi‑Fi»**: escaneas la etiqueta, el cliente escribe su contraseña en tu teléfono y la app le pasa la red a la cámara y la registra en la casa. La contraseña no se guarda; el nombre de la red sí (para soporte). La opción de antes se llama ahora **«Cámara ya conectada»** (para cámaras que ya están en internet). Sólo aparece cuando el servidor tiene EZVIZ encendido.

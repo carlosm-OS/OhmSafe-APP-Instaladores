@@ -89,6 +89,8 @@ Agrega **sólo lo que el cliente compró**. Cada cosa se prueba en vivo y sólo 
 
 Las secciones, en este orden:
 
+> **Según tu build:** «Conectar sensor Wi‑Fi», «Conectar cámara a la Wi‑Fi» y «Conectar cámara Tuya» llegan con la **build 49**, que hoy está **sólo en pruebas**. En la build de la tienda (47) la sección de sensores Wi‑Fi está apagada y en Cámaras sólo aparece la captura de serie y código («Cámara ya conectada»).
+
 - **Sensores cableados** (puertas con cable). Toca **«Probar»** en la entrada. La fila te guía: **«1 de 2 · Cierra la puerta y espera 3 segundos»** y luego **«2 de 2 · Ahora ábrela»**. Cuando diga **«Funciona»**, toca **«Guardar»** y escribe qué puerta es. Si dice «No vimos la puerta cerrar y abrir», revisa el cable del sensor y toca **«Reintentar»**. Si la alarma estaba armada, la app la desarma antes para que la prueba no haga sonar la sirena.
 - **Sirena.** Toca **«Probar»**: suena 3 segundos (avísale al cliente antes). Contesta **«¿Sonó la sirena?»**.
 - **Salidas auxiliares** (luces, portón y otros). Toca **«Probar»**: la salida se enciende 5 segundos. Contesta **«¿Se encendió?»** y, si sí, escribe el nombre, **qué es** (luz, bomba, portón, sirena externa, otro) y **cómo funciona** (encendido/apagado, o pulso como un portón). Si no encendió, no se guarda y queda anotado en el reporte.
