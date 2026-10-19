@@ -21,6 +21,17 @@ En Planificación cada intervención pertenece a un **proceso** (lo define el **
 
 Detalle técnico y checklist para agregar procesos: `docs/odoo-planeacion-procesos.md` en el repositorio del backend.
 
+## Cómo se ve una intervención completada
+
+Al cerrarla desde la app (estado «Completado») la intervención **se queda** en Planificación: no se archiva ni se borra, porque es el historial de volumen, horas, pagos al instalador y reportes. Para distinguirla:
+
+- en la **agenda** su barra cambia a **verde** (las pendientes conservan el color del proceso);
+- en la **tarjeta** aparece **«✔ Completada»** junto al número;
+- en la **ficha completa** hay un **listón verde «Completada»** en la esquina;
+- en la **vista Lista** el renglón sale en verde.
+
+Para ver sólo pendientes o sólo completadas, usa el filtro por **Estado** en la barra de búsqueda.
+
 ## Qué correos recibe el cliente y cuándo
 
 | Correo | Asunto | Cuándo sale | Lo envía |
