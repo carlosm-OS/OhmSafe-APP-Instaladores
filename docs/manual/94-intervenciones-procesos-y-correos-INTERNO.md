@@ -51,6 +51,12 @@ En la vista Lista puedes **agrupar por paso**: buscador › Agrupar por › **Pa
 
 Quien agenda intervenciones necesita en su usuario de Odoo **Planeación › Administrador** (Ajustes › Usuarios › su usuario › Planeación). Con «Usuario» sólo ve sus propios turnos, y **sin ningún permiso de Planeación** la actividad «Poner la intervención en el calendario del instalador y publicarla» se abre sola, en «Otras actividades», sin la intervención: no hay dónde agendar. Pasó con Lily y se corrigió el 19 de octubre de 2026.
 
+Si al abrir la agenda sale **«Error de acceso… no tiene acceso 'leer' a Planear turnos»**, a esa persona le falta (o le quitaron) Planeación › Administrador. Cuidado al editar usuarios en Ajustes: si alguien deja abierta la ficha de un usuario y la guarda después de que otro le cambió permisos, **sobrescribe** esos permisos.
+
+## Menú «Por agendar»
+
+En Planeación, el primer menú de arriba es **«Por agendar»**: la lista de intervenciones de instaladores que todavía están en **borrador** (sin fecha, con fecha pero sin publicar, o regresadas por una cancelación en sitio), de la más vieja a la más nueva, con su número y su píldora de paso. La agenda de barras no las muestra porque aún no tienen fecha. Toca una fila para abrir la ficha, llena la llamada con el cliente, pon instalador y fecha, y **publícala**: en ese momento sale de esta lista y aparece en la agenda. Sólo lo ve quien tiene Planeación › Administrador.
+
 ## Qué correos recibe el cliente y cuándo
 
 | Correo | Asunto | Cuándo sale | Lo envía |
