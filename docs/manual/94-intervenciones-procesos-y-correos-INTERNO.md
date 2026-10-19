@@ -26,11 +26,26 @@ Detalle técnico y checklist para agregar procesos: `docs/odoo-planeacion-proces
 Al cerrarla desde la app (estado «Completado») la intervención **se queda** en Planificación: no se archiva ni se borra, porque es el historial de volumen, horas, pagos al instalador y reportes. Para distinguirla:
 
 - en la **agenda** su barra cambia a **verde** (las pendientes conservan el color del proceso);
-- en la **tarjeta** aparece **«✔ Completada»** junto al número;
+- en la **tarjeta** la píldora de paso dice **«Completada»** en verde;
 - en la **ficha completa** hay un **listón verde «Completada»** en la esquina;
 - en la **vista Lista** el renglón sale en verde.
 
 Para ver sólo pendientes o sólo completadas, usa el filtro por **Estado** en la barra de búsqueda.
+
+## En qué paso va el instalador
+
+Junto al número de la intervención (en la tarjeta de la agenda, en la ficha y en la columna **«Paso»** de la vista Lista) hay una **píldora de color** que dice en qué paso va el instalador. Se actualiza sola con lo que hace en la app:
+
+| Píldora | Color | Qué significa |
+|---|---|---|
+| Por agendar · Agendada sin publicar | Gris | Falta poner fecha o publicarla |
+| Agendada | Azul | Publicada; el instalador aún no sale |
+| En ruta | Azul | Pulsó «Iniciar ruta» |
+| En sitio · inspección / instalación / vincular equipo / prueba del energizador / dispositivos y cierre | Amarillo | Ya llegó; dice en qué parte del trabajo va |
+| Completada | Verde | Cerró el servicio en la app |
+| Cancelada en sitio | Rojo | La canceló en el domicilio (ver ticket «Reagendar») |
+
+En la vista Lista puedes **agrupar por paso**: buscador › Agrupar por › **Paso del instalador**.
 
 ## Qué correos recibe el cliente y cuándo
 
