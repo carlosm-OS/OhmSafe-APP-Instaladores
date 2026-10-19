@@ -15,7 +15,7 @@ Cuando el instalador cierra la intervención en la app (firma del cliente), el s
 | Qué | Dónde queda |
 |---|---|
 | Factura de proveedor **en borrador** (`Factura de proveedor`, tipo compra) | Contabilidad › Proveedores › Facturas (o Compras › Facturas de proveedor) |
-| Proveedor | El **contacto del instalador** (el mismo de Contactos › Instaladores externos) |
+| Proveedor | El **contacto del instalador** (el mismo de Contactos › Instaladores externos). Si en su ficha tiene **Empresa**, Odoo registra la factura a nombre de la empresa (RFC, cuentas por pagar y CFDI de la empresa) |
 | Línea | Producto «Pago a instalador — *Instalación / Reparación / Mantenimiento / Reemplazo de equipo*» (`PAGO-INSTALACION`, `PAGO-REPARACION`, `PAGO-MANTENIMIENTO`, `PAGO-REEMPLAZO`), cantidad 1 |
 | Importe | **$0**: los productos `PAGO-*` no tienen costo a propósito (operación en maqueta). La factura lleva la nota interna «Sin tarifa configurada…»; **operaciones captura el monto negociado** antes de confirmar |
 | Referencia | «Intervención i*N* · S00*xxx*» (número de intervención y orden de venta) |
@@ -27,10 +27,30 @@ Regla: **un pago por línea de venta**, aunque la instalación tome varios días
 
 1. **Buscar la factura**: Contabilidad › Proveedores › Facturas › filtro *Borrador* › buscar por la referencia «Intervención i… · S00…» o por el nombre del instalador.
 2. **Poner el monto negociado**: en la línea «Pago a instalador — Instalación» (o Reparación / Mantenimiento / Reemplazo) cambia el **Precio** de $0 al monto acordado con el instalador. Si hubo extras (viáticos, material que puso él), agrégalos como líneas adicionales con su comprobante.
-3. **Fecha de factura** = fecha de cierre del servicio; **fecha de vencimiento** según el acuerdo con el instalador.
-4. **Confirmar** (botón *Confirmar*). Ya cuenta como cuenta por pagar.
-5. **Registrar pago**: botón *Registrar pago* › diario (banco con el que se transfiere) › fecha › *Crear pago*. Si pagas varias facturas del mismo instalador en una transferencia, selecciónalas en la lista y usa *Registrar pago* una sola vez.
-6. El instalador ve el movimiento en la app, en **Mis pagos**: «$0 · En revisión» mientras la factura esté en borrador; después, el monto y si ya está pagada.
+3. **Adjuntar su CFDI**: cuando el instalador (o su empresa) te mande la factura, adjunta el **XML y el PDF** a esta misma factura de proveedor (clip del chatter). Revisa que el **RFC emisor** sea el del instalador o el de su empresa, que el **receptor** sea OhmSafe y que el **total** coincida con el monto capturado.
+4. **Fecha de factura** = fecha del CFDI; **fecha de vencimiento** según el acuerdo con el instalador.
+5. **Confirmar** (botón *Confirmar*). Ya cuenta como cuenta por pagar.
+6. **Registrar pago desde la factura**: botón *Registrar pago* dentro de la factura › diario (banco con el que se transfiere) › fecha › *Crear pago*. La factura queda **Pagada** y el pago aparece solo en Proveedores › Pagos. Si pagas varias facturas del mismo instalador en una transferencia, selecciónalas en la lista y usa *Registrar pago* una sola vez.
+7. El instalador ve el movimiento en la app, en **Mis pagos**: «$0 · En revisión» mientras la factura esté en borrador; después, el monto y si ya está pagada.
+
+## Reglas para no perder el control
+
+| Haz | No hagas | Por qué |
+|---|---|---|
+| Usa siempre **Factura de proveedor** | No la conviertas en **Recibo de compra** | El recibo es para gastos sin CFDI: no es deducible y el instalador **deja de ver el pago en la app** («Mis pagos» sólo lee facturas de proveedor). Pasó con la i47 (13-oct-2026) y se regresó a factura el 19-oct |
+| **Registra el pago dentro de la factura** | No crees pagos sueltos en Proveedores › Pagos | Un pago suelto no queda ligado: la factura sigue «no pagada» y la deuda con el instalador aparece doble |
+| Adjunta **XML y PDF** del CFDI antes de confirmar | No confirmes sin comprobante, salvo acuerdo con contabilidad | Sin CFDI el gasto no es deducible |
+| Entra con **tu propio usuario** de Odoo | Evita la cuenta compartida «OhmSafe» para tocar pagos | En el historial queda **quién** cambió montos o tipos; con la cuenta compartida no se sabe |
+| Pregunta a contabilidad por **retenciones** | No las inventes | Si el instalador es **persona física** y factura servicios a OhmSafe pueden aplicar retenciones de ISR e IVA; las define el contador y Odoo las calcula con el impuesto correcto en la línea |
+
+## Control contable: dónde se ve
+
+| Qué quieres saber | Dónde |
+|---|---|
+| Lo que se le debe a cada instalador | Contabilidad › Proveedores › Facturas › filtro **Por pagar** (o Informes › Antigüedad de cuentas por pagar) |
+| Lo que ya se le pagó | La factura en **Pagada**; Contabilidad › Proveedores › Pagos |
+| El pago de una intervención concreta | Planificación › intervención › propiedad «Pago al instalador (factura proveedor id)», o buscar «Intervención i…» en las facturas de proveedor |
+| Lo cobrado al cliente por esa misma intervención | Propiedad «Factura al cliente (id)» de la intervención; Contabilidad › Clientes › Facturas |
 
 ## Cuando el servicio NO se cerró desde la app
 
@@ -57,4 +77,5 @@ Pasa cuando la instalación sí se hizo pero la intervención se cerró a mano e
 
 - **Tabulador**: por decisión del 8 de octubre de 2026 **no se configura** por ahora; se opera a mano unos meses y queda por explorar (opción A manual por servicio / opción B tabulador por concepto, hoja de cálculo enviada a Operaciones el 2026-09-27).
 - **Comisión por venta** del instalador (código de venta `OHMS-…`): no está implementada; se pagaría también como factura de proveedor cuando se defina.
-- El instalador **no sube factura CFDI** desde la app; si factura a OhmSafe, el PDF/XML se adjunta a la factura de proveedor en Odoo.
+- El instalador **no sube factura CFDI** desde la app; si factura a OhmSafe, el PDF/XML se adjunta a la factura de proveedor en Odoo (paso 3).
+- **Validación automática del CFDI** contra el SAT y **retenciones** configuradas: pendientes de definir con contabilidad.
