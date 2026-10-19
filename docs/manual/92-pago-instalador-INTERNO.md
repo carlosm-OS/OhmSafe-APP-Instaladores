@@ -8,6 +8,82 @@ Cada servicio cerrado genera una **factura de proveedor en borrador y en $0** a 
 
 > **Operación vigente (decisión de Carlos, 8 de octubre de 2026):** durante los próximos meses se opera «en maqueta»: **no hay tabulador ni costos configurados** en los productos `PAGO-*`. El importe de cada servicio lo captura a mano operaciones en la factura, según lo acordado con cada instalador. No cambies el *Costo* de los productos `PAGO-*`.
 
+## Factura de Odoo y CFDI no son lo mismo
+
+| | **Factura de proveedor (Odoo)** | **CFDI (SAT)** |
+|---|---|---|
+| Qué es | Un **registro contable** en nuestra base de datos: lo que le debemos al instalador y, después, lo que ya le pagamos | El **comprobante fiscal** electrónico (XML timbrado, con **folio fiscal / UUID**) que vale ante el SAT |
+| Quién la hace | **OhmSafe** (el sistema la crea en borrador al cerrar el servicio) | **El instalador o su empresa**: la emite desde su sistema o el portal del SAT, a nombre de OhmSafe |
+| Para qué sirve | Controlar cuentas por pagar, pagos y costo de cada intervención | Que el gasto sea **deducible** y el IVA **acreditable** |
+| Cómo se unen | Se **adjunta el XML y el PDF** del CFDI a la factura de Odoo, y su serie-folio va en «Referencia de factura» | — |
+
+Puede existir la factura de Odoo sin CFDI (por ejemplo, mientras el instalador no factura), pero **sin CFDI el gasto no es deducible**. Odoo no «emite» el CFDI del instalador: sólo lo registra. (En las facturas **a clientes** es al revés: el CFDI lo emite OhmSafe.)
+
+**Qué revisar en el CFDI del instalador antes de confirmar:** RFC del **emisor** = el del instalador (o su empresa); RFC del **receptor** = OhmSafe; **total** igual al de la factura de Odoo; **método de pago**: *PUE* (pago en una sola exhibición) o *PPD* (pago diferido; en ese caso, después de pagarle, el instalador debe mandar su **complemento de pago**); que el **folio fiscal (UUID)** esté vigente (verificador del SAT).
+
+## La factura de proveedor, campo por campo
+
+**Barra superior**
+
+| Campo / botón | Qué significa | Qué hacer |
+|---|---|---|
+| **Confirmar** | Pasa la factura de *Borrador* a *Registrado*: entra a contabilidad como deuda | Sólo cuando el monto y el CFDI estén revisados |
+| **Cancelar** | Anula la factura en borrador | Sólo si ese servicio no se le va a pagar (avisa en el chatter de la intervención) |
+| **Borrador → Registrado** | Estado contable | Después de *Registrado* aparece **Registrar pago** |
+| **Factura / Recibo** | Tipo de documento | Siempre **Factura** (el recibo es para gastos sin CFDI y el instalador no lo ve en la app) |
+| **BILL/2026/10/0001** | **Folio interno de Odoo**, consecutivo de nuestra base de datos | No es el folio del CFDI |
+
+**Encabezado**
+
+| Campo | Qué significa | Qué hacer |
+|---|---|---|
+| **Proveedor** | El instalador (o su empresa si la tiene en su ficha), con la dirección y el **RFC** de su ficha | El RFC debe ser el mismo que el del emisor del CFDI; si no, corrígelo en la ficha del contacto |
+| **Referencia de factura** | El sistema pone «Intervención i47 · S00255» para ligarla al servicio | Cuando llegue el CFDI puedes cambiarla por su **serie-folio**; la liga con la intervención no se pierde (va en *Otra información › Documento origen* = «i47») |
+| **Autocompletar** | Llenar las líneas desde una orden de compra o una factura anterior | No se usa en pagos a instaladores |
+| **Fecha de la factura** | Fecha del comprobante | Pon la **fecha del CFDI** |
+| **Fecha contable** | Mes en que el gasto entra a contabilidad | Normalmente igual a la fecha de la factura; si ese mes ya está cerrado, el mes en curso (lo decide contabilidad) |
+| **Referencia de pago** | El concepto que irá en la transferencia | Si queda vacío usa la referencia de factura |
+| **Banco receptor** | La cuenta (**CLABE**) del instalador a la que se transfiere | Se da de alta en su ficha de contacto › pestaña Contabilidad › Cuentas bancarias; sin ella no hay a dónde pagar |
+| **Fecha de vencimiento / Términos de pago** | Cuándo hay que pagarle | Sin términos vence el mismo día de la factura y sale **en rojo** (vencida). Pon el plazo acordado con el instalador |
+| **Moneda** | MXN | — |
+
+**Líneas de factura**
+
+| Columna | Qué significa | Qué hacer |
+|---|---|---|
+| **Etiqueta** | Descripción del servicio pagado | El sistema la llena con el tipo de servicio y la intervención |
+| **Cuenta** | Cuenta contable del gasto. Hoy sale **601.84.01 Otros gastos generales** porque el producto `PAGO-INSTALACION` no tiene cuenta propia | Que el **contador defina la cuenta** correcta (p. ej. costo de instalación) y se configure **una vez** en los productos `PAGO-*`; desde ahí todas las facturas salen bien |
+| **Cantidad / Unidad** | 1 servicio | — |
+| **Precio** | Monto negociado **sin IVA** | Lo captura operaciones (en maqueta no hay tabulador) |
+| **Impuestos** | **IVA 16% acreditable** | Si aplican **retenciones** de ISR/IVA (persona física), se agregan aquí con el impuesto que indique el contador |
+| **Importe** | Precio × cantidad | — |
+| **Agregar una línea** | Conceptos extra | Viáticos o material que puso el instalador, con su comprobante |
+| Nota «Sin tarifa configurada…» | Aviso interno del sistema: la factura nació en $0 | Puedes borrarla después de capturar el monto; no la ve el instalador |
+
+**Totales**: *Subtotal* (sin IVA), *IVA 16%*, *Total*, y **Cantidad por pagar**, que baja a $0 cuando se registra el pago.
+
+**Pestaña «Apuntes contables»** — lo que Odoo registra al confirmar (ejemplo de la i47, $2,000 + IVA):
+
+| Cuenta | Debe | Haber | Significado |
+|---|---|---|---|
+| 601.84.01 Otros gastos generales | 2,000 | | El gasto del servicio |
+| 119.01.01 IVA pendiente de pago | 320 | | IVA que **se podrá acreditar cuando se pague** (en México el IVA se acredita al pago) |
+| 201.01.01 Proveedores nacionales | | 2,320 | La deuda con el instalador |
+
+Al **registrar el pago**: se carga *Proveedores* y se abona el *Banco* por $2,320 (la deuda queda en cero), y el IVA pasa de «pendiente» a «acreditable pagado».
+
+**Chatter (derecha)**: historial de quién cambió qué y cuándo; ahí se adjuntan el **XML y PDF** del CFDI con el clip.
+
+## Cómo resolver un pago, de principio a fin
+
+1. Servicio cerrado en la app → factura de proveedor en **borrador** con la referencia «Intervención i…».
+2. Operaciones captura el **monto negociado** y los extras.
+3. El instalador manda su **CFDI** → se revisa (emisor, receptor, total, PUE/PPD, UUID vigente).
+4. Se adjuntan **XML y PDF**, *Referencia de factura* = serie-folio del CFDI, *Fecha de la factura* = fecha del CFDI.
+5. **Confirmar**.
+6. Se transfiere a su **Banco receptor** y se pulsa **Registrar pago** dentro de la factura.
+7. Si el CFDI era **PPD**, pedirle el **complemento de pago**.
+
 ## Cómo se genera el pago (automático, al cerrar desde la app)
 
 Cuando el instalador cierra la intervención en la app (firma del cliente), el sistema crea en Odoo:
