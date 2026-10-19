@@ -47,6 +47,10 @@ Junto al número de la intervención (en la tarjeta de la agenda, en la ficha y 
 
 En la vista Lista puedes **agrupar por paso**: buscador › Agrupar por › **Paso del instalador**.
 
+## Permisos para agendar
+
+Quien agenda intervenciones necesita en su usuario de Odoo **Planeación › Administrador** (Ajustes › Usuarios › su usuario › Planeación). Con «Usuario» sólo ve sus propios turnos, y **sin ningún permiso de Planeación** la actividad «Poner la intervención en el calendario del instalador y publicarla» se abre sola, en «Otras actividades», sin la intervención: no hay dónde agendar. Pasó con Lily y se corrigió el 19 de octubre de 2026.
+
 ## Qué correos recibe el cliente y cuándo
 
 | Correo | Asunto | Cuándo sale | Lo envía |
