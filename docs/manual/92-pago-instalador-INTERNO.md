@@ -1,6 +1,8 @@
 # Pagar un servicio al instalador desde Odoo (guía de operaciones)
 
 > **USO INTERNO — no publicar.** Para operaciones y contabilidad de OhmSafe. Describe cómo queda el pago de cada servicio al instalador externo y qué hacer en los casos que la app no cubre.
+>
+> Para contabilidad, la referencia completa (factura vs CFDI, cada campo, apuntes contables y pendientes) está en **Manual de Contabilidad OhmSafe › Pago a instaladores: factura de proveedor y CFDI**.
 
 ## En una frase
 
