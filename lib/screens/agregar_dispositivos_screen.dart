@@ -277,7 +277,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                   Text('Escribe el ID del sensor. El cliente termina de conectarlo desde su app.', style: Theme.of(ctx).textTheme.bodySmall),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    isExpanded: true, // se ajusta al ancho del diálogo (si no, «Pulso (como un portón)» se desborda)
+                    isExpanded: true, // se ajusta al ancho del diálogo
                     initialValue: tipo,
                     decoration: const InputDecoration(labelText: 'Tipo'),
                     items: [for (final e in _tipoWifiTexto.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],

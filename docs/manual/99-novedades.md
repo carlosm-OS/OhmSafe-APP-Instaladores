@@ -4,6 +4,7 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 
 ## Build 57 (en preparación)
 
+- **Salidas auxiliares de 12 V.** Al registrar una salida, las opciones ahora son «Estrobo», «Sirena extra» u «Otro equipo de 12 V» (ya no luz, bomba ni portón).
 - **Sirena de demostración.** En «Agregar dispositivos › Sirena» hay «Encender» y «Apagar»: puedes hacerla sonar las veces que quieras frente al cliente (se apaga sola a los 15 segundos). La primera vez la app pregunta si sonó, como antes.
 
 ## Build 56 (TestFlight, servidor de pruebas) — 20 de octubre de 2026
