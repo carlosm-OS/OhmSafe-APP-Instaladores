@@ -16,6 +16,8 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+
+import 'app_motion.dart';
 import 'package:flutter/services.dart';
 
 import 'app_dimens.dart';
@@ -122,6 +124,10 @@ abstract final class AppTheme {
       textTheme: textTheme,
       splashFactory: InkSparkle.splashFactory,
       extensions: <ThemeExtension<dynamic>>[ohm],
+      // Entre pantallas: fundido + 3 % desde la derecha, como GO (2026-10-20).
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {TargetPlatform.iOS: OhmPageTransitionsBuilder(), TargetPlatform.android: OhmPageTransitionsBuilder(), TargetPlatform.macOS: OhmPageTransitionsBuilder()},
+      ),
 
       // --- AppBar: superficie plana, borde inferior en scroll -----------------
       appBarTheme: AppBarTheme(

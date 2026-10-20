@@ -1,60 +1,19 @@
 import 'package:flutter/material.dart';
+
+import 'movimiento.dart';
 import '../models/ticket.dart';
 
 class TicketCard extends StatefulWidget {
   final Ticket ticket;
   final int index;
 
-  const TicketCard({
-    super.key,
-    required this.ticket,
-    required this.index,
-  });
+  const TicketCard({super.key, required this.ticket, required this.index});
 
   @override
   State<TicketCard> createState() => _TicketCardState();
 }
 
-class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateMixin {
-  late AnimationController _entranceController;
-  late Animation<double> _slideAnimation;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-
-    _slideAnimation = Tween<double>(begin: 30, end: 0).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.1, 1.0, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.0, 0.8, curve: Curves.easeIn),
-      ),
-    );
-
-    Future.delayed(Duration(milliseconds: widget.index * 60), () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _entranceController.dispose();
-    super.dispose();
-  }
-
+class _TicketCardState extends State<TicketCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -62,32 +21,22 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
     final isDark = theme.brightness == Brightness.dark;
     final urgentRed = cs.error;
 
-    return AnimatedBuilder(
-      animation: _entranceController,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _slideAnimation.value),
-          child: Opacity(
-            opacity: _fadeAnimation.value,
-            child: child,
-          ),
-        );
-      },
+    // Entrada escalonada con el movimiento de GO (2026-10-20): fundido + sube 8 px, 260 ms.
+    return EntradaSuave(
+      index: widget.index,
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: cs.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark ? cs.outline.withValues(alpha: 0.5) : cs.outlineVariant.withValues(alpha: 0.8),
-          ),
+          border: Border.all(color: isDark ? cs.outline.withValues(alpha: 0.5) : cs.outlineVariant.withValues(alpha: 0.8)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.02),
               blurRadius: 8,
               offset: const Offset(0, 4),
-            )
+            ),
           ],
         ),
         child: Stack(
@@ -102,13 +51,7 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
                   decoration: BoxDecoration(
                     color: urgentRed,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: urgentRed.withValues(alpha: 0.6),
-                        blurRadius: 4,
-                        spreadRadius: 1,
-                      )
-                    ],
+                    boxShadow: [BoxShadow(color: urgentRed.withValues(alpha: 0.6), blurRadius: 4, spreadRadius: 1)],
                   ),
                 ),
               ),
@@ -120,12 +63,7 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
                   padding: EdgeInsets.only(right: widget.ticket.isUrgent ? 16 : 0),
                   child: Text(
                     widget.ticket.title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.bodyLarge?.color,
-                      height: 1.25,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color, height: 1.25),
                   ),
                 ),
                 if (widget.ticket.details.isNotEmpty) ...[
@@ -139,17 +77,11 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
                         decoration: BoxDecoration(
                           color: cs.surface,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isDark ? cs.outline.withValues(alpha: 0.3) : cs.outlineVariant,
-                          ),
+                          border: Border.all(color: isDark ? cs.outline.withValues(alpha: 0.3) : cs.outlineVariant),
                         ),
                         child: Text(
                           detail,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.65),
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.65), fontWeight: FontWeight.w500),
                         ),
                       );
                     }).toList(),
@@ -157,33 +89,19 @@ class _TicketCardState extends State<TicketCard> with SingleTickerProviderStateM
                 ],
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Divider(
-                    height: 1,
-                    color: theme.dividerColor.withValues(alpha: 0.08),
-                  ),
+                  child: Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.08)),
                 ),
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: isDark ? cs.surface : cs.primaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.person,
-                        size: 14,
-                        color: isDark ? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5) : cs.primary,
-                      ),
+                      decoration: BoxDecoration(color: isDark ? cs.surface : cs.primaryContainer, shape: BoxShape.circle),
+                      child: Icon(Icons.person, size: 14, color: isDark ? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5) : cs.primary),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       widget.ticket.user,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-                      ),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8)),
                     ),
                   ],
                 ),

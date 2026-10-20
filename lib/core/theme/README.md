@@ -26,6 +26,7 @@ Container(padding: const EdgeInsets.all(AppSpacing.lg), ...);
 - **Botón primario 56px**, icon 48px, filas accionables 64px.
 - **Foco 2px naranja** en inputs (visible con guantes/sol).
 - **Motion funcional**: 200ms `easeOutCubic`; confirmaciones con `easeOutBack` corto.
+- **Movimiento de GO (2026-10-20)**: `lib/widgets/movimiento.dart` — `Presionable` (escala 0.96 al presionar, 100 ms), `CambioSuave` (cambio de contenido: fundido + 3 % desde la derecha, 220 ms, entra `easeOutCubic` / sale `easeInCubic`), `EntradaSuave` (filas y tarjetas: fundido + sube 8 px, 260 ms, escalonado 40 ms por índice); y `OhmPageTransitionsBuilder` en `app_motion.dart` registrado en el tema para TODAS las pantallas (fundido + 3 % desde la derecha). Todo colapsa a cero con «Reducir movimiento».
 
 ## Tipografía — ACTIVA: Lexend (títulos) + Inter (cuerpo)
 Ambas son **fuentes variables OFL** empaquetadas en `assets/fonts/` (Lexend.ttf, Inter.ttf) — **sin red**, offline-safe. Al ser variables, Flutter mapea `fontWeight` (400–800) al eje `wght`; no hay que declarar pesos por archivo. Licencias en `assets/fonts/OFL-*.txt`.

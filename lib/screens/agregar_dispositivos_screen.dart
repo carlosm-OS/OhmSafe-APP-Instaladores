@@ -10,6 +10,7 @@ import '../core/theme/app_theme_extension.dart';
 import '../core/utils/serie_formato.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/movimiento.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import 'conectar_camara_wifi_screen.dart';
@@ -620,6 +621,9 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   // Regla de Carlos (2026-10-14, repetida 2026-10-20): la app no muestra marcas; todo es «Wi‑Fi».
   String _marca(Object? proveedor) => 'Wi‑Fi';
 
+  /// Las secciones entran escalonadas (movimiento de GO, 2026-10-20).
+  List<Widget> _conEntrada(List<Widget> hijos) => [for (final (i, w) in hijos.indexed) EntradaSuave(index: i, child: w)];
+
   Widget _guardado(String titulo, String subtitulo) => FilaFlujo(titulo: titulo, subtitulo: subtitulo, trailing: const CirculoCheck(marcado: true));
 
   /// Fila para agregar algo nuevo: el botón tiene la forma del «+» del contador del paso 3.
@@ -656,7 +660,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                         : ListView(
                             padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
                             physics: const BouncingScrollPhysics(),
-                            children: [
+                            children: _conEntrada([
                               if (_error != null)
                                 MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No pudimos leer el equipo', texto: _error!),
                               if (_disp == null && _errorDisp != null)
@@ -851,7 +855,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
                               const SizedBox(height: 20),
                               OhmGradientButton(label: 'Listo, volver a los pasos', loading: _saliendo, onPressed: _ocupado ? null : _salir),
-                            ],
+                            ]),
                           ),
                   ),
                 ],

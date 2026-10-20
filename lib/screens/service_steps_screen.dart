@@ -3,6 +3,9 @@ import '../core/navigation/volver_a_listado.dart';
 import 'dart:async';
 import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
+
+import '../core/theme/app_motion.dart';
+import '../widgets/movimiento.dart';
 import '../core/utils/fechas_odoo.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -36,28 +39,16 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
   void initState() {
     super.initState();
     // Rotate wheels
-    _rotationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..repeat();
+    _rotationController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))..repeat();
 
     // Bounce truck cabin/box slightly to simulate movement
-    _bounceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    )..repeat(reverse: true);
+    _bounceController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300))..repeat(reverse: true);
 
     // Animate road dashed line
-    _roadController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat();
+    _roadController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..repeat();
 
     // Scale down wipe effect (from 1.0 to 0.0)
-    _scaleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
+    _scaleController = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
 
     // Run animation for 2.5 seconds, then perform wipe effect and navigate
     Future.delayed(const Duration(milliseconds: 2500), () {
@@ -98,10 +89,7 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
         builder: (context, child) {
           // Scale down from 1.0 to 0.0 (wipe-out effect)
           final scaleValue = 1.0 - _scaleController.value;
-          return Transform.scale(
-            scale: scaleValue,
-            child: child,
-          );
+          return Transform.scale(scale: scaleValue, child: child);
         },
         child: Center(
           child: Column(
@@ -123,10 +111,7 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
                         animation: _roadController,
                         builder: (context, child) {
                           return CustomPaint(
-                            painter: RoadPainter(
-                              progress: _roadController.value,
-                              color: theme.dividerColor,
-                            ),
+                            painter: RoadPainter(progress: _roadController.value, color: theme.dividerColor),
                             size: const Size(200, 2),
                           );
                         },
@@ -137,10 +122,7 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
                       animation: _bounceController,
                       builder: (context, child) {
                         final bounceY = _bounceController.value * -3.0; // 3px bounce
-                        return Transform.translate(
-                          offset: Offset(0, bounceY),
-                          child: child,
-                        );
+                        return Transform.translate(offset: Offset(0, bounceY), child: child);
                       },
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -160,12 +142,7 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
                                 child: Center(
                                   child: Text(
                                     "OHMSAFE",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 11,
-                                      letterSpacing: 0.5,
-                                    ),
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
                                   ),
                                 ),
                               ),
@@ -176,10 +153,7 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
                                 height: 35,
                                 decoration: BoxDecoration(
                                   color: cs.onSurface, // Dark slate cabin
-                                  borderRadius: const BorderRadius.only(
-                                    topRight: Radius.circular(8),
-                                    bottomRight: Radius.circular(4),
-                                  ),
+                                  borderRadius: const BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(4)),
                                 ),
                                 child: Stack(
                                   children: [
@@ -191,9 +165,7 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
                                         height: 12,
                                         decoration: BoxDecoration(
                                           color: Colors.blue.shade100, // Window glass
-                                          borderRadius: const BorderRadius.only(
-                                            topRight: Radius.circular(4),
-                                          ),
+                                          borderRadius: const BorderRadius.only(topRight: Radius.circular(4)),
                                         ),
                                       ),
                                     ),
@@ -209,14 +181,8 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                RotationTransition(
-                                  turns: _rotationController,
-                                  child: const WheelWidget(),
-                                ),
-                                RotationTransition(
-                                  turns: _rotationController,
-                                  child: const WheelWidget(),
-                                ),
+                                RotationTransition(turns: _rotationController, child: const WheelWidget()),
+                                RotationTransition(turns: _rotationController, child: const WheelWidget()),
                               ],
                             ),
                           ),
@@ -229,11 +195,7 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
               const SizedBox(height: 24),
               Text(
                 "Iniciando Ruta de servicio",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: theme.textTheme.bodyLarge?.color,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
               ),
             ],
           ),
@@ -260,17 +222,13 @@ class RoadPainter extends CustomPainter {
     const dashWidth = 14.0;
     const dashSpace = 8.0;
     final totalSpacing = dashWidth + dashSpace;
-    
+
     final offsetX = -progress * totalSpacing;
 
     double currentX = offsetX;
     while (currentX < size.width + totalSpacing) {
       if (currentX + dashWidth > 0) {
-        canvas.drawLine(
-          Offset(currentX, y),
-          Offset(currentX + dashWidth, y),
-          paint,
-        );
+        canvas.drawLine(Offset(currentX, y), Offset(currentX + dashWidth, y), paint);
       }
       currentX += totalSpacing;
     }
@@ -289,21 +247,13 @@ class WheelWidget extends StatelessWidget {
     return Container(
       width: 22,
       height: 22,
-      decoration: const BoxDecoration(
-        color: Colors.black87,
-        shape: BoxShape.circle,
-      ),
+      decoration: const BoxDecoration(color: Colors.black87, shape: BoxShape.circle),
       child: Center(
         child: Container(
           width: 8,
           height: 8,
-          decoration: const BoxDecoration(
-            color: Colors.white54,
-            shape: BoxShape.circle,
-          ),
-          child: CustomPaint(
-            painter: WheelSpokesPainter(),
-          ),
+          decoration: const BoxDecoration(color: Colors.white54, shape: BoxShape.circle),
+          child: CustomPaint(painter: WheelSpokesPainter()),
         ),
       ),
     );
@@ -348,6 +298,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   bool _step1Completed = false;
   bool _step2Completed = false;
   bool _step3Completed = false;
+
   /// «Agregar dispositivos» (build 39): cableado con prueba en vivo; opcional, antes del cierre.
   /// Desde la build 54 (energizador opcional, Carlos 2026-10-20) también vincular el energizador y
   /// su prueba viven ahí dentro: una casa puede no llevar energizador.
@@ -356,25 +307,21 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   /// «Agregar dispositivos» se abre sólo al tocar el paso y al terminar regresa aquí. Queda
   /// abierto hasta el cierre: si el cliente compra algo más en sitio se vuelve a entrar (Carlos, 2026-10-14).
   Future<void> _abrirDispositivos(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => AgregarDispositivosScreen(ticket: widget.ticket)),
-    );
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => AgregarDispositivosScreen(ticket: widget.ticket)));
     if (!mounted) return;
     if (result == 'dispositivos_listos') setState(() => _dispositivosHechos = true);
   }
+
   bool _step5Completed = false;
 
   /// Abre el cierre (paso 5 en instalaciones, 4 en reparaciones) y marca el paso al terminar.
   Future<void> _abrirCierre(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => CierreInstalacionScreen(ticket: widget.ticket)),
-    );
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => CierreInstalacionScreen(ticket: widget.ticket)));
     if (result == 'cierre_completed' && mounted) {
       setState(() => _step5Completed = true);
     }
   }
+
   bool _isSubmitting = false;
 
   /// El paso 3 es una variante: instalación de cerca por defecto, o
@@ -440,25 +387,16 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           children: [
                             Text(
                               "OHM",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: theme.textTheme.bodyLarge?.color,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color),
                             ),
                             Text(
                               "SAFE",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: cs.primary,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
                             ),
                           ],
                         ),
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
+                      Align(alignment: Alignment.centerRight, child: const NotificationBell()),
                     ],
                   ),
                 ),
@@ -477,26 +415,15 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           child: Text(
                             _isReparacion ? "Reparaciones" : "Instalaciones",
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.titleLarge?.color,
-                            ),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textTheme.titleLarge?.color),
                           ),
                         ),
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
                             onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
-                            ),
+                            style: IconButton.styleFrom(padding: const EdgeInsets.all(6), shape: const CircleBorder()),
+                            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.iconTheme.color),
                           ),
                         ),
                       ],
@@ -516,10 +443,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         color: theme.cardColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: theme.dividerColor.withValues(alpha: 0.5),
-                            width: 1.5,
-                          ),
+                          side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(24.0),
@@ -528,24 +452,19 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                             children: [
                               Text(
                                 widget.ticket["title"]!,
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.4,
-                                  color: theme.textTheme.bodyLarge?.color,
-                                ),
+                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, height: 1.4, color: theme.textTheme.bodyLarge?.color),
                               ),
                               const SizedBox(height: 16),
-                              Text(
-                                "Abierto por ${details["openDays"]} días",
-                                style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color),
-                              ),
+                              Text("Abierto por ${details["openDays"]} días", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color)),
                               const SizedBox(height: 6),
                               RichText(
                                 text: TextSpan(
                                   style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
-                                    const TextSpan(text: "Fecha de creación: ", style: TextStyle(fontWeight: FontWeight.w700)),
+                                    const TextSpan(
+                                      text: "Fecha de creación: ",
+                                      style: TextStyle(fontWeight: FontWeight.w700),
+                                    ),
                                     TextSpan(text: FechasOdoo.fechaHora(details["createdDate"])),
                                   ],
                                 ),
@@ -555,7 +474,10 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 text: TextSpan(
                                   style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
-                                    const TextSpan(text: "Dirección: ", style: TextStyle(fontWeight: FontWeight.w700)),
+                                    const TextSpan(
+                                      text: "Dirección: ",
+                                      style: TextStyle(fontWeight: FontWeight.w700),
+                                    ),
                                     TextSpan(text: details["direccion"]),
                                   ],
                                 ),
@@ -567,7 +489,10 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                     text: TextSpan(
                                       style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                       children: [
-                                        const TextSpan(text: "Ciudad: ", style: TextStyle(fontWeight: FontWeight.w700)),
+                                        const TextSpan(
+                                          text: "Ciudad: ",
+                                          style: TextStyle(fontWeight: FontWeight.w700),
+                                        ),
                                         TextSpan(text: details["ciudad"]),
                                       ],
                                     ),
@@ -577,7 +502,10 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                     text: TextSpan(
                                       style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                       children: [
-                                        const TextSpan(text: "CP: ", style: TextStyle(fontWeight: FontWeight.w700)),
+                                        const TextSpan(
+                                          text: "CP: ",
+                                          style: TextStyle(fontWeight: FontWeight.w700),
+                                        ),
                                         TextSpan(text: details["cp"]),
                                       ],
                                     ),
@@ -589,27 +517,26 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 text: TextSpan(
                                   style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                                   children: [
-                                    const TextSpan(text: "Teléfono: ", style: TextStyle(fontWeight: FontWeight.w700)),
+                                    const TextSpan(
+                                      text: "Teléfono: ",
+                                      style: TextStyle(fontWeight: FontWeight.w700),
+                                    ),
                                     TextSpan(text: details["telefono"]),
                                   ],
                                 ),
                               ),
-                              
+
                               BotonComoLlegar(destino: DestinoServicio.deDetalles(details)),
                               const SizedBox(height: 12),
                               Divider(height: 1, color: theme.dividerColor),
                               const SizedBox(height: 12),
-                              
+
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(
-                                        Icons.person_outline_rounded,
-                                        size: 14,
-                                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                                      ),
+                                      Icon(Icons.person_outline_rounded, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                                       const SizedBox(width: 8),
                                       Text(
                                         widget.ticket["user"]!,
@@ -627,19 +554,12 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                         Container(
                                           width: 8,
                                           height: 8,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
+                                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                                         ),
                                         const SizedBox(width: 6),
                                         const Text(
                                           "Urgente",
-                                          style: TextStyle(
-                                            color: Colors.red,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600),
                                         ),
                                       ],
                                     ),
@@ -649,7 +569,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                           ),
                         ),
                       ),
-                      
+
                       // Order Steps Header
                       Padding(
                         padding: const EdgeInsets.only(left: 24, right: 24, top: 20, bottom: 8),
@@ -674,12 +594,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         isCompleted: _step1Completed,
                         onTap: !_step1Completed
                             ? () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => RouteDetailsScreen(ticket: widget.ticket),
-                                  ),
-                                );
+                                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => RouteDetailsScreen(ticket: widget.ticket)));
                                 if (result == 'arrived') {
                                   setState(() {
                                     _step1Completed = true;
@@ -699,9 +614,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                             ? () async {
                                 final result = await Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => PerimeterInspectionScreen(ticket: widget.ticket),
-                                  ),
+                                  MaterialPageRoute(builder: (_) => PerimeterInspectionScreen(ticket: widget.ticket)),
                                 );
                                 if (result == 'perimeter_completed') {
                                   setState(() {
@@ -714,12 +627,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                       _buildStepItem(
                         context,
                         number: "3",
-                        title: _isReparacion
-                            ? "Reparación de cerca eléctrica"
-                            : "Instalación de cerca eléctrica",
-                        subtitle: _isReparacion
-                            ? "Costeo de hilos, componentes y energizador"
-                            : "Proceso de instalación de cerca en el perímetro",
+                        title: _isReparacion ? "Reparación de cerca eléctrica" : "Instalación de cerca eléctrica",
+                        subtitle: _isReparacion ? "Costeo de hilos, componentes y energizador" : "Proceso de instalación de cerca en el perímetro",
                         isActive: _step2Completed && !_step3Completed,
                         isCompleted: _step3Completed,
                         onTap: (_step2Completed && !_step3Completed)
@@ -727,14 +636,10 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => _isReparacion
-                                        ? ReparacionScreen(ticket: widget.ticket)
-                                        : FenceInstallationScreen(ticket: widget.ticket),
+                                    builder: (_) => _isReparacion ? ReparacionScreen(ticket: widget.ticket) : FenceInstallationScreen(ticket: widget.ticket),
                                   ),
                                 );
-                                final expected = _isReparacion
-                                    ? 'reparacion_completed'
-                                    : 'installation_completed';
+                                final expected = _isReparacion ? 'reparacion_completed' : 'installation_completed';
                                 if (result == expected) {
                                   setState(() {
                                     _step3Completed = true;
@@ -766,9 +671,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         subtitle: _isReparacion ? "Fotos, entrega y firma del cliente" : "Fotos, entrega del equipo y firma del cliente",
                         isActive: _step3Completed && !_step5Completed,
                         isCompleted: _step5Completed,
-                        onTap: (_step3Completed && !_step5Completed)
-                            ? () => _abrirCierre(context)
-                            : null,
+                        onTap: (_step3Completed && !_step5Completed) ? () => _abrirCierre(context) : null,
                       ),
 
                       // Bottom Terminar button (active if step 5 is completed)
@@ -776,9 +679,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                         child: OhmGradientButton(
                           label: _isReparacion ? "Terminar reparación" : "Terminar instalación",
-                          onPressed: _step5Completed
-                              ? () => _submitFinalInstallation(context)
-                              : null,
+                          onPressed: _step5Completed ? () => _submitFinalInstallation(context) : null,
                         ),
                       ),
                     ],
@@ -806,41 +707,21 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? cs.surface : ohm.successContainer,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: ohm.success,
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
+                  border: Border.all(color: ohm.success, width: 1.5),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: ohm.success,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 16,
-                      ),
+                      decoration: BoxDecoration(color: ohm.success, shape: BoxShape.circle),
+                      child: const Icon(Icons.check, color: Colors.white, size: 16),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         "Técnico en camino al domicilio",
-                        style: TextStyle(
-                          color: isDark ? Colors.white : ohm.onSuccessContainer,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: TextStyle(color: isDark ? Colors.white : ohm.onSuccessContainer, fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -848,8 +729,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
               ),
             ),
           ),
-          if (_isSubmitting)
-            _buildLoadingOverlay(context),
+          if (_isSubmitting) _buildLoadingOverlay(context),
         ],
       ),
     );
@@ -866,33 +746,16 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
           decoration: BoxDecoration(
             color: cs.surface,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 10)),
-            ],
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 10))],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(
-                color: cs.primary,
-                strokeWidth: 3.5,
-              ),
+              CircularProgressIndicator(color: cs.primary, strokeWidth: 3.5),
               const SizedBox(height: 20),
-              const Text(
-                "Enviando el cierre…",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const Text("Enviando el cierre…", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
-              const Text(
-                "Subiendo fotos, ubicación y firma",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
+              const Text("Subiendo fotos, ubicación y firma", style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
         ),
@@ -924,9 +787,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
         builder: (context) {
           final cs = Theme.of(context).colorScheme;
           return Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             backgroundColor: cs.surface,
             child: Padding(
               padding: const EdgeInsets.all(28.0),
@@ -936,23 +797,13 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                   Container(
                     width: 72,
                     height: 72,
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.check_circle_rounded,
-                      color: Colors.green.shade600,
-                      size: 48,
-                    ),
+                    decoration: BoxDecoration(color: Colors.green.shade50, shape: BoxShape.circle),
+                    child: Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 48),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     isRep ? "¡Reparación terminada!" : "¡Instalación terminada!",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
@@ -960,11 +811,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                     isRep
                         ? "Enviamos el costeo, las fotos con su ubicación y la firma del cliente."
                         : "Enviamos las fotos con su ubicación, la entrega del equipo y la firma del cliente.",
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                      height: 1.5,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey, height: 1.5),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -1009,10 +856,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     if (isCompleted) {
       // Lienzo de Carlos (2026-10-15): fondo blanco; el verde queda en borde, número y texto.
       cardBg = isDark ? ohm.success.withValues(alpha: 0.2) : theme.cardColor;
-      borderSide = BorderSide(
-        color: ohm.success,
-        width: 1.5,
-      );
+      borderSide = BorderSide(color: ohm.success, width: 1.5);
       badgeBg = ohm.success;
       badgeTextColor = Colors.white;
       titleColor = ohm.success;
@@ -1020,10 +864,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
       chevronColor = ohm.success;
     } else if (isActive) {
       cardBg = theme.cardColor;
-      borderSide = BorderSide(
-        color: cs.primary,
-        width: 1.5,
-      );
+      borderSide = BorderSide(color: cs.primary, width: 1.5);
       badgeBg = cs.primary;
       badgeTextColor = Colors.white;
       titleColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
@@ -1031,10 +872,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
       chevronColor = cs.primary;
     } else {
       cardBg = isDark ? cs.surface.withValues(alpha: 0.4) : ohm.surfaceContainer;
-      borderSide = BorderSide(
-        color: theme.dividerColor.withValues(alpha: 0.5),
-        width: 1.0,
-      );
+      borderSide = BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.0);
       badgeBg = isDark ? cs.outline : cs.outlineVariant;
       badgeTextColor = isDark ? Colors.white70 : cs.onSurfaceVariant;
       titleColor = theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.4) ?? Colors.black45;
@@ -1042,72 +880,58 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
       chevronColor = theme.iconTheme.color?.withValues(alpha: 0.3) ?? Colors.grey;
     }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      elevation: 0,
-      color: cardBg,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: borderSide,
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              // Number Badge
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: badgeBg,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    number,
-                    style: TextStyle(
-                      color: badgeTextColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Texts
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    // Movimiento de GO (2026-10-20): entrada escalonada, estado en 200 ms y escala al presionar.
+    return EntradaSuave(
+      index: int.tryParse(number) ?? 0,
+      child: Presionable(
+        activo: onTap != null,
+        child: AnimatedContainer(
+          duration: AppMotion.of(context, AppDurations.base),
+          curve: AppCurves.standard,
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.fromBorderSide(borderSide)),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: titleColor,
+                    // Number Badge
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(color: badgeBg, shape: BoxShape.circle),
+                      child: Center(
+                        child: Text(
+                          number,
+                          style: TextStyle(color: badgeTextColor, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: subtitleColor,
+                    const SizedBox(width: 16),
+                    // Texts
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: titleColor),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(subtitle, style: TextStyle(fontSize: 12, color: subtitleColor)),
+                        ],
                       ),
                     ),
+                    // Chevron Right
+                    Icon(Icons.chevron_right, color: chevronColor, size: 20),
                   ],
                 ),
               ),
-              // Chevron Right
-              Icon(
-                Icons.chevron_right,
-                color: chevronColor,
-                size: 20,
-              ),
-            ],
+            ),
           ),
         ),
       ),

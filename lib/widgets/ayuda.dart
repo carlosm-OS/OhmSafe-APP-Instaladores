@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_motion.dart';
+import 'movimiento.dart';
+
 import 'notification_bell.dart';
 
 // =============================================================================
@@ -40,8 +43,14 @@ class EncabezadoFlujo extends StatelessWidget {
                 errorBuilder: (_, _, _) => Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('OHM', style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                    Text('SAFE', style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
+                    Text(
+                      'OHM',
+                      style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color),
+                    ),
+                    Text(
+                      'SAFE',
+                      style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
+                    ),
                   ],
                 ),
               ),
@@ -117,7 +126,10 @@ class EtiquetaSeccion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.4);
-    final etiqueta = Text(texto, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.5));
+    final etiqueta = Text(
+      texto,
+      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.5),
+    );
     if (ayuda == null) return Padding(padding: const EdgeInsets.only(bottom: 12), child: etiqueta);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -197,7 +209,10 @@ class FilaFlujo extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    return Container(
+    // Cambios de estado en 200 ms (marcada, color) y el trailing cambia fundiendo + deslizando (GO).
+    return AnimatedContainer(
+      duration: AppMotion.of(context, AppDurations.base),
+      curve: AppCurves.standard,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
@@ -221,12 +236,20 @@ class FilaFlujo extends StatelessWidget {
                 ),
                 if (subtitulo != null && subtitulo!.isNotEmpty) ...[
                   const SizedBox(height: 2),
-                  Text(subtitulo!, style: TextStyle(fontSize: 13, height: 1.35, color: colorSubtitulo ?? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6))),
+                  Text(
+                    subtitulo!,
+                    style: TextStyle(fontSize: 13, height: 1.35, color: colorSubtitulo ?? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
+                  ),
                 ],
               ],
             ),
           ),
-          if (trailing != null) ...[const SizedBox(width: 12), trailing!],
+          if (trailing != null) ...[
+            const SizedBox(width: 12),
+            CambioSuave(
+              child: KeyedSubtree(key: ValueKey(trailing.runtimeType), child: trailing!),
+            ),
+          ],
         ],
       ),
     );
@@ -277,28 +300,35 @@ class BotonFila extends StatelessWidget {
       button: true,
       enabled: activo,
       label: etiqueta,
-      child: Opacity(
-        opacity: activo ? 1 : 0.45,
-        child: Material(
-          color: lleno ? cs.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          child: InkWell(
-            onTap: onPressed,
+      child: Presionable(
+        activo: activo,
+        child: AnimatedOpacity(
+          duration: AppMotion.of(context, AppDurations.base),
+          opacity: activo ? 1 : 0.45,
+          child: Material(
+            color: lleno ? cs.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
-            child: Container(
-              height: 38,
-              constraints: const BoxConstraints(minWidth: 44),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: lleno ? null : Border.all(color: isDark ? Colors.white24 : Colors.black12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icono != null) ...[Icon(icono, size: 18, color: fg), const SizedBox(width: 6)],
-                  Text(etiqueta, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg)),
-                ],
+            child: InkWell(
+              onTap: onPressed,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                height: 38,
+                constraints: const BoxConstraints(minWidth: 44),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: lleno ? null : Border.all(color: isDark ? Colors.white24 : Colors.black12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icono != null) ...[Icon(icono, size: 18, color: fg), const SizedBox(width: 6)],
+                    Text(
+                      etiqueta,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -329,8 +359,17 @@ class BotonSecundario extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: icono == null
-          ? OutlinedButton(onPressed: onPressed, style: style, child: Text(etiqueta, style: texto))
-          : OutlinedButton.icon(onPressed: onPressed, style: style, icon: Icon(icono, size: 20), label: Text(etiqueta, style: texto)),
+          ? OutlinedButton(
+              onPressed: onPressed,
+              style: style,
+              child: Text(etiqueta, style: texto),
+            )
+          : OutlinedButton.icon(
+              onPressed: onPressed,
+              style: style,
+              icon: Icon(icono, size: 20),
+              label: Text(etiqueta, style: texto),
+            ),
     );
   }
 }
@@ -364,7 +403,10 @@ class MensajeFlujo extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(titulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
+                  Text(
+                    titulo,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+                  ),
                   if (texto != null) ...[
                     const SizedBox(height: 2),
                     Text(texto!, style: TextStyle(fontSize: 13, height: 1.35, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
@@ -395,11 +437,11 @@ class MensajeFlujo extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(titulo, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: blanco)),
-                  if (texto != null) ...[
-                    const SizedBox(height: 2),
-                    Text(texto!, style: const TextStyle(fontSize: 13, height: 1.35, color: blanco)),
-                  ],
+                  Text(
+                    titulo,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: blanco),
+                  ),
+                  if (texto != null) ...[const SizedBox(height: 2), Text(texto!, style: const TextStyle(fontSize: 13, height: 1.35, color: blanco))],
                   if (accion != null) ...[
                     const SizedBox(height: 10),
                     // La acción (p. ej. «Intentar de nuevo») va en blanco sobre el rojo.
@@ -408,7 +450,10 @@ class MensajeFlujo extends StatelessWidget {
                         colorScheme: Theme.of(context).colorScheme.copyWith(primary: blanco),
                         disabledColor: blanco.withValues(alpha: 0.6),
                       ),
-                      child: DefaultTextStyle.merge(style: const TextStyle(color: blanco), child: accion!),
+                      child: DefaultTextStyle.merge(
+                        style: const TextStyle(color: blanco),
+                        child: accion!,
+                      ),
                     ),
                   ],
                 ],
@@ -452,10 +497,18 @@ class FichaEquipo extends StatelessWidget {
       key: key,
       padding: const EdgeInsets.only(top: 10),
       child: Text.rich(
-        TextSpan(children: [
-          TextSpan(text: '$etiqueta:  ', style: const TextStyle(fontWeight: FontWeight.bold)),
-          TextSpan(text: valor, style: TextStyle(fontWeight: FontWeight.w500, color: color ?? blanco)),
-        ]),
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$etiqueta:  ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text: valor,
+              style: TextStyle(fontWeight: FontWeight.w500, color: color ?? blanco),
+            ),
+          ],
+        ),
         textAlign: centrado ? TextAlign.center : TextAlign.start,
         style: const TextStyle(fontSize: 14, color: blanco),
       ),
@@ -468,24 +521,40 @@ class FichaEquipo extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 10),
-            child: Text('OHMBOX', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: blanco)),
+            child: Text(
+              'OHMBOX',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: blanco),
+            ),
           ),
           if (serieDestacada != null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(color: blanco, borderRadius: BorderRadius.circular(10)),
               child: Text.rich(
-                TextSpan(children: [
-                  const TextSpan(text: 'Número de serie:  ', style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextSpan(text: serieDestacada, style: const TextStyle(fontWeight: FontWeight.w500)),
-                ]),
+                TextSpan(
+                  children: [
+                    const TextSpan(
+                      text: 'Número de serie:  ',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    TextSpan(
+                      text: serieDestacada,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
                 style: const TextStyle(fontSize: 14, color: tinta),
               ),
             ),
           for (final d in datos) renglon(d.etiqueta, d.valor, d.color, key: d.key),
           if (pie != null) ...[
             const SizedBox(height: 8),
-            Text(pie!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: blanco)),
+            Text(
+              pie!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: blanco),
+            ),
           ],
         ],
       ),
@@ -516,7 +585,10 @@ class DatoFlujo extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('$etiqueta:  ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.bodyLarge?.color)),
+          Text(
+            '$etiqueta:  ',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.bodyLarge?.color),
+          ),
           Flexible(
             child: Text(
               valor,
@@ -558,7 +630,12 @@ class EsperandoSenal extends StatelessWidget {
               children: [
                 Icon(Icons.wifi_tethering_rounded, size: 20, color: cs.primary),
                 const SizedBox(width: 12),
-                Expanded(child: Text(titulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color))),
+                Expanded(
+                  child: Text(
+                    titulo,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
