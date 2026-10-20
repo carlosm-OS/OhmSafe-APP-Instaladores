@@ -132,7 +132,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
   /// Sensor o cámara Tuya nueva: el teléfono le pasa la Wi‑Fi con el permiso de la casa (2026-10-17).
   Future<void> _conectarTuya(String clase) async {
-    final ok = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => ConectarTuyaWifiScreen(ordenId: _id, clase: clase)));
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConectarTuyaWifiScreen(ordenId: _id, clase: clase),
+      ),
+    );
     if (ok == true && mounted) await _cargarDisp();
   }
 
@@ -280,7 +285,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   Future<void> _agregarCamara() => _abrirRegistroCamara();
 
   Future<void> _abrirRegistroCamara({String? proveedor}) async {
-    final ok = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => ConectarImouScreen(ordenId: _id, proveedor: proveedor)));
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConectarImouScreen(ordenId: _id, proveedor: proveedor),
+      ),
+    );
     if (ok == true && mounted) await _cargarDisp();
   }
 
@@ -558,6 +568,9 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
   // ---------------------------------------------------------------- UI
   /// Lo ya guardado: fila normal con el círculo marcado del paso 2.
+  static const _marcas = {'tuya': 'Tuya', 'ezviz': 'EZVIZ', 'imou': 'Imou'};
+  String _marca(Object? proveedor) => _marcas[(proveedor ?? '').toString().toLowerCase()] ?? 'Wi‑Fi';
+
   Widget _guardado(String titulo, String subtitulo) => FilaFlujo(titulo: titulo, subtitulo: subtitulo, trailing: const CirculoCheck(marcado: true));
 
   /// Fila para agregar algo nuevo: el botón tiene la forma del «+» del contador del paso 3.
@@ -699,8 +712,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                     'El ID viene en la etiqueta o en la app del sensor.',
                                   ],
                                 ),
-                                for (final x in _lista('wifi', 'sensores'))
-                                  _guardado((x['nombre'] ?? '').toString(), '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · ID ${x['externalId'] ?? ''}'),
+                                // En el orden en que se dieron de alta (el servidor los manda así), numerados y con marca.
+                                for (final (i, x) in _lista('wifi', 'sensores').indexed)
+                                  _guardado(
+                                    '${i + 1}. ${x['nombre'] ?? ''}',
+                                    '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · ${_marca(x['proveedor'])} · ID ${x['externalId'] ?? ''}',
+                                  ),
                                 if (_emparejarTuya)
                                   _agregar('Conectar sensor Wi‑Fi', 'Tuya nuevo: el teléfono le pasa la red', _ocupado ? null : () => _conectarTuya('sensor')),
                                 if (_wifiHabilitado) _agregar('Sensor Wi‑Fi', 'Puerta, movimiento o humo', _ocupado || _disp == null ? null : _agregarWifi),
@@ -718,11 +735,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   'Al guardarla, el cliente la ve en su app.',
                                 ],
                               ),
-                              for (final x in _lista('camaras', 'lista'))
+                              // En el orden en que se dieron de alta, sin importar la marca; numeradas.
+                              for (final (i, x) in _lista('camaras', 'lista').indexed)
                                 FilaFlujo(
-                                  titulo: (x['nombre'] ?? '').toString(),
+                                  titulo: '${i + 1}. ${x['nombre'] ?? ''}',
                                   subtitulo:
-                                      'Serie ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}${(x['red'] ?? '').toString().isNotEmpty ? ' · Wi‑Fi ${x['red']}' : ''}',
+                                      '${_marca(x['proveedor'])} · serie ${x['serie'] ?? ''} · ${x['estado'] == 'online' ? 'en línea' : 'sin respuesta'}${(x['red'] ?? '').toString().isNotEmpty ? ' · Wi‑Fi ${x['red']}' : ''}',
                                   trailing: CirculoCheck(marcado: x['estado'] == 'online'),
                                 ),
                               if (_emparejarEzviz)
