@@ -2,6 +2,15 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 51 (en preparación)
+
+- **«Conectar cámara Imou»** en «Agregar dispositivos» → Cámaras: pasos para conectarla con la app Imou Life y registrarla aquí con su serie (S/N) y código SC. «Cámara ya conectada» queda para cámaras conectadas con la app del fabricante.
+- **Serie del energizador:** si tecleas un cero en vez de la letra O («0SPRUEBA0001»), la app lo corrige sola a «OS‑PRUEBA‑0001».
+
+## Build 50 (TestFlight y Play, producción) — 19 de octubre de 2026
+
+Mismo contenido que la 49, pero apunta al **servidor de producción**. Todo lo que des de alta queda en casas y cuentas reales; úsala sólo en casas de prueba (OS‑PRUEBA) hasta que se publique en tiendas.
+
 ## Build 49 (TestFlight, servidor de pruebas) — 17 de octubre de 2026
 
 Sólo para pruebas internas: apunta al **servidor de pruebas** (api-dev), no a producción. Los instaladores siguen con la 47 de la tienda o la 48 de TestFlight.

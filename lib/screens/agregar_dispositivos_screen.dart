@@ -270,7 +270,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (ok == true && mounted) await _cargarDisp();
   }
 
-  Future<void> _agregarCamara() async {
+  /// Cámara Imou (2026-10-19, Carlos): Imou no tiene emparejamiento Wi‑Fi en nuestra app, así que la
+  /// cámara se conecta a la red con Imou Life y aquí se registra con su serie y código SC. Es el
+  /// mismo registro que «Cámara ya conectada», con la marca fija y los pasos de Imou a la vista.
+  Future<void> _conectarImou() => _agregarCamara(proveedor: 'imou');
+
+  Future<void> _agregarCamara({String? proveedor}) async {
+    final imou = proveedor == 'imou';
     final datos = await showDialog<({String serie, String codigo, String nombre})>(
       context: context,
       builder: (_) => ConTextos(
@@ -278,12 +284,17 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
         builder: (ctx, c) => AlertDialog(
           // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
           scrollable: true,
-          title: const Text('Cámara ya conectada'),
+          title: Text(imou ? 'Conectar cámara Imou' : 'Cámara ya conectada'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Para una cámara que ya está en internet (por ejemplo, conectada con la app del fabricante).', style: Theme.of(ctx).textTheme.bodySmall),
+              if (imou) ...[
+                Text('1. Enciende la cámara y espera el aviso de voz.', style: Theme.of(ctx).textTheme.bodySmall),
+                Text('2. Con la app Imou Life, en la cuenta del cliente, escanea el QR de la cámara y conéctala a la Wi‑Fi de la casa (2.4 GHz).', style: Theme.of(ctx).textTheme.bodySmall),
+                Text('3. Cuando Imou Life la muestre en línea, escribe aquí la serie (S/N) y el código SC de la etiqueta.', style: Theme.of(ctx).textTheme.bodySmall),
+              ] else
+                Text('Para una cámara que ya está en internet (por ejemplo, conectada con la app del fabricante).', style: Theme.of(ctx).textTheme.bodySmall),
               const SizedBox(height: 12),
               TextField(
                 controller: c[0],
@@ -294,7 +305,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
               TextField(
                 controller: c[1],
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(labelText: 'Código de verificación', helperText: 'En la misma etiqueta.'),
+                decoration: InputDecoration(labelText: imou ? 'Código de seguridad (SC)' : 'Código de verificación', helperText: 'En la misma etiqueta.'),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -321,7 +332,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (datos == null || !mounted) return;
     setState(() => _ocupado = true);
     // Sin marca: el backend prueba cada nube habilitada y se queda con la que reconoce la cámara.
-    final r = await _repo.camaraAgregar(_id, serie: datos.serie, codigo: datos.codigo, nombre: datos.nombre);
+    final r = await _repo.camaraAgregar(_id, proveedor: proveedor, serie: datos.serie, codigo: datos.codigo, nombre: datos.nombre);
     if (!mounted) return;
     setState(() => _ocupado = false);
     r.fold((_) => _aviso('Cámara «${datos.nombre}» guardada'), (f) => _aviso(f.message));
@@ -757,7 +768,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 tituloAyuda: 'Cámaras',
                                 ayuda: [
                                   'Cámara EZVIZ nueva: «Conectar a la Wi‑Fi». El teléfono le pasa la red de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
-                                  'Cámara que ya está en internet (Imou, o conectada con la app del fabricante): «Cámara ya conectada», con la serie y el código de su etiqueta.',
+                                  'Cámara Imou: «Conectar cámara Imou». Se conecta a la red con la app Imou Life y aquí se registra con la serie y el código SC de su etiqueta.',
+                                  'Cámara que ya está en internet (conectada con la app del fabricante): «Cámara ya conectada», con la serie y el código de su etiqueta.',
                                   'Al guardarla, el cliente la ve en su app.',
                                 ],
                               ),
@@ -772,6 +784,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 _agregar('Conectar cámara a la Wi‑Fi', 'EZVIZ nueva: el teléfono le pasa la red', _ocupado ? null : _conectarCamaraWifi),
                               if (_emparejarTuya)
                                 _agregar('Conectar cámara Tuya', 'Tuya nueva: el teléfono le pasa la red', _ocupado ? null : () => _conectarTuya('camara')),
+                              if (_camarasOn && _proveedores['imou'] == true)
+                                _agregar('Conectar cámara Imou', 'Imou nueva: se conecta con Imou Life y se registra aquí', _ocupado ? null : _conectarImou),
                               _agregar(
                                 'Cámara ya conectada',
                                 _hayProveedor ? 'Ya está en internet: serie y código' : 'No disponibles por ahora',
