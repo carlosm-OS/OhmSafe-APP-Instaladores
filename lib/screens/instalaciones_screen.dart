@@ -15,16 +15,11 @@ import '../core/utils/fechas_odoo.dart';
 class InstalacionesScreen extends StatefulWidget {
   final String? cancelledTicketTitle;
   final String? completedTicketTitle;
+
   /// Tipo de servicio que lista: instalacion (por defecto), mantenimiento, reparacion, reemplazo.
   final String tipo;
   final String titulo;
-  const InstalacionesScreen({
-    super.key,
-    this.cancelledTicketTitle,
-    this.completedTicketTitle,
-    this.tipo = 'instalacion',
-    this.titulo = 'Instalaciones',
-  });
+  const InstalacionesScreen({super.key, this.cancelledTicketTitle, this.completedTicketTitle, this.tipo = 'instalacion', this.titulo = 'Instalaciones'});
 
   @override
   State<InstalacionesScreen> createState() => _InstalacionesScreenState();
@@ -61,8 +56,18 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   ];
 
   static const List<String> _mesesLargos = [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
   ];
 
   @override
@@ -104,10 +109,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     final primero = DateTime(mes.year, mes.month, 1);
     final diasEnMes = DateUtils.getDaysInMonth(mes.year, mes.month);
     final huecoInicial = primero.weekday - 1; // lunes = 0
-    final celdas = <DateTime?>[
-      ...List.filled(huecoInicial, null),
-      ...List.generate(diasEnMes, (i) => DateTime(mes.year, mes.month, i + 1)),
-    ];
+    final celdas = <DateTime?>[...List.filled(huecoInicial, null), ...List.generate(diasEnMes, (i) => DateTime(mes.year, mes.month, i + 1))];
     while (celdas.length % 7 != 0) {
       celdas.add(null);
     }
@@ -199,15 +201,18 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                         errorBuilder: (context, error, stackTrace) => Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text("OHM", style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                            Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
+                            Text(
+                              "OHM",
+                              style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color),
+                            ),
+                            Text(
+                              "SAFE",
+                              style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
+                            ),
                           ],
                         ),
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
+                      Align(alignment: Alignment.centerRight, child: const NotificationBell()),
                     ],
                   ),
                 ),
@@ -299,9 +304,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         // AlwaysScrollable: el gesto debe funcionar aunque haya una sola
         // orden y la lista no llegue a desbordar la pantalla.
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         children: children,
       ),
     );
@@ -326,8 +329,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   }
 
   Widget _buildCalendario(ThemeData theme, ColorScheme cs, dynamic ohm, bool isDark) {
-    final mesTitulo =
-        '${_mesesLargos[_mesVisible.month - 1]} ${_mesVisible.year}';
+    final mesTitulo = '${_mesesLargos[_mesVisible.month - 1]} ${_mesVisible.year}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -348,9 +350,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
               alignment: Alignment.topCenter,
-              child: _mesExpandido
-                  ? _buildCuadriculaMes(theme, cs, isDark)
-                  : _buildTiraSemana(theme, cs, isDark),
+              child: _mesExpandido ? _buildCuadriculaMes(theme, cs, isDark) : _buildTiraSemana(theme, cs, isDark),
             ),
           ],
         ),
@@ -370,31 +370,15 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
             child: Text(
               // Se capitaliza solo la inicial: "septiembre 2026" -> "Septiembre 2026".
               mesTitulo[0].toUpperCase() + mesTitulo.substring(1),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color),
             ),
           ),
           if (_mesExpandido) ...[
-            _botonIcono(
-              icono: Icons.chevron_left_rounded,
-              tooltip: 'Mes anterior',
-              color: color,
-              onTap: () => _cambiarMes(-1),
-            ),
-            _botonIcono(
-              icono: Icons.chevron_right_rounded,
-              tooltip: 'Mes siguiente',
-              color: color,
-              onTap: () => _cambiarMes(1),
-            ),
+            _botonIcono(icono: Icons.chevron_left_rounded, tooltip: 'Mes anterior', color: color, onTap: () => _cambiarMes(-1)),
+            _botonIcono(icono: Icons.chevron_right_rounded, tooltip: 'Mes siguiente', color: color, onTap: () => _cambiarMes(1)),
           ],
           _botonIcono(
-            icono: _mesExpandido
-                ? Icons.expand_less_rounded
-                : Icons.calendar_month_rounded,
+            icono: _mesExpandido ? Icons.expand_less_rounded : Icons.calendar_month_rounded,
             tooltip: _mesExpandido ? 'Ver solo la semana' : 'Ver el mes completo',
             color: _mesExpandido ? cs.primary : color,
             onTap: () => setState(() {
@@ -412,12 +396,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   }
 
   /// Botón de icono con área táctil de 44x44 (mínimo de la guía).
-  Widget _botonIcono({
-    required IconData icono,
-    required String tooltip,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
+  Widget _botonIcono({required IconData icono, required String tooltip, required VoidCallback onTap, Color? color}) {
     return Semantics(
       button: true,
       label: tooltip,
@@ -426,11 +405,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(22),
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icono, size: 20, color: color),
-          ),
+          child: SizedBox(width: 44, height: 44, child: Icon(icono, size: 20, color: color)),
         ),
       ),
     );
@@ -448,10 +423,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         separatorBuilder: (_, _) => const SizedBox(width: 4),
         itemBuilder: (context, i) {
           final day = _calendarDays[i];
-          return SizedBox(
-            width: 52,
-            child: _celdaDia(theme, cs, isDark, day, mostrarNombreDia: true),
-          );
+          return SizedBox(width: 52, child: _celdaDia(theme, cs, isDark, day, mostrarNombreDia: true));
         },
       ),
     );
@@ -473,11 +445,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 child: Center(
                   child: Text(
                     d,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: tenue,
-                    ),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: tenue),
                   ),
                 ),
               ),
@@ -492,13 +460,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   child: celdas[fila * 7 + col] == null
                       // Hueco de relleno: ocupa lugar para no descuadrar la fila.
                       ? const SizedBox(height: 48)
-                      : _celdaDia(
-                          theme,
-                          cs,
-                          isDark,
-                          celdas[fila * 7 + col]!,
-                          mostrarNombreDia: false,
-                        ),
+                      : _celdaDia(theme, cs, isDark, celdas[fila * 7 + col]!, mostrarNombreDia: false),
                 ),
             ],
           ),
@@ -509,13 +471,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
 
   /// Celda de un día, compartida por la tira y la cuadrícula: mismo aspecto y
   /// mismo significado del punto (hay instalaciones agendadas ese día).
-  Widget _celdaDia(
-    ThemeData theme,
-    ColorScheme cs,
-    bool isDark,
-    DateTime day, {
-    required bool mostrarNombreDia,
-  }) {
+  Widget _celdaDia(ThemeData theme, ColorScheme cs, bool isDark, DateTime day, {required bool mostrarNombreDia}) {
     final isActive = DateUtils.isSameDay(day, _selectedDate);
     final isToday = DateUtils.isSameDay(day, _today);
     final count = _countForDay(day);
@@ -523,7 +479,8 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     return Semantics(
       button: true,
       selected: isActive,
-      label: '${day.day} de ${_mesesLargos[day.month - 1]}'
+      label:
+          '${day.day} de ${_mesesLargos[day.month - 1]}'
           '${count > 0 ? ', $count ${count == 1 ? 'instalación' : 'instalaciones'}' : ''}'
           '${isToday ? ', hoy' : ''}',
       child: GestureDetector(
@@ -536,13 +493,9 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
           padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-            color: isActive
-                ? (isDark ? cs.onSurfaceVariant : cs.onSurface)
-                : Colors.transparent,
+            color: isActive ? (isDark ? cs.onSurfaceVariant : cs.onSurface) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: isToday && !isActive
-                ? Border.all(color: cs.primary.withValues(alpha: 0.6), width: 1.4)
-                : null,
+            border: isToday && !isActive ? Border.all(color: cs.primary.withValues(alpha: 0.6), width: 1.4) : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -554,9 +507,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
-                    color: isActive
-                        ? Colors.white.withValues(alpha: 0.8)
-                        : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                    color: isActive ? Colors.white.withValues(alpha: 0.8) : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -566,9 +517,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isActive
-                      ? Colors.white
-                      : theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
+                  color: isActive ? Colors.white : theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 3),
@@ -576,12 +525,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
               Container(
                 width: 6,
                 height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: count > 0
-                      ? (isActive ? Colors.white : cs.primary)
-                      : Colors.transparent,
-                ),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: count > 0 ? (isActive ? Colors.white : cs.primary) : Colors.transparent),
               ),
             ],
           ),
@@ -678,13 +622,19 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Text(orden.titulo, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, height: 1.4, color: theme.textTheme.bodyLarge?.color)),
+                    child: Text(
+                      orden.titulo,
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, height: 1.4, color: theme.textTheme.bodyLarge?.color),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: statusBgColor, borderRadius: BorderRadius.circular(12)),
-                    child: Text(status == "Cancelado" ? "CANCELADO" : status, style: TextStyle(color: statusTextColor, fontSize: 11, fontWeight: FontWeight.w700)),
+                    child: Text(
+                      status == "Cancelado" ? "CANCELADO" : status,
+                      style: TextStyle(color: statusTextColor, fontSize: 11, fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ],
               ),
@@ -698,24 +648,12 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 const SizedBox(height: 6),
                 _detailRow(theme, "Dirección: ", orden.direccion),
                 const SizedBox(height: 6),
-                Row(
-                  children: [
-                    _detailRow(theme, "Ciudad: ", orden.ciudad),
-                    const SizedBox(width: 24),
-                    _detailRow(theme, "CP: ", orden.cp),
-                  ],
-                ),
+                Row(children: [_detailRow(theme, "Ciudad: ", orden.ciudad), const SizedBox(width: 24), _detailRow(theme, "CP: ", orden.cp)]),
                 const SizedBox(height: 6),
                 _detailRow(theme, "Teléfono: ", orden.telefono),
                 BotonComoLlegar(destino: DestinoServicio.deDetalles(orden.toTicketMap()['details'] as Map)),
-                if (orden.plan.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  _detailRow(theme, "Plan: ", orden.plan),
-                ],
-                if (orden.ordenVenta.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  _detailRow(theme, "Orden de venta: ", orden.ordenVenta),
-                ],
+                if (orden.plan.isNotEmpty) ...[const SizedBox(height: 6), _detailRow(theme, "Plan: ", orden.plan)],
+                if (orden.ordenVenta.isNotEmpty) ...[const SizedBox(height: 6), _detailRow(theme, "Orden de venta: ", orden.ordenVenta)],
                 // Hoja de trabajo de Odoo (intervenciones): lo que ya se registró en sitio.
                 for (final campo in orden.hojaTrabajo.where((c) => c['valor'] != null && c['valor'] != false && '${c['valor']}'.isNotEmpty)) ...[
                   const SizedBox(height: 6),
@@ -746,14 +684,15 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   Icon(Icons.person_outline_rounded, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(orden.cliente, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
+                    child: Text(
+                      orden.cliente,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
+                    ),
                   ),
                   // Número de intervención («i69»): el mismo que ve operaciones
                   // en Odoo, para hablar de la misma orden por teléfono.
-                  if (orden.numero.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    _numeroPill(cs, orden.numero),
-                  ],
+                  if (orden.numero.isNotEmpty) ...[const SizedBox(width: 8), _numeroPill(cs, orden.numero)],
                 ],
               ),
               if (isOpen) ...[
@@ -770,8 +709,8 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                     onPressed: (cancelado || !_esTrabajoVivo(orden) || orden.pasoActual == 'agendar')
                         ? null
                         : orden.enCurso
-                            ? () => _retomarServicio(orden)
-                            : () => _showConfirmationDialog(context, orden),
+                        ? () => _retomarServicio(orden)
+                        : () => _showConfirmationDialog(context, orden),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: cancelado ? (isDark ? cs.outline : cs.outlineVariant) : cs.primary,
                       foregroundColor: cancelado ? (isDark ? Colors.white30 : Colors.white70) : Colors.white,
@@ -781,7 +720,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                     ),
                     child: Text(_etiquetaAccion(orden), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   ),
-              ]
+              ],
             ],
           ),
         ),
@@ -795,11 +734,11 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       label: 'Intervención $numero',
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: cs.primary.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
+        decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+        child: Text(
+          numero,
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.primary, letterSpacing: 0.2),
         ),
-        child: Text(numero, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.primary, letterSpacing: 0.2)),
       ),
     );
   }
@@ -809,7 +748,10 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       text: TextSpan(
         style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
         children: [
-          TextSpan(text: label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          TextSpan(
+            text: label,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           TextSpan(text: value),
         ],
       ),
@@ -886,22 +828,11 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   /// salida ni volver a marcar "en ruta" (eso ya quedó registrado en Odoo).
   Future<void> _retomarServicio(Orden orden) async {
     // Energizador opcional (2026-10-20): «vincular» y «prueba» viven dentro de «Agregar dispositivos» (paso 4).
-    const paso = {
-      'marcar_llegada': 1,
-      'inspeccion': 2,
-      'instalacion': 3,
-      'vinculacion': 4,
-      'prueba': 4,
-      'dispositivos': 4,
-      'cierre': 5,
-    };
+    const paso = {'marcar_llegada': 1, 'inspeccion': 2, 'instalacion': 3, 'vinculacion': 4, 'prueba': 4, 'dispositivos': 4, 'cierre': 5};
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ServiceStepsScreen(
-          ticket: orden.toTicketMap(),
-          pasoInicial: paso[orden.pasoActual] ?? 1,
-        ),
+        builder: (_) => ServiceStepsScreen(ticket: orden.toTicketMap(), pasoInicial: paso[orden.pasoActual] ?? 1),
       ),
     );
     // Al volver, la orden pudo avanzar o completarse: se refresca.
@@ -912,13 +843,8 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     final result = await _repo.iniciarRuta(orden.id);
     if (!mounted) return;
     result.fold(
-      (_) => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: orden.toTicketMap())),
-      ),
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("No se pudo iniciar la ruta: ${failure.message}")),
-      ),
+      (_) => Navigator.push(context, MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: orden.toTicketMap()))),
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("No se pudo iniciar la ruta: ${failure.message}"))),
     );
   }
 
@@ -935,9 +861,17 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("¿Estás seguro de iniciar la ruta?", textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
+                Text(
+                  "¿Estás seguro de iniciar la ruta?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+                ),
                 const SizedBox(height: 12),
-                Text("El cliente será notificado que tu servicio está en camino", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), height: 1.4)),
+                Text(
+                  "El cliente será notificado que tu servicio está en camino",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), height: 1.4),
+                ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -959,8 +893,14 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  style: TextButton.styleFrom(foregroundColor: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), padding: const EdgeInsets.symmetric(vertical: 8)),
-                  child: Text("Cancelar", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7))),
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  child: Text(
+                    "Cancelar",
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7)),
+                  ),
                 ),
               ],
             ),
@@ -977,11 +917,18 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         children: [
           Icon(Icons.cloud_off_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
-          Text("No se pudieron cargar las instalaciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
+          Text(
+            "No se pudieron cargar las instalaciones",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+          ),
           const SizedBox(height: 6),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40.0),
-            child: Text(_error ?? '', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4)),
+            child: Text(
+              _error ?? '',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
+            ),
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
@@ -996,23 +943,36 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   }
 
   Widget _buildEmptyState(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inbox_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
-          const SizedBox(height: 12),
-          Text("Sin instalaciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0),
-            child: Text(
-              "No tienes tickets de instalaciones asignados para este día.",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
+    // Desplazable: con el mes expandido arriba, un Center fijo desbordaba 28 px (pruebas del calendario).
+    return LayoutBuilder(
+      builder: (context, c) => SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: c.maxHeight),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.inbox_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
+                const SizedBox(height: 12),
+                Text(
+                  "Sin instalaciones",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+                ),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                  child: Text(
+                    "No tienes tickets de instalaciones asignados para este día.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
