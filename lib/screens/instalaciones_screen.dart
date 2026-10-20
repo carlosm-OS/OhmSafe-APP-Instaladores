@@ -268,13 +268,14 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     // o cancelada ya no es trabajo por hacer: vive en Historial. Antes seguía
     // apareciendo en su día y ofreciendo "Iniciar ruta" sobre un servicio ya
     // cerrado (y esa acción vuelve a avisarle al cliente).
-    final activas = _ordenes.where(_esTrabajoVivo).toList();
+    // Opción A de Carlos (2026-10-20): lo que no tiene fecha no se muestra (el backend ya no lo manda;
+    // se filtra también aquí por si el servidor es viejo). Antes salía todos los días como
+    // «Pendientes de agendar» y confundía al instalador.
+    final activas = _ordenes.where(_esTrabajoVivo).where((o) => _agendadaDate(o) != null).toList();
 
     final agendadasDia = activas.where((o) => _ocupaDia(o, _selectedDate)).toList();
-    // Pendientes de agendar (sin fecha): sección aparte, siempre visible.
-    final pendientes = activas.where((o) => _agendadaDate(o) == null).toList();
 
-    if (agendadasDia.isEmpty && pendientes.isEmpty) {
+    if (agendadasDia.isEmpty) {
       return _buildEmptyState(theme);
     }
 
@@ -286,13 +287,6 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       children.add(_sinAgendadasHint(theme));
     } else {
       children.addAll(agendadasDia.map((o) => _buildTicketCard(o, _openId == o.id)));
-    }
-
-    // Sección: pendientes de agendar.
-    if (pendientes.isNotEmpty) {
-      children.add(const SizedBox(height: 8));
-      children.add(_sectionHeader(theme, 'Pendientes de agendar', Icons.schedule_rounded));
-      children.addAll(pendientes.map((o) => _buildTicketCard(o, _openId == o.id)));
     }
 
     // Jalar hacia abajo vuelve a pedir las ordenes al backend: un ticket que

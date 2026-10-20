@@ -126,20 +126,14 @@ void main() {
     expect(find.text('Iniciar ruta de servicio'), findsNothing);
   });
 
-  testWidgets('regla 3: sin fecha agendada no se puede iniciar ruta',
+  testWidgets('regla 3: sin fecha agendada la orden no se muestra (opción A de Carlos, 2026-10-20)',
       (tester) async {
     await abrir(tester, [
       _orden(id: 'E', estado: 'por_hacer', pasoActual: 'agendar'),
     ]);
-    expect(find.text('Pendientes de agendar'), findsOneWidget);
-    await tester.tap(find.text('Instalación E'));
-    await tester.pumpAndSettle();
-    // La tarjeta no ofrece botón: explica que falta agendar, y agendar es de
-    // operaciones, no del instalador.
-    expect(find.byType(ElevatedButton), findsNothing);
-    expect(
-      find.text('Pendiente de agendar — el equipo de servicio confirmará día y hora'),
-      findsOneWidget,
-    );
+    // Ni sección «Pendientes de agendar» ni tarjeta: agendar es de operaciones y el instalador la ve
+    // cuando tenga día y hora.
+    expect(find.text('Pendientes de agendar'), findsNothing);
+    expect(find.text('Instalación E'), findsNothing);
   });
 }
