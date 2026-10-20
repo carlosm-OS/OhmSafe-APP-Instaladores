@@ -27,7 +27,7 @@ import '../widgets/botones_dialogo.dart';
 /// Cada elemento se comprueba físicamente y la app sólo acepta lo que el equipo confirma:
 ///   · Entradas: «Cierra la puerta» → cerrada estable 3 s → «Ábrela» → abierta → nombre y alta.
 ///   · Sirena: «Encender» / «Apagar» las veces que se quiera (se apaga sola a los 15 s); la primera vez «¿Sonó?».
-///   · Salidas aux: «Encender 5 s» → «¿Se encendió?» → tipo, modo y alta.
+///   · Salidas aux (12 V): «Encender 5 s» → «¿Se encendió?» → tipo (estrobo, sirena extra, otro de 12 V), modo y alta.
 /// Requiere firmware 2.10+, equipo en línea y la ventana de instalación abierta (la abre la prueba
 /// del energizador; si venció, aquí se vuelve a abrir). Devuelve 'dispositivos_listos' al terminar.
 class AgregarDispositivosScreen extends StatefulWidget {
@@ -203,7 +203,9 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   static const _wifiHabilitado = false;
 
   static const _tipoWifiTexto = {'door': 'Puerta', 'motion': 'Movimiento', 'smoke': 'Humo'};
-  static const _tipoSalidaTexto = {'luz': 'luz', 'bomba': 'bomba', 'porton': 'portón', 'sirena': 'sirena externa', 'otro': 'otro'};
+  // Las salidas son de 12 V (Carlos, 2026-10-20): estrobo, sirena extra u otro de 12 V. Los tipos
+  // viejos (luz, bomba, portón) sólo se muestran si ya estaban registrados.
+  static const _tipoSalidaTexto = {'estrobo': 'estrobo', 'sirena': 'sirena extra', 'otro': 'otro de 12 V', 'luz': 'luz', 'bomba': 'bomba', 'porton': 'portón'};
 
   void _aviso(String texto) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
 
@@ -515,7 +517,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (fila['probada'] != true) return;
     final funciono = await _preguntar(
       '¿Se encendió?',
-      'El equipo encendió la salida $index durante 5 segundos. ¿Lo que está conectado (luz, portón, bomba) respondió?',
+      'El equipo encendió la salida $index durante 5 segundos. ¿Lo que está conectado (estrobo o sirena extra) respondió?',
     );
     if (funciono == null || !mounted) return;
     final alta = await _formSalida(index);
@@ -580,7 +582,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
   Future<_AltaSalida?> _formSalida(int index) {
     // Tipo y modo fuera del builder: sobreviven a que el diálogo se reconstruya (teclado).
-    var tipo = 'luz';
+    var tipo = 'estrobo';
     var modo = 'on_off';
     return showDialog<_AltaSalida>(
       context: context,
@@ -600,30 +602,28 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                     controller: c[0],
                     autofocus: true,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Luz del jardín', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Estrobo de la entrada', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    isExpanded: true, // se ajusta al ancho del diálogo (si no, «Pulso (como un portón)» se desborda)
+                    isExpanded: true, // se ajusta al ancho del diálogo
                     initialValue: tipo,
-                    decoration: const InputDecoration(labelText: '¿Qué es?', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: '¿Qué es? (12 V)', border: OutlineInputBorder()),
                     items: const [
-                      DropdownMenuItem(value: 'luz', child: Text('Luz')),
-                      DropdownMenuItem(value: 'bomba', child: Text('Bomba')),
-                      DropdownMenuItem(value: 'porton', child: Text('Portón')),
-                      DropdownMenuItem(value: 'sirena', child: Text('Sirena externa')),
-                      DropdownMenuItem(value: 'otro', child: Text('Otro')),
+                      DropdownMenuItem(value: 'estrobo', child: Text('Estrobo')),
+                      DropdownMenuItem(value: 'sirena', child: Text('Sirena extra')),
+                      DropdownMenuItem(value: 'otro', child: Text('Otro equipo de 12 V')),
                     ],
                     onChanged: (v) => setLocal(() => tipo = v ?? 'otro'),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    isExpanded: true, // se ajusta al ancho del diálogo (si no, «Pulso (como un portón)» se desborda)
+                    isExpanded: true, // se ajusta al ancho del diálogo
                     initialValue: modo,
                     decoration: const InputDecoration(labelText: '¿Cómo funciona?', border: OutlineInputBorder()),
                     items: const [
                       DropdownMenuItem(value: 'on_off', child: Text('Encendido / apagado')),
-                      DropdownMenuItem(value: 'pulso', child: Text('Pulso (como un portón)')),
+                      DropdownMenuItem(value: 'pulso', child: Text('Pulso (un toque corto)')),
                     ],
                     onChanged: (v) => setLocal(() => modo = v ?? 'on_off'),
                   ),
@@ -799,7 +799,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 'SALIDAS AUXILIARES',
                                 tituloAyuda: 'Salidas auxiliares',
                                 ayuda: [
-                                  'Son las salidas del energizador para encender algo: una luz, un portón, una bomba.',
+                                  'Son salidas de 12 V del energizador para un estrobo o una sirena extra.',
                                   'Al probarla se enciende 5 segundos.',
                                   'Si funcionó, le pones nombre y eliges qué es.',
                                 ],
