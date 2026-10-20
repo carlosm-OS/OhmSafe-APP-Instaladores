@@ -12,6 +12,12 @@ void main() {
       expect(formatearSerie('os obv01 26'), 'OS-OBV01-26');
     });
 
+    test('perdona el cero tecleado por la O en el prefijo y en OBV01', () {
+      expect(formatearSerie('0SPRUEBA0001'), 'OS-PRUEBA-0001');
+      expect(formatearSerie('0S0BV010026'), 'OS-OBV01-0026');
+      expect(normalizarSerie('0sprueba1'), 'OS-PRUEBA-0001');
+    });
+
     test('series viejas y texto raro se respetan', () {
       expect(formatearSerie('ohm-abcd-1234'), 'OHM-ABCD-1234');
       expect(formatearSerie('9999'), '9999');

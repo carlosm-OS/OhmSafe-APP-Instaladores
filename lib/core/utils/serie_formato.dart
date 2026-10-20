@@ -25,7 +25,12 @@ class SerieInputFormatter extends TextInputFormatter {
 String formatearSerie(String crudo, {bool guionFinal = true}) {
   final mayus = crudo.toUpperCase();
   if (mayus.trimLeft().startsWith('OHM')) return mayus.trim();
-  final limpio = mayus.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+  // En el teclado del teléfono es fácil teclear el cero por la O: «0SPRUEBA0001» (Carlos, 19-oct).
+  // El prefijo y las familias llevan letra O; el consecutivo es el único tramo con ceros.
+  final limpio = mayus
+      .replaceAll(RegExp(r'[^A-Z0-9]'), '')
+      .replaceFirst(RegExp(r'^0S'), 'OS')
+      .replaceFirst(RegExp(r'^OS0BV01'), 'OSOBV01');
   if (limpio.isEmpty) return '';
   if (!limpio.startsWith('OS')) {
     // Empieza a escribir «O»: aún no hay tramo completo.
