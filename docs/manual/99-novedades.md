@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 56 (en preparación)
+
+- **RFC de sólo lectura en «Datos generales».** Desaparece la pantalla «Facturación» de Mi cuenta: el RFC se ve junto a nombre, teléfono, correo y CURP, y sólo el equipo de OhmSafe lo corrige en Odoo (como el resto de los datos).
+
 ## Build 55 (servidor de pruebas) — 20 de octubre de 2026
 
 - **Agregar dispositivos avisa si no pudo leer la casa.** En la 54, cuando el servidor no podía resolver la casa, la pantalla se quedaba sólo con «Vincular energizador» y sin sensores Wi‑Fi ni cámaras, sin explicar nada. Ahora muestra el motivo. (El servidor de pruebas también se corrigió: ya no crea casas repetidas.)

@@ -10,7 +10,6 @@ import '../features/auth/domain/repositories/auth_repository.dart';
 import '../widgets/botones_dialogo.dart';
 import 'datos_bancarios_screen.dart';
 import 'contrasenas_screen.dart';
-import 'facturacion_screen.dart';
 import 'login_screen.dart';
 import 'seguridad_screen.dart';
 import 'pagos_screen.dart';
@@ -82,7 +81,9 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
         fila('Apellidos', apellidos),
         fila('Teléfono', state.installerPhone),
         fila('Correo', state.installerEmail),
-        fila('CURP', state.installerCurp, ultima: true),
+        fila('CURP', state.installerCurp),
+        // RFC de sólo lectura aquí (Carlos, 2026-10-20): antes se capturaba en «Facturación».
+        fila('RFC', state.installerRfc, ultima: true),
         const SizedBox(height: 10),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,12 +358,6 @@ class _ProfileMainScreenState extends State<ProfileMainScreen> {
                           label: "Mis pagos",
                           icon: Icons.payments_outlined,
                           targetScreen: const PagosScreen(),
-                        ),
-                        _buildMenuItem(
-                          context,
-                          label: "Facturación",
-                          icon: Icons.settings,
-                          targetScreen: const FacturacionScreen(),
                         ),
                         const SizedBox(height: 32),
 
