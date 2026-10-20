@@ -291,8 +291,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
             children: [
               if (imou) ...[
                 Text('1. Enciende la cámara y espera el aviso de voz.', style: Theme.of(ctx).textTheme.bodySmall),
-                Text('2. Con la app Imou Life, en la cuenta del cliente, escanea el QR de la cámara y conéctala a la Wi‑Fi de la casa (2.4 GHz).', style: Theme.of(ctx).textTheme.bodySmall),
-                Text('3. Cuando Imou Life la muestre en línea, escribe aquí la serie (S/N) y el código SC de la etiqueta.', style: Theme.of(ctx).textTheme.bodySmall),
+                Text('2. Con la app Imou Life iniciada con la cuenta de OhmSafe (no la del cliente), escanea el QR de la cámara y conéctala a la Wi‑Fi de la casa (2.4 GHz).', style: Theme.of(ctx).textTheme.bodySmall),
+                Text('3. Cuando Imou Life la muestre en línea, escribe aquí la serie (S/N) y el código SC de la etiqueta, respetando mayúsculas y minúsculas.', style: Theme.of(ctx).textTheme.bodySmall),
               ] else
                 Text('Para una cámara que ya está en internet (por ejemplo, conectada con la app del fabricante).', style: Theme.of(ctx).textTheme.bodySmall),
               const SizedBox(height: 12),
@@ -304,8 +304,11 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: c[1],
-                textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(labelText: imou ? 'Código de seguridad (SC)' : 'Código de verificación', helperText: 'En la misma etiqueta.'),
+                // El SC de Imou distingue mayúsculas y minúsculas (p. ej. «L2VqC2QF»); el de EZVIZ va en mayúsculas.
+                textCapitalization: imou ? TextCapitalization.none : TextCapitalization.characters,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration: InputDecoration(labelText: imou ? 'Código de seguridad (SC)' : 'Código de verificación', helperText: imou ? 'En la misma etiqueta; tal cual, con mayúsculas y minúsculas.' : 'En la misma etiqueta.'),
               ),
               const SizedBox(height: 12),
               TextField(
