@@ -7,6 +7,8 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 - **«Conectar cámara Imou»** en «Agregar dispositivos» → Cámaras: pantalla completa con **escaneo del QR de la guía rápida** (llena la serie y el código SC solos), pasos para dejarla en internet y registro en la casa. «Cámara ya conectada» usa la misma pantalla para cámaras conectadas con la app del fabricante.
 - **Adiós a los diálogos con campos:** registrar una cámara ya no es un cuadro que el teclado tapaba; es una pantalla que se desplaza y deja el botón a la vista.
 - **Serie del energizador:** si tecleas un cero en vez de la letra O («0SPRUEBA0001»), la app lo corrige sola a «OS‑PRUEBA‑0001».
+- **Lista de dispositivos en orden:** en «Agregar dispositivos», los sensores Wi‑Fi y las cámaras salen numerados **en el orden en que los diste de alta**, con su marca (Tuya, EZVIZ, Imou), sin importar el tipo.
+- **Textos más claros al conectar a la Wi‑Fi:** cómo poner el equipo en modo de emparejamiento, cuál es la red de 2.4 GHz (la que no dice «5G») y que la contraseña la escribe el cliente en tu teléfono.
 
 ## Build 50 (TestFlight y Play, producción) — 19 de octubre de 2026
 
