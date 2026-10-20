@@ -149,10 +149,20 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (mounted) Navigator.pop(context, 'dispositivos_listos');
   }
 
+  /// Error al leer los dispositivos de la casa (p. ej. la casa no se pudo resolver): antes se callaba y
+  /// la pantalla se quedaba sin filas de Wi‑Fi ni cámaras sin decir por qué (build 54, i75).
+  String? _errorDisp;
+
   Future<void> _cargarDisp() async {
     final r = await _repo.dispositivosEstado(_id);
     if (!mounted) return;
-    r.fold((d) => setState(() => _disp = d), (_) {});
+    r.fold(
+      (d) => setState(() {
+        _disp = d;
+        _errorDisp = null;
+      }),
+      (f) => setState(() => _errorDisp = f.message),
+    );
   }
 
   Map<String, dynamic> _sec(String k) => (_disp?[k] as Map?)?.cast<String, dynamic>() ?? const {};
@@ -649,6 +659,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                             children: [
                               if (_error != null)
                                 MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No pudimos leer el equipo', texto: _error!),
+                              if (_disp == null && _errorDisp != null)
+                                MensajeFlujo(
+                                  icono: Icons.error_outline,
+                                  color: cs.error,
+                                  titulo: 'No pudimos leer los dispositivos de la casa',
+                                  texto: '$_errorDisp Sin esto no se pueden agregar sensores Wi‑Fi ni cámaras: vuelve a entrar o avisa a soporte.',
+                                ),
                               if (_e != null && !_firmwareOk)
                                 MensajeFlujo(
                                   icono: Icons.system_update_alt,

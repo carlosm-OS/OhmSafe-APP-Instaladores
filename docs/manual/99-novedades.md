@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 55 (servidor de pruebas) — 20 de octubre de 2026
+
+- **Agregar dispositivos avisa si no pudo leer la casa.** En la 54, cuando el servidor no podía resolver la casa, la pantalla se quedaba sólo con «Vincular energizador» y sin sensores Wi‑Fi ni cámaras, sin explicar nada. Ahora muestra el motivo. (El servidor de pruebas también se corrigió: ya no crea casas repetidas.)
+
 ## Build 54 (servidor de pruebas) — 20 de octubre de 2026
 
 - **El energizador ya no es obligatorio.** Los pasos «Vincular el energizador» y «Prueba del energizador» desaparecen de la lista: ahora la instalación tiene 5 pasos (ruta y llegada, inspección, instalación, **Agregar dispositivos**, cierre). En «Agregar dispositivos», la primera sección es **Energizador (OhmBox)**: si la casa lleva energizador, toca «Vincular» (y la prueba de la cerca se abre sola); si no, sigue con sensores Wi‑Fi y cámaras. Sensores cableados, sirena, salidas y sensores inalámbricos sólo aparecen cuando hay energizador. «Probar» y «Agregar otro OhmBox» están en esa misma sección.
