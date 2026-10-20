@@ -12,6 +12,18 @@ val ohmsafeTuyaLinked: Boolean = System.getenv("OHMSAFE_TUYA") != "0" &&
 extra["ohmsafeTuyaAndroidSdk"] = ohmsafeTuyaAndroidSdk
 extra["ohmsafeTuyaLinked"] = ohmsafeTuyaLinked
 
+// Imou LCOpenSDK (2026-10-20: emparejar cámaras Imou desde la app, build 52). El AAR se descarga de la
+// consola de Imou y vive FUERA del repo (74 MB, descarga no verificable); sin él se compila src/imouOff
+// y el puente contesta IMOU_NOT_LINKED. Ver docs/camaras-imou.md.
+val ohmsafeImouAndroidSdk: java.io.File = file(
+    System.getenv("OHMSAFE_IMOU_ANDROID_SDK")
+        ?: "${System.getProperty("user.home")}/dev/ohmsafe/keys/imou-sdk/android"
+)
+val ohmsafeImouLinked: Boolean = System.getenv("OHMSAFE_IMOU") != "0" &&
+    File(ohmsafeImouAndroidSdk, "LCOpenSDK.aar").isFile
+extra["ohmsafeImouAndroidSdk"] = ohmsafeImouAndroidSdk
+extra["ohmsafeImouLinked"] = ohmsafeImouLinked
+
 allprojects {
     repositories {
         google()

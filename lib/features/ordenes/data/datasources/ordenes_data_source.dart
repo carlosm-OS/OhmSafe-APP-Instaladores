@@ -54,6 +54,10 @@ abstract class OrdenesDataSource {
   /// sondeo de una cámara EZVIZ y alta de lo emparejado con el nombre de la red (nunca la contraseña).
   Future<Map<String, dynamic>> wifiSesion(String id, String proveedor);
   Future<Map<String, dynamic>> ezvizSondeo(String id, String serie);
+  /// Imou (2026-10-20): `POST …/wifi/imou/sesion` → `{provider, accessToken, host, port}` para
+  /// iniciar el SDK en el teléfono; `POST …/wifi/imou/sondeo {serie}` → `{state: online|offline|unknown}`.
+  Future<Map<String, dynamic>> imouSesion(String id);
+  Future<Map<String, dynamic>> imouSondeo(String id, String serie);
   /// Tuya (2026-10-17): token de emparejamiento de la casa (`modo` EZ|AP|BLE) y qué equipos entraron con él.
   Future<Map<String, dynamic>> tuyaToken(String id, {required String modo, String? zonaHoraria});
   Future<Map<String, dynamic>> tuyaTokenResultado(String id, String token);
