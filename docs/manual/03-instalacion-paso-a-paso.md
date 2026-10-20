@@ -114,7 +114,7 @@ Toca «Cierre de la instalación». Tiene 3 partes: **1 · Fotos**, **2 · Entre
 ### 5.2 Entrega
 
 1. Marca **«Le entregué el control remoto y funciona»**.
-2. En **«EXTRAS DEL SERVICIO»** responde **Cámaras**, **Sensores** y **Sirena** con «Instalé y funciona» o «No aplica» (no venía en lo que compró). El ⓘ lo explica.
+2. Cámaras, sensores y sirena **ya no se contestan aquí** (desde la build 57): el reporte del cliente lista solo lo que diste de alta en «Agregar dispositivos», con los datos del servidor.
 3. En **«¿CÓMO QUEDÓ TODO?»** elige «Todo funciona» o «Con problemas».
    - Con problemas: en **«¿QUÉ PASÓ?»** marca «El equipo está dañado», «Algo no funciona» o «El control remoto no funcionó», o descríbelo en **«CUÉNTANOS QUÉ PASÓ»**.
 4. Toca **«Siguiente»**.

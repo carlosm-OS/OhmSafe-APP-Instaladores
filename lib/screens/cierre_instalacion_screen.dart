@@ -42,7 +42,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     'Foto cerca 1',
     'Foto cerca 2',
     'Energizador',
-    'Letrero OhmSafe'
+    'Letrero OhmSafe',
   ];
   final Map<String, String?> _photoPaths = {};
   final Map<String, Position?> _photoLocations = {};
@@ -56,9 +56,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   String? _capturingCategory;
 
   final _photoCommentsController = TextEditingController();
+
   /// fileKey que devolvió el backend por cada foto ya subida. Es lo que viaja
   /// en el cierre; la ruta local del teléfono no le sirve al servidor.
   final Map<String, String> _photoFileKeys = {};
+
   /// Estado de la subida por foto. Se muestra en la tarjeta: sin esto una
   /// foto que falló al subir se veía igual que una subida y el instalador
   /// solo se enteraba al intentar firmar.
@@ -72,17 +74,14 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   int _repairPhotoCounter = 1;
 
   // Step 2 State: confirmación de entrega del equipo (checks, sin foto/serie).
-  bool _controlEntregado = false;        // Entregué el control remoto funcional
+  bool _controlEntregado = false; // Entregué el control remoto funcional
   // Addons del servicio. null = sin responder; el técnico debe decir si los
   // instaló o si el servicio no los incluye. No se infiere del plan porque
   // hoy el ticket no trae los addons contratados.
-  String? _camaras;                      // 'instaladas' | 'no_aplica'
-  String? _sensores;                     // 'instaladas' | 'no_aplica'
-  String? _sirena;                       // 'instaladas' | 'no_aplica' — sólo el check; telemetría en el futuro (Carlos, 2026-10-09)
-  bool _entregaConAnomalias = false;     // false = todo funcional; true = hubo anomalías
-  bool _anomFisica = false;              // Daño físico
-  bool _anomFuncionamiento = false;      // Falla de funcionamiento
-  bool _anomControl = false;             // El control remoto no funcionó
+  bool _entregaConAnomalias = false; // false = todo funcional; true = hubo anomalías
+  bool _anomFisica = false; // Daño físico
+  bool _anomFuncionamiento = false; // Falla de funcionamiento
+  bool _anomControl = false; // El control remoto no funcionó
   final _step2CommentsController = TextEditingController();
   String? _step2Error;
 
@@ -129,11 +128,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_rounded),
-              title: const Text('Tomar foto'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
+            ListTile(leading: const Icon(Icons.photo_camera_rounded), title: const Text('Tomar foto'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
             ListTile(
               leading: const Icon(Icons.photo_library_rounded),
               title: const Text('Elegir de la galería'),
@@ -154,12 +149,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     });
 
     try {
-      final XFile? foto = await _picker.pickImage(
-        source: origen,
-        imageQuality: 70,
-        maxWidth: 1600,
-        maxHeight: 1600,
-      );
+      final XFile? foto = await _picker.pickImage(source: origen, imageQuality: 70, maxWidth: 1600, maxHeight: 1600);
       if (!mounted) return;
       if (foto == null) {
         setState(() => _capturingCategory = null);
@@ -202,13 +192,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (path == null) return;
     setState(() => _subidaFotos[category] = _EstadoSubida.subiendo);
 
-    final ticketId =
-        (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    final ticketId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     try {
       final bytes = await File(path).readAsBytes();
-      final subida = await sl
-          .get<OrdenesRepository>()
-          .subirEvidencia(ticketId, category, base64Encode(bytes));
+      final subida = await sl.get<OrdenesRepository>().subirEvidencia(ticketId, category, base64Encode(bytes));
       if (!mounted) return;
       subida.fold(
         (fileKey) => setState(() {
@@ -224,24 +211,18 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   }
 
   /// Fotos tomadas que aún no tienen fileKey (fallaron o siguen subiendo).
-  List<String> get _fotosSinSubir => _photoPaths.entries
-      .where((e) => e.value != null && !_photoFileKeys.containsKey(e.key))
-      .map((e) => e.key)
-      .toList();
+  List<String> get _fotosSinSubir => _photoPaths.entries.where((e) => e.value != null && !_photoFileKeys.containsKey(e.key)).map((e) => e.key).toList();
 
   /// Antes de cerrar se reintentan solas las subidas pendientes: el
   /// instalador no debe volver al paso 1 por un corte de red momentáneo.
   Future<void> _reintentarSubidasPendientes() async {
-    final pendientes = _fotosSinSubir
-        .where((c) => _subidaFotos[c] != _EstadoSubida.subiendo)
-        .toList();
+    final pendientes = _fotosSinSubir.where((c) => _subidaFotos[c] != _EstadoSubida.subiendo).toList();
     await Future.wait(pendientes.map(_subirFoto));
   }
 
   // ----- Firma: captura de trazos y rasterizado -----
 
-  RenderBox? get _signatureBox =>
-      _signatureCanvasKey.currentContext?.findRenderObject() as RenderBox?;
+  RenderBox? get _signatureBox => _signatureCanvasKey.currentContext?.findRenderObject() as RenderBox?;
 
   /// Agrega un punto del trazo, en coordenadas locales del lienzo y recortado
   /// a su área (un arrastre puede salirse del recuadro).
@@ -250,10 +231,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (box == null) return;
     final local = box.globalToLocal(globalPosition);
     final size = box.size;
-    final clamped = Offset(
-      local.dx.clamp(0.0, size.width),
-      local.dy.clamp(0.0, size.height),
-    );
+    final clamped = Offset(local.dx.clamp(0.0, size.width), local.dy.clamp(0.0, size.height));
     setState(() {
       _signaturePoints = List.from(_signaturePoints)..add(clamped);
     });
@@ -279,14 +257,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (size.width <= 0 || size.height <= 0) return null;
 
     final recorder = ui.PictureRecorder();
-    final canvas = Canvas(
-      recorder,
-      Rect.fromLTWH(0, 0, size.width, size.height),
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..color = const Color(0xFFFFFFFF),
-    );
+    final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = const Color(0xFFFFFFFF));
     SignaturePainter(_signaturePoints, const Color(0xFF111111)).paint(canvas, size);
 
     final picture = recorder.endRecording();
@@ -310,19 +282,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final Map<String, dynamic> geoJson = {};
     _photoLocations.forEach((category, pos) {
       if (pos != null) {
-        geoJson[category] = {
-          "lat": pos.latitude,
-          "lng": pos.longitude,
-          "timestamp": _photoTimestamps[category]?.toIso8601String(),
-        };
+        geoJson[category] = {"lat": pos.latitude, "lng": pos.longitude, "timestamp": _photoTimestamps[category]?.toIso8601String()};
       }
     });
 
-    final anomalias = <String>[
-      if (_anomFisica) 'daño_fisico',
-      if (_anomFuncionamiento) 'falla_funcionamiento',
-      if (_anomControl) 'control_no_funciona',
-    ];
+    final anomalias = <String>[if (_anomFisica) 'daño_fisico', if (_anomFuncionamiento) 'falla_funcionamiento', if (_anomControl) 'control_no_funciona'];
 
     // Una foto capturada pero no subida no llega a la orden de servicio. Antes
     // de avisar se reintenta la subida: casi siempre fue un corte momentáneo.
@@ -337,8 +301,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     }
     final sinSubir = _fotosSinSubir;
     if (sinSubir.isNotEmpty) {
-      setState(() => _step3Error =
-          "No se pudo subir ${sinSubir.length == 1 ? 'la foto' : 'las fotos'} de ${sinSubir.join(', ')}. Revisa tu conexión y toca «Reintentar» en el paso 1.");
+      setState(
+        () => _step3Error =
+            "No se pudo subir ${sinSubir.length == 1 ? 'la foto' : 'las fotos'} de ${sinSubir.join(', ')}. Revisa tu conexión y toca «Reintentar» en el paso 1.",
+      );
       return;
     }
 
@@ -349,8 +315,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final ubicacionCierre = ubicacionJson(await _getCurrentLocation());
     if (!mounted) return;
     if (firmaBase64 == null) {
-      setState(() => _step3Error =
-          "No se pudo capturar la firma. Pide al cliente que firme de nuevo.");
+      setState(() => _step3Error = "No se pudo capturar la firma. Pide al cliente que firme de nuevo.");
       return;
     }
 
@@ -358,8 +323,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     // snake_case, Zod las descartaba en silencio y el cierre se guardaba vacío.
     final payload = {
       "evidencias": [
-        for (final entry in _photoFileKeys.entries)
-          {"fileKey": entry.value, "categoria": entry.key},
+        for (final entry in _photoFileKeys.entries) {"fileKey": entry.value, "categoria": entry.key},
       ],
       "geolocalizacion": geoJson,
       "entregaEquipo": {
@@ -367,18 +331,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         "entregaFuncional": !_entregaConAnomalias,
         "anomalias": anomalias,
         "comentarios": _step2CommentsController.text.trim(),
-        if (_camaras != null) "camaras": _camaras,
-        if (_sensores != null) "sensores": _sensores,
-        if (_sirena != null) "sirena": _sirena,
       },
       "firmaBase64": firmaBase64,
       // Posición al cerrar: el backend la compara con la de la llegada.
       if (ubicacionCierre != null) "ubicacion": ubicacionCierre,
       if (confirmarUbicacion) "confirmarUbicacion": true,
-      "comentariosGenerales": observacionesCierre(
-        paso1: _photoCommentsController.text,
-        paso2: _step2CommentsController.text,
-      ),
+      "comentariosGenerales": observacionesCierre(paso1: _photoCommentsController.text, paso2: _step2CommentsController.text),
     };
 
     // Enviar al backend vía repositorio (Mock o Api según EnvConfig.useMock).
@@ -390,20 +348,15 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final ticketId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     final result = await repo.guardarCierre(ticketId, payload);
     if (!mounted) return;
-    result.fold(
-      (_) => Navigator.pop(context, 'cierre_completed'),
-      (failure) {
-        setState(() => _isLoading = false);
-        if (failure is ServerFailure && failure.code == 'FUERA_DE_SITIO') {
-          _confirmarCierreLejos(failure);
-          return;
-        }
-        setState(() => _step3Error = "No se pudo enviar el cierre: ${failure.message}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("No se pudo enviar el cierre: ${failure.message}")),
-        );
-      },
-    );
+    result.fold((_) => Navigator.pop(context, 'cierre_completed'), (failure) {
+      setState(() => _isLoading = false);
+      if (failure is ServerFailure && failure.code == 'FUERA_DE_SITIO') {
+        _confirmarCierreLejos(failure);
+        return;
+      }
+      setState(() => _step3Error = "No se pudo enviar el cierre: ${failure.message}");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("No se pudo enviar el cierre: ${failure.message}")));
+    });
   }
 
   /// El backend detectó que el cierre está a más de 300 m de la llegada. El
@@ -438,8 +391,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   String _repairKey(int id) => 'Reparación foto $id';
 
   // Solo se puede agregar otra foto cuando todas las actuales ya se tomaron.
-  bool get _canAddRepairPhoto =>
-      _repairPhotoSlots.every((id) => _fotosCapturadas.contains(_repairKey(id)));
+  bool get _canAddRepairPhoto => _repairPhotoSlots.every((id) => _fotosCapturadas.contains(_repairKey(id)));
 
   void _addRepairPhotoSlot() {
     setState(() {
@@ -489,9 +441,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
     // Debe confirmar la entrega del control remoto funcional.
     if (!_controlEntregado) return false;
-    // Y responder por los addons: instalados o no aplica. Sin respuesta no
-    // hay forma de saber si faltó algo del servicio.
-    if (_camaras == null || _sensores == null || _sirena == null) return false;
 
     // Si reporta anomalías, debe marcar al menos un tipo o describirlas.
     if (_entregaConAnomalias) {
@@ -506,10 +455,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   /// Lo que falta para poder terminar, en palabras del instalador.
   List<String> _faltantesCierre() => [
-        if (!_evidenciasCompletas()) 'las fotos',
-        if (!_validateStep2()) 'la entrega',
-        if (_signaturePoints.isEmpty) 'la firma del cliente' else if (!_signatureConfirmed) 'tocar «Confirmar firma»',
-      ];
+    if (!_evidenciasCompletas()) 'las fotos',
+    if (!_validateStep2()) 'la entrega',
+    if (_signaturePoints.isEmpty) 'la firma del cliente' else if (!_signatureConfirmed) 'tocar «Confirmar firma»',
+  ];
 
   // Helper to validate all conditions for the final submit button
   bool _canSubmitCierre() {
@@ -538,9 +487,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (_currentStep == 1) {
       if (!_validateStep1()) {
         setState(() {
-          _step1Error = _isReparacion
-              ? "Falta al menos una foto de la reparación (o hay un espacio sin foto)."
-              : "Faltan fotos: toma las 4 para seguir.";
+          _step1Error = _isReparacion ? "Falta al menos una foto de la reparación (o hay un espacio sin foto)." : "Faltan fotos: toma las 4 para seguir.";
         });
         return;
       }
@@ -550,11 +497,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     } else if (_currentStep == 2) {
       if (!_validateStep2()) {
         setState(() {
-          _step2Error = !_controlEntregado
-            ? "Falta confirmar la entrega del control remoto."
-            : (_camaras == null || _sensores == null || _sirena == null)
-                ? "Responde cámaras, sensores y sirena (o marca «No aplica»)."
-                : "Marca qué pasó o descríbelo abajo.";
+          _step2Error = !_controlEntregado ? "Falta confirmar la entrega del control remoto." : "Marca qué pasó o descríbelo abajo.";
         });
         return;
       }
@@ -607,10 +550,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                         errorBuilder: (context, error, stackTrace) => Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              "OHM",
-                              style: TextStyle(fontWeight: FontWeight.w900),
-                            ),
+                            const Text("OHM", style: TextStyle(fontWeight: FontWeight.w900)),
                             Text(
                               "SAFE",
                               style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
@@ -618,10 +558,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                           ],
                         ),
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
+                      Align(alignment: Alignment.centerRight, child: const NotificationBell()),
                     ],
                   ),
                 ),
@@ -637,10 +574,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                         Text(
                           _isReparacion ? "Reparaciones" : "Instalaciones",
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
                         ),
                         Align(
                           alignment: Alignment.centerLeft,
@@ -652,15 +586,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                                 Navigator.pop(context);
                               }
                             },
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
-                            ),
+                            style: IconButton.styleFrom(padding: const EdgeInsets.all(6), shape: const CircleBorder()),
+                            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.iconTheme.color),
                           ),
                         ),
                       ],
@@ -672,11 +599,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 Center(
                   child: Text(
                     _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -737,8 +660,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           const AppBottomNav(),
 
           // Sending loading overlay
-          if (_isLoading)
-            _buildLoadingOverlay(context),
+          if (_isLoading) _buildLoadingOverlay(context),
         ],
       ),
     );
@@ -750,7 +672,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final color = theme.colorScheme.onSurfaceVariant;
     return Row(
       children: [
-        Flexible(child: Text(texto, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: color))),
+        Flexible(
+          child: Text(
+            texto,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: color),
+          ),
+        ),
         InfoAyuda(titulo: tituloAyuda ?? texto, puntos: ayuda, color: color),
       ],
     );
@@ -762,13 +689,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final bool isCompleted = _currentStep > step;
     return Text(
       "$step. $title",
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        color: isActive 
-            ? activeColor 
-            : (isCompleted ? Colors.green : Colors.grey.shade400),
-      ),
+      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isActive ? activeColor : (isCompleted ? Colors.green : Colors.grey.shade400)),
     );
   }
 
@@ -779,9 +700,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       child: Container(
         height: 6,
         decoration: BoxDecoration(
-          color: isActive 
-              ? Theme.of(context).colorScheme.secondary
-              : (isCompleted ? Colors.green : Colors.grey.shade300),
+          color: isActive ? Theme.of(context).colorScheme.secondary : (isCompleted ? Colors.green : Colors.grey.shade300),
           borderRadius: BorderRadius.circular(3),
         ),
       ),
@@ -817,20 +736,14 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           _isReparacion
               ? "Toma al menos una foto del trabajo. Cada foto guarda su ubicación."
               : "Toma las 4 fotos en el domicilio. Cada foto guarda su ubicación.",
-          style: TextStyle(
-            fontSize: 13,
-            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
-            height: 1.4,
-          ),
+          style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85), height: 1.4),
         ),
         const SizedBox(height: 20),
 
         // Fotos: en reparación, lista dinámica que se agrega una a una;
         // en instalación, las 4 categorías fijas.
         if (_isReparacion) ...[
-          ..._repairPhotoSlots.asMap().entries.map(
-                (e) => _buildRepairPhotoCard(e.value, e.key, brandDark, brandOrange),
-              ),
+          ..._repairPhotoSlots.asMap().entries.map((e) => _buildRepairPhotoCard(e.value, e.key, brandDark, brandOrange)),
           _buildAddRepairPhotoButton(brandOrange),
         ] else
           ..._categories.map((cat) => _buildPhotoCategoryCard(cat, brandDark, brandOrange)),
@@ -841,10 +754,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             // Rojo relleno con texto blanco, como los demás avisos de error (lienzo de Carlos, 2026-10-15).
-            decoration: BoxDecoration(
-              color: AvisoRojo.fondo,
-              borderRadius: BorderRadius.circular(14),
-            ),
+            decoration: BoxDecoration(color: AvisoRojo.fondo, borderRadius: BorderRadius.circular(14)),
             child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -856,21 +766,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                     children: [
                       Text(
                         "Una foto no se tomó en el domicilio",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       SizedBox(height: 4),
-                      Text(
-                        "Explica abajo por qué (por ejemplo, no había señal de GPS).",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          height: 1.3,
-                        ),
-                      ),
+                      Text("Explica abajo por qué (por ejemplo, no había señal de GPS).", style: TextStyle(color: Colors.white, fontSize: 12, height: 1.3)),
                     ],
                   ),
                 ),
@@ -883,12 +782,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         const SizedBox(height: 24),
         Text(
           anyGeoMismatch ? "¿POR QUÉ NO COINCIDE LA UBICACIÓN?" : "COMENTARIOS (OPCIONAL)",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -896,21 +790,13 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           maxLines: 3,
           style: TextStyle(color: theme.textTheme.bodyLarge?.color),
           decoration: InputDecoration(
-            hintText: anyGeoMismatch 
-              ? "Ej. no había señal de GPS, la barda da a otra calle…"
-              : "Algo que operaciones deba saber de esta instalación",
+            hintText: anyGeoMismatch ? "Ej. no había señal de GPS, la barda da a otra calle…" : "Algo que operaciones deba saber de esta instalación",
             filled: true,
             fillColor: context.ohm.surfaceContainer,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: anyGeoMismatch ? Colors.redAccent : brandOrange,
-                width: 1.5,
-              ),
+              borderSide: BorderSide(color: anyGeoMismatch ? Colors.redAccent : brandOrange, width: 1.5),
             ),
           ),
         ),
@@ -927,11 +813,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
         // Siguiente Button
         const SizedBox(height: 32),
-        OhmGradientButton(
-          label: "Siguiente",
-          icon: Icons.arrow_forward_rounded,
-          onPressed: _nextStep,
-        ),
+        OhmGradientButton(label: "Siguiente", icon: Icons.arrow_forward_rounded, onPressed: _nextStep),
       ],
     );
   }
@@ -988,7 +870,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   Widget _buildPhotoCategoryCard(String category, Color brandDark, Color brandOrange) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final path = _photoPaths[category];
     final hasPhoto = path != null;
     final isMismatched = _geoMismatches[category] ?? false;
@@ -1000,9 +882,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isMismatched 
-            ? Colors.redAccent 
-            : (hasPhoto ? Colors.green.shade200 : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant)),
+          color: isMismatched ? Colors.redAccent : (hasPhoto ? Colors.green.shade200 : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant)),
         ),
       ),
       child: Row(
@@ -1022,11 +902,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       fit: BoxFit.cover,
                       width: 50,
                       height: 50,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.check_circle,
-                        color: Theme.of(context).colorScheme.secondary,
-                        size: 28,
-                      ),
+                      errorBuilder: (_, __, ___) => Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary, size: 28),
                     )
                   : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
             ),
@@ -1038,27 +914,16 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  category,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
+                Text(category, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 if (hasPhoto) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        isMismatched ? Icons.gps_off_rounded : Icons.gps_fixed_rounded,
-                        size: 13,
-                        color: isMismatched ? Colors.redAccent : Colors.green,
-                      ),
+                      Icon(isMismatched ? Icons.gps_off_rounded : Icons.gps_fixed_rounded, size: 13, color: isMismatched ? Colors.redAccent : Colors.green),
                       const SizedBox(width: 4),
                       Text(
                         isMismatched ? "Lejos del domicilio" : "En el domicilio",
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isMismatched ? Colors.redAccent : Colors.green,
-                        ),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isMismatched ? Colors.redAccent : Colors.green),
                       ),
                     ],
                   ),
@@ -1076,18 +941,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   height: 48,
                   child: Padding(
                     padding: const EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary)),
                   ),
                 )
               : IconButton(
                   onPressed: () => _capturarFoto(category),
-                  icon: Icon(
-                    hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
-                    color: hasPhoto ? Colors.green : brandOrange,
-                  ),
+                  icon: Icon(hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded, color: hasPhoto ? Colors.green : brandOrange),
                 ),
         ],
       ),
@@ -1113,9 +972,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isMismatched
-              ? Colors.redAccent
-              : (hasPhoto ? Colors.green.shade200 : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant)),
+          color: isMismatched ? Colors.redAccent : (hasPhoto ? Colors.green.shade200 : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant)),
         ),
       ),
       child: Row(
@@ -1134,11 +991,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       fit: BoxFit.cover,
                       width: 50,
                       height: 50,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.check_circle,
-                        color: Theme.of(context).colorScheme.secondary,
-                        size: 28,
-                      ),
+                      errorBuilder: (_, __, ___) => Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary, size: 28),
                     )
                   : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
             ),
@@ -1148,35 +1001,21 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Foto ${index + 1}",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
+                Text("Foto ${index + 1}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 if (hasPhoto) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        isMismatched ? Icons.gps_off_rounded : Icons.gps_fixed_rounded,
-                        size: 13,
-                        color: isMismatched ? Colors.redAccent : Colors.green,
-                      ),
+                      Icon(isMismatched ? Icons.gps_off_rounded : Icons.gps_fixed_rounded, size: 13, color: isMismatched ? Colors.redAccent : Colors.green),
                       const SizedBox(width: 4),
                       Text(
                         isMismatched ? "Lejos del domicilio" : "En el domicilio",
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isMismatched ? Colors.redAccent : Colors.green,
-                        ),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isMismatched ? Colors.redAccent : Colors.green),
                       ),
                     ],
                   ),
                 ] else
-                  Text(
-                    "Falta tomarla",
-                    style: TextStyle(fontSize: 11, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
-                  ),
+                  Text("Falta tomarla", style: TextStyle(fontSize: 11, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6))),
               ],
             ),
           ),
@@ -1193,18 +1032,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   height: 48,
                   child: Padding(
                     padding: const EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary)),
                   ),
                 )
               : IconButton(
                   onPressed: () => _capturarFoto(key),
-                  icon: Icon(
-                    hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
-                    color: hasPhoto ? Colors.green : brandOrange,
-                  ),
+                  icon: Icon(hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded, color: hasPhoto ? Colors.green : brandOrange),
                 ),
         ],
       ),
@@ -1224,17 +1057,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           onPressed: enabled ? _addRepairPhotoSlot : null,
           style: OutlinedButton.styleFrom(
             foregroundColor: brandOrange,
-            side: BorderSide(
-              color: enabled ? brandOrange : theme.dividerColor,
-              width: 1.5,
-            ),
+            side: BorderSide(color: enabled ? brandOrange : theme.dividerColor, width: 1.5),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           icon: const Icon(Icons.add_a_photo_rounded, size: 18),
-          label: const Text(
-            "Agregar foto",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          label: const Text("Agregar foto", style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ),
     );
@@ -1255,21 +1082,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       children: [
         Text(
           "ENTREGA AL CLIENTE",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         Text(
           "Confirma lo que le dejaste funcionando al cliente.",
-          style: TextStyle(
-            fontSize: 13,
-            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
-            height: 1.4,
-          ),
+          style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85), height: 1.4),
         ),
         const SizedBox(height: 20),
 
@@ -1287,57 +1105,27 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         ),
         const SizedBox(height: 20),
 
-        // Extras del servicio: cámaras, sensores y sirena
-        _etiqueta(
-          "EXTRAS DEL SERVICIO",
-          ayuda: const [
-            '«Instalé y funciona»: lo instalaste y lo probaste con el cliente.',
-            '«No aplica»: no venía en lo que compró.',
-            'Si venía pero no lo pudiste dejar funcionando, marca «Con problemas» abajo y cuéntanos qué pasó.',
+        // Cámaras, sensores y sirena ya no se contestan a mano (Carlos, 2026-10-20, caso i76): el reporte
+        // lista lo que se dio de alta en «Agregar dispositivos», con los datos del servidor.
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                "El reporte del cliente lista solo lo que diste de alta en «Agregar dispositivos» (energizador, sensores, sirena, salidas, cámaras).",
+                style: TextStyle(fontSize: 12.5, height: 1.35, color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
           ],
-        ),
-        _addonRow(
-          theme,
-          brandOrange,
-          label: "Cámaras",
-          value: _camaras,
-          onChanged: (v) => setState(() {
-            _camaras = v;
-            _step2Error = null;
-          }),
-        ),
-        const SizedBox(height: 8),
-        _addonRow(
-          theme,
-          brandOrange,
-          label: "Sensores",
-          value: _sensores,
-          onChanged: (v) => setState(() {
-            _sensores = v;
-            _step2Error = null;
-          }),
-        ),
-        const SizedBox(height: 8),
-        _addonRow(
-          theme,
-          brandOrange,
-          label: "Sirena",
-          value: _sirena,
-          onChanged: (v) => setState(() {
-            _sirena = v;
-            _step2Error = null;
-          }),
         ),
         const SizedBox(height: 20),
 
         // Estado de la entrega
         Text(
           "¿CÓMO QUEDÓ TODO?",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         _entregaSegmented(theme, brandDark, brandOrange),
@@ -1347,11 +1135,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           const SizedBox(height: 20),
           Text(
             "¿QUÉ PASÓ?",
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           _entregaCheckTile(
@@ -1392,11 +1176,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           const SizedBox(height: 20),
           Text(
             "CUÉNTANOS QUÉ PASÓ",
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -1408,10 +1188,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               hintText: "Obligatorio si no marcaste nada arriba",
               filled: true,
               fillColor: context.ohm.surfaceContainer,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(color: theme.colorScheme.secondary, width: 1.5),
@@ -1455,11 +1232,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             const SizedBox(width: 16),
             Expanded(
               flex: 2,
-              child: OhmGradientButton(
-                label: "Siguiente",
-                icon: Icons.arrow_forward_rounded,
-                onPressed: _nextStep,
-              ),
+              child: OhmGradientButton(label: "Siguiente", icon: Icons.arrow_forward_rounded, onPressed: _nextStep),
             ),
           ],
         ),
@@ -1468,86 +1241,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   }
 
   // Fila-check reutilizable (tap para alternar).
-  /// Fila de addon con dos opciones excluyentes: instalado o no aplica.
-  /// Se exige respuesta explícita (no un check que se pueda dejar vacío) para
-  /// distinguir "no lo instalé" de "el servicio no lo incluye".
-  Widget _addonRow(
-    ThemeData theme,
-    Color brandOrange, {
-    required String label,
-    required String? value,
-    required ValueChanged<String> onChanged,
-  }) {
-    Widget opcion(String v, String texto, IconData icono) {
-      final activo = value == v;
-      return Expanded(
-        child: Semantics(
-          button: true,
-          selected: activo,
-          label: "$label: $texto",
-          child: InkWell(
-            onTap: () => onChanged(v),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              // 44 de alto: mínimo táctil de la guía.
-              constraints: const BoxConstraints(minHeight: 44),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: activo ? brandOrange.withValues(alpha: 0.12) : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: activo ? brandOrange : theme.dividerColor,
-                  width: activo ? 1.6 : 1,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icono, size: 16, color: activo ? brandOrange : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      texto,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
-                        color: activo ? brandOrange : theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              opcion('instaladas', "Instalé y funciona", Icons.check_circle_outline_rounded),
-              const SizedBox(width: 8),
-              opcion('no_aplica', "No aplica", Icons.block_rounded),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _entregaCheckTile(
     ThemeData theme,
     bool isDark, {
@@ -1564,27 +1257,16 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: value ? brandOrange : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant),
-            width: value ? 1.6 : 1.0,
-          ),
+          border: Border.all(color: value ? brandOrange : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant), width: value ? 1.6 : 1.0),
         ),
         child: Row(
           children: [
-            Icon(
-              value ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-              color: value ? brandOrange : Colors.grey,
-              size: 24,
-            ),
+            Icon(value ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: value ? brandOrange : Colors.grey, size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textTheme.bodyLarge?.color,
-                ),
+                style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
               ),
             ),
           ],
@@ -1643,12 +1325,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       children: [
         Text(
           "ENTREGA DE EQUIPO Y ACCESORIOS",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 12),
         Container(
@@ -1656,9 +1333,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
-            ),
+            border: Border.all(color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1671,20 +1346,12 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   children: [
                     Text(
                       "Sin cambio de energizador",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.bodyLarge?.color),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       "En esta reparación no se reemplazó el energizador, por lo que no se requiere registrar número de serie del control ni evidencia de equipo.",
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        height: 1.4,
-                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
-                      ),
+                      style: TextStyle(fontSize: 12.5, height: 1.4, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85)),
                     ),
                   ],
                 ),
@@ -1697,11 +1364,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         const SizedBox(height: 24),
         Text(
           "COMENTARIOS DE EQUIPO (OPCIONAL)",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -1712,10 +1375,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             hintText: "Observaciones sobre el equipo existente (opcional)...",
             filled: true,
             fillColor: context.ohm.surfaceContainer,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: theme.colorScheme.secondary, width: 1.5),
@@ -1746,11 +1406,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: OhmGradientButton(
-                label: "Siguiente",
-                icon: Icons.arrow_forward_rounded,
-                onPressed: _nextStep,
-              ),
+              child: OhmGradientButton(label: "Siguiente", icon: Icons.arrow_forward_rounded, onPressed: _nextStep),
             ),
           ],
         ),
@@ -1768,22 +1424,13 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       children: [
         Text(
           "FIRMA DEL CLIENTE",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         Text(
           "Pide al cliente que firme con el dedo para confirmar que recibió el servicio. Luego toca «Confirmar firma».",
-          
-          style: TextStyle(
-            fontSize: 13,
-            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
-            height: 1.4,
-          ),
+
+          style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85), height: 1.4),
         ),
         const SizedBox(height: 24),
 
@@ -1797,9 +1444,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   // Borde oscuro para que el recuadro se vea en exteriores (lienzo de Carlos, 2026-10-15).
-                  color: _signatureConfirmed
-                    ? Colors.green
-                    : (isDark ? theme.colorScheme.outline : theme.colorScheme.onSurface),
+                  color: _signatureConfirmed ? Colors.green : (isDark ? theme.colorScheme.outline : theme.colorScheme.onSurface),
                   width: _signatureConfirmed ? 2.0 : 1.0,
                 ),
               ),
@@ -1815,30 +1460,21 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   gestures: _signatureConfirmed
                       ? const <Type, GestureRecognizerFactory>{}
                       : <Type, GestureRecognizerFactory>{
-                          _FirmaPanRecognizer:
-                              GestureRecognizerFactoryWithHandlers<_FirmaPanRecognizer>(
-                            () => _FirmaPanRecognizer(),
-                            (_FirmaPanRecognizer r) {
-                              r.dragStartBehavior = DragStartBehavior.down;
-                              r.onStart = (d) => _agregarTrazo(d.globalPosition);
-                              r.onUpdate = (d) => _agregarTrazo(d.globalPosition);
-                              r.onEnd = (_) => _terminarTrazo();
-                            },
-                          ),
+                          _FirmaPanRecognizer: GestureRecognizerFactoryWithHandlers<_FirmaPanRecognizer>(() => _FirmaPanRecognizer(), (_FirmaPanRecognizer r) {
+                            r.dragStartBehavior = DragStartBehavior.down;
+                            r.onStart = (d) => _agregarTrazo(d.globalPosition);
+                            r.onUpdate = (d) => _agregarTrazo(d.globalPosition);
+                            r.onEnd = (_) => _terminarTrazo();
+                          }),
                         },
                   child: CustomPaint(
-                    painter: SignaturePainter(
-                      _signaturePoints,
-                      _signatureConfirmed
-                          ? Colors.green
-                          : (isDark ? Colors.white : Colors.black),
-                    ),
+                    painter: SignaturePainter(_signaturePoints, _signatureConfirmed ? Colors.green : (isDark ? Colors.white : Colors.black)),
                     size: Size.infinite,
                   ),
                 ),
               ),
             ),
-            
+
             // Indicación dentro del recuadro vacío (no captura toques).
             if (!_signatureConfirmed && _signaturePoints.isEmpty)
               Positioned.fill(
@@ -1849,10 +1485,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       children: [
                         Icon(Icons.draw_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
                         const SizedBox(width: 8),
-                        Text(
-                          "Firma aquí con el dedo",
-                          style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
-                        ),
+                        Text("Firma aquí con el dedo", style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7))),
                       ],
                     ),
                   ),
@@ -1869,9 +1502,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                       decoration: BoxDecoration(
                         color: Colors.green.shade600,
                         borderRadius: BorderRadius.circular(30),
-                        boxShadow: const [
-                          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
-                        ],
+                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1880,11 +1511,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                           SizedBox(width: 8),
                           Text(
                             "Firma guardada",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                         ],
                       ),
@@ -1901,28 +1528,26 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             TextButton.icon(
-              onPressed: _signatureConfirmed 
-                ? null 
-                : () {
-                    setState(() {
-                      _signaturePoints.clear();
-                    });
-                  },
+              onPressed: _signatureConfirmed
+                  ? null
+                  : () {
+                      setState(() {
+                        _signaturePoints.clear();
+                      });
+                    },
               icon: const Icon(Icons.clear_all_rounded, size: 18),
               label: const Text("Limpiar"),
-              style: TextButton.styleFrom(
-                foregroundColor: _signatureConfirmed ? Colors.grey : brandOrange,
-              ),
+              style: TextButton.styleFrom(foregroundColor: _signatureConfirmed ? Colors.grey : brandOrange),
             ),
             if (!_signatureConfirmed)
               ElevatedButton.icon(
-                onPressed: _signaturePoints.isNotEmpty 
-                  ? () {
-                      setState(() {
-                        _signatureConfirmed = true;
-                      });
-                    }
-                  : null,
+                onPressed: _signaturePoints.isNotEmpty
+                    ? () {
+                        setState(() {
+                          _signatureConfirmed = true;
+                        });
+                      }
+                    : null,
                 icon: const Icon(Icons.check_rounded, size: 16),
                 label: const Text("Confirmar firma"),
                 style: ElevatedButton.styleFrom(
@@ -2032,33 +1657,16 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           decoration: BoxDecoration(
             color: cs.surface,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 20, offset: const Offset(0, 10)),
-            ],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 20, offset: const Offset(0, 10))],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(
-                color: cs.primary,
-                strokeWidth: 3.5,
-              ),
+              CircularProgressIndicator(color: cs.primary, strokeWidth: 3.5),
               const SizedBox(height: 20),
-              const Text(
-                "Enviando el cierre…",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const Text("Enviando el cierre…", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
-              const Text(
-                "Subiendo fotos, ubicación y firma",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
+              const Text("Subiendo fotos, ubicación y firma", style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
         ),
