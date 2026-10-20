@@ -82,10 +82,7 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
     final crudo = await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        builder: (_) => EscanearSerieScreen(
-          leer: (t) => EtiquetaEzviz.leer(t) == null ? '' : t,
-          indicacion: 'Apunta al código QR de la etiqueta de la cámara',
-        ),
+        builder: (_) => EscanearSerieScreen(leer: (t) => EtiquetaEzviz.leer(t) == null ? '' : t, indicacion: 'Apunta al código QR de la etiqueta de la cámara'),
       ),
     );
     if (crudo == null || !mounted) return;
@@ -109,7 +106,14 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('¿La red no tiene contraseña?'),
           content: const Text('Si la Wi‑Fi de la casa tiene contraseña, pídesela al cliente y que la escriba aquí.'),
-          actions: [BotonesDialogo(secundario: 'Volver', onSecundario: () => Navigator.pop(ctx, false), primario: 'Sí, sin contraseña', onPrimario: () => Navigator.pop(ctx, true))],
+          actions: [
+            BotonesDialogo(
+              secundario: 'Volver',
+              onSecundario: () => Navigator.pop(ctx, false),
+              primario: 'Sí, sin contraseña',
+              onPrimario: () => Navigator.pop(ctx, true),
+            ),
+          ],
         ),
       );
       if (sinClave != true) return;
@@ -124,7 +128,14 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('¿Cancelar la conexión?'),
           content: const Text('La cámara se quedará sin registrar. Puedes volver a intentarlo después.'),
-          actions: [BotonesDialogo(secundario: 'Seguir', onSecundario: () => Navigator.pop(ctx, false), primario: 'Cancelar', onPrimario: () => Navigator.pop(ctx, true))],
+          actions: [
+            BotonesDialogo(
+              secundario: 'Seguir',
+              onSecundario: () => Navigator.pop(ctx, false),
+              primario: 'Cancelar',
+              onPrimario: () => Navigator.pop(ctx, true),
+            ),
+          ],
         ),
       );
       if (si != true || !mounted) return;
@@ -164,7 +175,7 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                       ayuda: [
                         'Conecta la cámara a la corriente y espera 2 minutos a que esté lista.',
                         'Si ya se usó antes, mantén RESET 10–15 s hasta que la luz parpadee.',
-                        'El teléfono debe estar conectado a la Wi‑Fi de la casa, de 2.4 GHz (no 5 GHz).',
+                        'Este teléfono debe estar en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»); la cámara no se conecta a redes de 5 GHz.',
                         'Si el teléfono pregunta «¿Conectarse a la red EZVIZ_…?», acepta: es la cámara.',
                       ],
                     ),
@@ -172,14 +183,24 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const _Punto('1', 'Cámara enchufada y con la luz parpadeando (lista para conectarse).'),
-                          const _Punto('2', 'Este teléfono en la Wi‑Fi de la casa, de 2.4 GHz.'),
-                          const _Punto('3', 'El cliente a la mano para escribir su contraseña.'),
+                          const _Punto('1', 'Enchufa la cámara y espera a que la luz parpadee: así está lista para conectarse.'),
+                          const _Punto(
+                            '2',
+                            'Conecta este teléfono a la Wi‑Fi de la casa, a la red de 2.4 GHz: si el módem tiene dos redes, es la que NO dice «5G» en el nombre.',
+                          ),
+                          const _Punto('3', 'Ten al cliente cerca: él escribe la contraseña de su Wi‑Fi en este teléfono.'),
                         ],
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const EtiquetaSeccion('LA CÁMARA', tituloAyuda: 'Etiqueta de la cámara', ayuda: ['Serie (S/N) y código de verificación de 6 letras: están en la etiqueta de la cámara o de la caja.', 'Escanea el QR de la etiqueta y se llenan solos.']),
+                    const EtiquetaSeccion(
+                      'LA CÁMARA',
+                      tituloAyuda: 'Etiqueta de la cámara',
+                      ayuda: [
+                        'Serie (S/N) y código de verificación de 6 letras: están en la etiqueta de la cámara o de la caja.',
+                        'Escanea el QR de la etiqueta y se llenan solos.',
+                      ],
+                    ),
                     TextField(
                       controller: _serie,
                       enabled: !ocupado,
@@ -188,7 +209,11 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                       decoration: InputDecoration(
                         labelText: 'Número de serie',
                         helperText: 'En la etiqueta, como S/N.',
-                        suffixIcon: IconButton(tooltip: 'Escanear etiqueta', icon: const Icon(Icons.qr_code_scanner_rounded), onPressed: ocupado ? null : _escanear),
+                        suffixIcon: IconButton(
+                          tooltip: 'Escanear etiqueta',
+                          icon: const Icon(Icons.qr_code_scanner_rounded),
+                          onPressed: ocupado ? null : _escanear,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -224,8 +249,15 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         labelText: 'Nombre de la red (Wi‑Fi)',
-                        helperText: _leyendoRed ? 'Leyendo la red del teléfono…' : 'La red a la que está conectado este teléfono.',
-                        suffixIcon: _leyendoRed ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))) : null,
+                        helperText: _leyendoRed
+                            ? 'Leyendo la red del teléfono…'
+                            : 'Es la red a la que está conectado este teléfono. Si no es la de la casa, cambia la Wi‑Fi del teléfono y vuelve aquí.',
+                        suffixIcon: _leyendoRed
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                              )
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -252,10 +284,7 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                       loading: ocupado,
                       onPressed: ocupado || !_completo ? null : _empezar,
                     ),
-                    if (ocupado) ...[
-                      const SizedBox(height: 12),
-                      BotonSecundario(etiqueta: 'Cancelar', onPressed: _salir),
-                    ],
+                    if (ocupado) ...[const SizedBox(height: 12), BotonSecundario(etiqueta: 'Cancelar', onPressed: _salir)],
                   ],
                 ),
               ),
@@ -285,7 +314,10 @@ class _Punto extends StatelessWidget {
             height: 24,
             alignment: Alignment.center,
             decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
-            child: Text(n, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+            child: Text(
+              n,
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(texto, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.35))),

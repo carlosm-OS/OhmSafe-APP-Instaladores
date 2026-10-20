@@ -90,7 +90,14 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('¿La red no tiene contraseña?'),
           content: const Text('Si la Wi‑Fi de la casa tiene contraseña, pídesela al cliente y que la escriba aquí.'),
-          actions: [BotonesDialogo(secundario: 'Volver', onSecundario: () => Navigator.pop(ctx, false), primario: 'Sí, sin contraseña', onPrimario: () => Navigator.pop(ctx, true))],
+          actions: [
+            BotonesDialogo(
+              secundario: 'Volver',
+              onSecundario: () => Navigator.pop(ctx, false),
+              primario: 'Sí, sin contraseña',
+              onPrimario: () => Navigator.pop(ctx, true),
+            ),
+          ],
         ),
       );
       if (sinClave != true) return;
@@ -105,7 +112,14 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('¿Cancelar el emparejamiento?'),
           content: const Text('El equipo se quedará sin registrar. Puedes volver a intentarlo después.'),
-          actions: [BotonesDialogo(secundario: 'Seguir', onSecundario: () => Navigator.pop(ctx, false), primario: 'Cancelar', onPrimario: () => Navigator.pop(ctx, true))],
+          actions: [
+            BotonesDialogo(
+              secundario: 'Seguir',
+              onSecundario: () => Navigator.pop(ctx, false),
+              primario: 'Cancelar',
+              onPrimario: () => Navigator.pop(ctx, true),
+            ),
+          ],
         ),
       );
       if (si != true || !mounted) return;
@@ -138,26 +152,35 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                   physics: const BouncingScrollPhysics(),
                   children: [
                     if (!_emp.puente.tieneLlaves)
-                      MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'Esta versión no puede emparejar equipos Tuya', texto: 'Falta la configuración de Tuya en la app. Avisa a soporte.'),
-                    if (_emp.etapa == EtapaTuya.error) MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo conectar $que', texto: _emp.error),
+                      MensajeFlujo(
+                        icono: Icons.error_outline,
+                        color: cs.error,
+                        titulo: 'Esta versión no puede emparejar equipos Tuya',
+                        texto: 'Falta la configuración de Tuya en la app. Avisa a soporte.',
+                      ),
+                    if (_emp.etapa == EtapaTuya.error)
+                      MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo conectar $que', texto: _emp.error),
                     if (ocupado) EsperandoSenal(titulo: _emp.texto, texto: 'No cierres la app ni te alejes del equipo. Puede tardar hasta 2 minutos.'),
                     EtiquetaSeccion(
                       'ANTES DE EMPEZAR',
                       tituloAyuda: 'Cómo preparar $que',
                       ayuda: [
                         'Enciende $que y ponlo en modo de emparejamiento: mantén su botón (RESET) 5–10 s hasta que la luz parpadee rápido.',
-                        'Este teléfono conectado a la Wi‑Fi de la casa, de 2.4 GHz (no 5 GHz).',
+                        'Este teléfono debe estar en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»); los equipos no se conectan a redes de 5 GHz.',
                         'Modo rápido (EZ): el equipo escucha en la red; es el normal. Modo AP: el teléfono se une a la red «SmartLife-XXXX» del equipo; úsalo si el rápido falla.',
-                        'El cliente a la mano para escribir su contraseña.',
+                        'Ten al cliente cerca: él escribe la contraseña de su Wi‑Fi en este teléfono.',
                       ],
                     ),
                     TarjetaFlujo(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _Punto('1', 'Equipo encendido con la luz parpadeando rápido (modo de emparejamiento).'),
-                          const _Punto('2', 'Este teléfono en la Wi‑Fi de la casa, de 2.4 GHz.'),
-                          const _Punto('3', 'El cliente a la mano para escribir su contraseña.'),
+                          _Punto('1', 'Enciende el equipo y mantén su botón de reinicio 5–10 s, hasta que la luz parpadee rápido.'),
+                          const _Punto(
+                            '2',
+                            'Conecta este teléfono a la Wi‑Fi de la casa, a la red de 2.4 GHz: si el módem tiene dos redes, es la que NO dice «5G» en el nombre.',
+                          ),
+                          const _Punto('3', 'Ten al cliente cerca: él escribe la contraseña de su Wi‑Fi en este teléfono.'),
                         ],
                       ),
                     ),
@@ -196,8 +219,15 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         labelText: 'Nombre de la red (Wi‑Fi)',
-                        helperText: _leyendoRed ? 'Leyendo la red del teléfono…' : 'La red a la que está conectado este teléfono.',
-                        suffixIcon: _leyendoRed ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))) : null,
+                        helperText: _leyendoRed
+                            ? 'Leyendo la red del teléfono…'
+                            : 'Es la red a la que está conectado este teléfono. Si no es la de la casa, cambia la Wi‑Fi del teléfono y vuelve aquí.',
+                        suffixIcon: _leyendoRed
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                              )
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -264,7 +294,10 @@ class _Punto extends StatelessWidget {
             height: 24,
             alignment: Alignment.center,
             decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
-            child: Text(n, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+            child: Text(
+              n,
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(texto, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.35))),
