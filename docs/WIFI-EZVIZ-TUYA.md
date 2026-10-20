@@ -157,9 +157,21 @@ con `--dart-define=MARCAS_CAMARA=tuya,ezviz,imou` para reabrir marcas. Lo que ap
 | (siempre) | Las cámaras y sensores YA registrados de cualquier marca se siguen listando con su marca. |
 
 No se tocan: `ConectarCamaraWifiScreen`, `ConectarImouScreen`, `EmparejadorEzviz`, `EzvizPuente`,
-`EzvizPlugin.swift/.kt`, los pods/AAR de EZVIZ (siguen enlazados: el peso no baja con este cambio;
-para quitar el SDK de EZVIZ hace falta `OHMSAFE_EZVIZ=0` en iOS y, en Android, un patrón on/off como
-el de Tuya que hoy no existe). Las pruebas de esas pantallas encienden todas las marcas en `setUp`.
+`EzvizPlugin.swift/.kt`. Las pruebas de esas pantallas encienden todas las marcas en `setUp`.
+
+## El SDK de EZVIZ sale de la build (peso)
+
+Igual que en GO: el SDK de EZVIZ (unos 40 MB de librerías nativas) queda **fuera por omisión**, sin
+borrar nada.
+
+| Plataforma | Por omisión | Para reincorporarlo |
+|---|---|---|
+| iOS | `Podfile`: `OHMSAFE_EZVIZ_LINKED = ENV['OHMSAFE_EZVIZ'] == '1'` → sin `EZOpenSDK`; `EzvizPlugin.swift` ya compila sin el módulo (`#if canImport`) y contesta `EZVIZ_NOT_LINKED`. | `OHMSAFE_EZVIZ=1 pod install` |
+| Android | `android/build.gradle.kts`: `ohmsafeEzvizLinked` → sin `ezviz-sdk`, okhttp ni gson; se compila `src/ezvizOff` (stub `EZVIZ_NOT_LINKED`, `currentSsid` sigue funcionando). La implementación real está en `src/ezvizOn/…/EzvizBridgeFactory.kt` (patrón de Tuya). | `-PohmsafeEzviz=true` (o `ORG_GRADLE_PROJECT_ohmsafeEzviz=true`) u `OHMSAFE_EZVIZ=1` |
+
+La actividad `com.videogo.main.EzvizWebViewActivity` sigue declarada en el manifiesto y las reglas
+de R8 de `com.videogo.**` en `proguard-rules.pro`: sin el SDK no hacen nada y así la reincorporación
+es sólo volver a enlazar. Para una build con EZVIZ hace falta además `MARCAS_CAMARA` con `ezviz`.
 
 ## Lo que queda guardado para reincorporar Imou
 

@@ -5,6 +5,7 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 ## Build 52 — 20 de octubre de 2026
 
 - **Sólo cámaras y sensores Tuya.** Por decisión de dirección, la app deja de ofrecer cámaras EZVIZ e Imou: en «Agregar dispositivos» → Cámaras ya no aparecen «Conectar cámara a la Wi‑Fi» (EZVIZ), «Conectar cámara Imou» ni «Cámara ya conectada». Queda **«Conectar cámara Tuya»** y, en Sensores Wi‑Fi, **«Conectar sensor Wi‑Fi»** (Tuya). Las cámaras de otras marcas que ya estaban registradas se siguen viendo en la lista.
+- **App más ligera:** el programa de EZVIZ ya no viaja dentro de la app (unos 40 MB menos de descarga).
 
 ## Build 51 (TestFlight, servidor de pruebas) — 20 de octubre de 2026
 
