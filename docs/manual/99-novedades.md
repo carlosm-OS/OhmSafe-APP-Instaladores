@@ -4,7 +4,8 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 
 ## Build 51 (en preparación)
 
-- **«Conectar cámara Imou»** en «Agregar dispositivos» → Cámaras: pasos para conectarla con la app Imou Life y registrarla aquí con su serie (S/N) y código SC. «Cámara ya conectada» queda para cámaras conectadas con la app del fabricante.
+- **«Conectar cámara Imou»** en «Agregar dispositivos» → Cámaras: pantalla completa con **escaneo del QR de la guía rápida** (llena la serie y el código SC solos), pasos para dejarla en internet y registro en la casa. «Cámara ya conectada» usa la misma pantalla para cámaras conectadas con la app del fabricante.
+- **Adiós a los diálogos con campos:** registrar una cámara ya no es un cuadro que el teclado tapaba; es una pantalla que se desplaza y deja el botón a la vista.
 - **Serie del energizador:** si tecleas un cero en vez de la letra O («0SPRUEBA0001»), la app lo corrige sola a «OS‑PRUEBA‑0001».
 
 ## Build 50 (TestFlight y Play, producción) — 19 de octubre de 2026

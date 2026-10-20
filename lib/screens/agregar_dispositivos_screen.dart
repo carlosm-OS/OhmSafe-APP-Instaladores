@@ -12,6 +12,7 @@ import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import 'conectar_camara_wifi_screen.dart';
+import 'conectar_imou_screen.dart';
 import 'conectar_tuya_wifi_screen.dart';
 import 'escanear_serie_screen.dart';
 import '../widgets/aprender_rf_sheet.dart';
@@ -270,76 +271,17 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (ok == true && mounted) await _cargarDisp();
   }
 
-  /// Cámara Imou (2026-10-19, Carlos): Imou no tiene emparejamiento Wi‑Fi en nuestra app, así que la
-  /// cámara se conecta a la red con Imou Life y aquí se registra con su serie y código SC. Es el
-  /// mismo registro que «Cámara ya conectada», con la marca fija y los pasos de Imou a la vista.
-  Future<void> _conectarImou() => _agregarCamara(proveedor: 'imou');
+  /// Cámara Imou (2026-10-19, Carlos): pantalla completa con escaneo del QR de la guía (serie + SC),
+  /// sin diálogos que el teclado tape. Hoy registra la cámara ya en internet; la Wi‑Fi desde la app
+  /// llega con el SDK de Imou (build 51).
+  Future<void> _conectarImou() => _abrirRegistroCamara(proveedor: 'imou');
 
-  Future<void> _agregarCamara({String? proveedor}) async {
-    final imou = proveedor == 'imou';
-    final datos = await showDialog<({String serie, String codigo, String nombre})>(
-      context: context,
-      builder: (_) => ConTextos(
-        iniciales: const ['', '', ''],
-        builder: (ctx, c) => AlertDialog(
-          // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
-          scrollable: true,
-          title: Text(imou ? 'Conectar cámara Imou' : 'Cámara ya conectada'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (imou) ...[
-                Text('1. Enciende la cámara y espera el aviso de voz.', style: Theme.of(ctx).textTheme.bodySmall),
-                Text('2. Con la app Imou Life iniciada con la cuenta de OhmSafe (no la del cliente), escanea el QR de la cámara y conéctala a la Wi‑Fi de la casa (2.4 GHz).', style: Theme.of(ctx).textTheme.bodySmall),
-                Text('3. Cuando Imou Life la muestre en línea, escribe aquí la serie (S/N) y el código SC de la etiqueta, respetando mayúsculas y minúsculas.', style: Theme.of(ctx).textTheme.bodySmall),
-              ] else
-                Text('Para una cámara que ya está en internet (por ejemplo, conectada con la app del fabricante).', style: Theme.of(ctx).textTheme.bodySmall),
-              const SizedBox(height: 12),
-              TextField(
-                controller: c[0],
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(labelText: 'Número de serie', helperText: 'En la etiqueta, como S/N.'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: c[1],
-                // El SC de Imou distingue mayúsculas y minúsculas (p. ej. «L2VqC2QF»); el de EZVIZ va en mayúsculas.
-                textCapitalization: imou ? TextCapitalization.none : TextCapitalization.characters,
-                autocorrect: false,
-                enableSuggestions: false,
-                decoration: InputDecoration(labelText: imou ? 'Código de seguridad (SC)' : 'Código de verificación', helperText: imou ? 'En la misma etiqueta; tal cual, con mayúsculas y minúsculas.' : 'En la misma etiqueta.'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: c[2],
-                maxLength: 40,
-                decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Cochera'),
-              ),
-            ],
-          ),
-          actions: [
-            BotonesDialogo(
-              secundario: 'Cancelar',
-              onSecundario: () => Navigator.pop(ctx),
-              primario: 'Agregar',
-              onPrimario: () {
-                final serie = c[0].text.trim(), codigo = c[1].text.trim(), nombre = c[2].text.trim();
-                if (serie.isNotEmpty && codigo.isNotEmpty && nombre.isNotEmpty) Navigator.pop(ctx, (serie: serie, codigo: codigo, nombre: nombre));
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-    if (datos == null || !mounted) return;
-    setState(() => _ocupado = true);
-    // Sin marca: el backend prueba cada nube habilitada y se queda con la que reconoce la cámara.
-    final r = await _repo.camaraAgregar(_id, proveedor: proveedor, serie: datos.serie, codigo: datos.codigo, nombre: datos.nombre);
-    if (!mounted) return;
-    setState(() => _ocupado = false);
-    r.fold((_) => _aviso('Cámara «${datos.nombre}» guardada'), (f) => _aviso(f.message));
-    await _cargarDisp();
+  /// «Cámara ya conectada»: misma pantalla sin marca; el backend prueba cada nube habilitada.
+  Future<void> _agregarCamara() => _abrirRegistroCamara();
+
+  Future<void> _abrirRegistroCamara({String? proveedor}) async {
+    final ok = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => ConectarImouScreen(ordenId: _id, proveedor: proveedor)));
+    if (ok == true && mounted) await _cargarDisp();
   }
 
   Future<void> _cargarOhmbox() async {

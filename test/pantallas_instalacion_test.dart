@@ -15,6 +15,7 @@ import 'package:ohmsafe_app/features/ordenes/data/datasources/ordenes_mock_data_
 import 'package:ohmsafe_app/features/ordenes/data/repositories/ordenes_repository_impl.dart';
 import 'package:ohmsafe_app/features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'package:ohmsafe_app/screens/agregar_dispositivos_screen.dart';
+import 'package:ohmsafe_app/screens/conectar_imou_screen.dart';
 import 'package:ohmsafe_app/screens/prueba_energizador_screen.dart';
 import 'package:ohmsafe_app/widgets/aprender_rf_sheet.dart';
 import 'package:ohmsafe_app/widgets/destino_equipo_confirmacion.dart';
@@ -69,6 +70,13 @@ Future<void> _ver(WidgetTester t, Finder f) async {
   expect(f, findsOneWidget);
 }
 
+/// Empuja una pantalla (MaterialPageRoute) y deja pasar la transición.
+Future<void> _pantallaAbierta(WidgetTester t) async {
+  for (var i = 0; i < 12; i++) {
+    await t.pump(const Duration(milliseconds: 100));
+  }
+}
+
 void main() {
   setUp(() => sl.registerSingleton<OrdenesRepository>(OrdenesRepositoryImpl(dataSource: OrdenesMockDataSource())));
 
@@ -100,7 +108,25 @@ void main() {
         await _ver(t, find.text('Principal'));
         expect(find.text('OS-PRUEBA-0001'), findsOneWidget);
         expect(find.text('En línea'), findsWidgets);
-        for (final titulo in ['Agregar otro OhmBox', 'Cámara ya conectada', 'Sensor inalámbrico']) {
+        // «Cámara ya conectada» ya no es diálogo: abre la pantalla de registro (2026-10-19).
+        t.state<ScrollableState>(_lista).position.jumpTo(0);
+        await t.pump(const Duration(milliseconds: 600));
+        final camara = find.text('Cámara ya conectada');
+        await _ver(t, camara);
+        await _tocar(
+          t,
+          find.descendant(
+            of: find.ancestor(of: camara, matching: find.byType(Row)).first,
+            matching: find.text('Agregar'),
+          ),
+        );
+        await _pantallaAbierta(t);
+        expect(find.byType(ConectarImouScreen), findsOneWidget);
+        expect(find.text('Registrar la cámara'), findsOneWidget);
+        Navigator.of(t.element(find.byType(ConectarImouScreen))).pop(false);
+        await _pantallaAbierta(t);
+        expect(find.byType(ConectarImouScreen), findsNothing);
+        for (final titulo in ['Agregar otro OhmBox', 'Sensor inalámbrico']) {
           // Cada «Agregar» abre su diálogo u hoja; se busca desde arriba de la lista.
           t.state<ScrollableState>(_lista).position.jumpTo(0); // la lista rebota (como los pasos 1-3)
           await t.pump(const Duration(milliseconds: 600));
@@ -166,21 +192,25 @@ void main() {
             matching: find.text('Agregar'),
           ),
         );
-        await t.pump(const Duration(milliseconds: 600));
-        final campos = find.descendant(of: find.byType(Dialog), matching: find.byType(TextField));
+        await _pantallaAbierta(t);
+        // Pantalla completa (2026-10-19): los campos se desplazan con el teclado y el botón sigue abajo.
+        final campos = find.descendant(of: find.byType(ConectarImouScreen), matching: find.byType(TextField));
         expect(campos, findsNWidgets(3));
-        await t.enterText(campos.at(0), 'BF1234567');
-        await t.enterText(campos.at(1), 'ABCDEF');
-        await t.enterText(campos.at(2), 'Cochera');
+        for (final (i, texto) in ['BF1234567', 'ABCDEF', 'Cochera'].indexed) {
+          await t.ensureVisible(campos.at(i));
+          await t.enterText(campos.at(i), texto);
+        }
         t.view.viewInsets = const FakeViewPadding(bottom: 900); // teclado abierto
         await t.pump(const Duration(milliseconds: 300));
-        await t.tap(find.descendant(of: find.byType(Dialog), matching: find.text('Agregar')));
+        await t.ensureVisible(find.text('Registrar la cámara'));
+        await t.pump(const Duration(milliseconds: 300));
+        await t.tap(find.text('Registrar la cámara'));
         t.view.viewInsets = FakeViewPadding.zero; // y se cierra al guardar
         for (var i = 0; i < 12; i++) {
           await t.pump(const Duration(milliseconds: 50));
         }
         await t.pump(const Duration(seconds: 1));
-        expect(find.byType(Dialog), findsNothing);
+        expect(find.byType(ConectarImouScreen), findsNothing);
       });
     } finally {
       debugDefaultTargetPlatformOverride = null; // antes de que termine la prueba
@@ -204,10 +234,16 @@ void main() {
           t.view.padding = FakeViewPadding(top: tel.arriba * 3, bottom: tel.abajo * 3);
           Future<void> abrirPantalla() async {
             await t.pumpWidget(const SizedBox()); // pantalla nueva para cada diálogo
-            await t.pumpWidget(AppStateProvider(
-              notifier: AppState(),
-              child: MaterialApp(theme: AppTheme.light, builder: (_, child) => TecladoGlobal(child: child!), home: const AgregarDispositivosScreen(ticket: {'id': 'i69'})),
-            ));
+            await t.pumpWidget(
+              AppStateProvider(
+                notifier: AppState(),
+                child: MaterialApp(
+                  theme: AppTheme.light,
+                  builder: (_, child) => TecladoGlobal(child: child!),
+                  home: const AgregarDispositivosScreen(ticket: {'id': 'i69'}),
+                ),
+              ),
+            );
             await t.pump(const Duration(seconds: 2));
           }
 
@@ -220,14 +256,24 @@ void main() {
             final campos = find.descendant(of: find.byType(Dialog), matching: find.byType(TextField));
             await t.ensureVisible(campos.last);
             await t.pump(const Duration(milliseconds: 300));
-            expect(find.descendant(of: find.byType(Dialog), matching: find.byType(FilledButton)), findsOneWidget, reason: cual);
+            expect(
+              find.descendant(of: find.byType(Dialog), matching: find.byType(FilledButton)),
+              findsOneWidget,
+              reason: cual,
+            );
             t.view.viewInsets = FakeViewPadding.zero;
             await t.pump(const Duration(milliseconds: 300));
           }
 
           Future<void> tocarEnFila(String titulo, String boton) async {
             await _ver(t, find.text(titulo));
-            await _tocar(t, find.descendant(of: find.ancestor(of: find.text(titulo), matching: find.byType(Row)).first, matching: find.text(boton)));
+            await _tocar(
+              t,
+              find.descendant(
+                of: find.ancestor(of: find.text(titulo), matching: find.byType(Row)).first,
+                matching: find.text(boton),
+              ),
+            );
           }
 
           // Salida: Probar → «¿Se encendió?» Sí → «¿Qué conectaste a la salida 1?»
@@ -237,11 +283,26 @@ void main() {
           await t.tap(find.text('Sí'));
           await conTeclado('salida');
 
-          for (final titulo in ['Cámara ya conectada', 'Agregar otro OhmBox']) {
-            await abrirPantalla();
-            await tocarEnFila(titulo, 'Agregar');
-            await conTeclado(titulo);
-          }
+          await abrirPantalla();
+          await tocarEnFila('Agregar otro OhmBox', 'Agregar');
+          await conTeclado('Agregar otro OhmBox');
+
+          // «Cámara ya conectada» es pantalla completa (2026-10-19): con el teclado abierto el último
+          // campo se alcanza desplazando y el botón «Registrar la cámara» sigue disponible.
+          await abrirPantalla();
+          await tocarEnFila('Cámara ya conectada', 'Agregar');
+          await _pantallaAbierta(t);
+          expect(find.byType(ConectarImouScreen), findsOneWidget);
+          t.view.viewInsets = FakeViewPadding(bottom: tel.teclado * 3);
+          await t.pump(const Duration(milliseconds: 300));
+          final camposCamara = find.descendant(of: find.byType(ConectarImouScreen), matching: find.byType(TextField));
+          expect(camposCamara, findsNWidgets(3));
+          await t.ensureVisible(camposCamara.last);
+          await t.pump(const Duration(milliseconds: 300));
+          await t.ensureVisible(find.text('Registrar la cámara'));
+          await t.pump(const Duration(milliseconds: 300));
+          t.view.viewInsets = FakeViewPadding.zero;
+          await t.pump(const Duration(milliseconds: 300));
           await t.pumpWidget(const SizedBox());
           await t.pump(const Duration(seconds: 1));
         });
