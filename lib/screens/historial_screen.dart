@@ -63,6 +63,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
       details['direccion']?.toString() ?? '',
       details['ciudad']?.toString() ?? '',
       details['cp']?.toString() ?? '',
+      _numero(t), // «i67»
     ];
     return campos.any((c) => c.toLowerCase().contains(q));
   }
@@ -82,10 +83,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
-    final tickets = state.history
-        .where((t) => _dentroDeRango(t['completedAt'] as DateTime?))
-        .where(_coincideBusqueda)
-        .toList();
+    final tickets = state.history.where((t) => _dentroDeRango(t['completedAt'] as DateTime?)).where(_coincideBusqueda).toList();
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -109,15 +107,18 @@ class _HistorialScreenState extends State<HistorialScreen> {
                         errorBuilder: (context, error, stackTrace) => Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text("OHM", style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                            Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
+                            Text(
+                              "OHM",
+                              style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color),
+                            ),
+                            Text(
+                              "SAFE",
+                              style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
+                            ),
                           ],
                         ),
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
+                      Align(alignment: Alignment.centerRight, child: const NotificationBell()),
                     ],
                   ),
                 ),
@@ -136,21 +137,14 @@ class _HistorialScreenState extends State<HistorialScreen> {
                           child: Text(
                             "Historial",
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.titleLarge?.color,
-                            ),
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.textTheme.titleLarge?.color),
                           ),
                         ),
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
                             onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
+                            style: IconButton.styleFrom(padding: const EdgeInsets.all(6), shape: const CircleBorder()),
                             icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.iconTheme.color),
                           ),
                         ),
@@ -180,10 +174,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                           : null,
                       filled: true,
                       fillColor: ohm.surfaceContainer,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                       contentPadding: const EdgeInsets.symmetric(vertical: 4),
                     ),
                   ),
@@ -208,11 +199,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
                   child: Text(
                     "${tickets.length} ${tickets.length == 1 ? 'ticket' : 'tickets'}",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                    ),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                   ),
                 ),
 
@@ -251,9 +238,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
           decoration: BoxDecoration(
             color: selected ? cs.primary : ohm.surfaceContainer,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? cs.primary : theme.dividerColor,
-            ),
+            border: Border.all(color: selected ? cs.primary : theme.dividerColor),
           ),
           child: Text(
             label,
@@ -269,8 +254,15 @@ class _HistorialScreenState extends State<HistorialScreen> {
     );
   }
 
+  /// Número de intervención («i67»): el mismo de la lista de instalaciones y de Odoo (Carlos, 2026-10-20).
+  static String _numero(Map<String, dynamic> t) {
+    final id = t['id']?.toString() ?? '';
+    return RegExp(r'^i\d+$').hasMatch(id) ? id : '';
+  }
+
   Widget _ticketCard(ThemeData theme, bool isDark, Map<String, dynamic> t) {
     final cs = theme.colorScheme;
+    final numero = _numero(t);
     final ohm = context.ohm;
     final esRep = _esReparacion(t);
     final cancelada = _esCancelada(t);
@@ -297,21 +289,27 @@ class _HistorialScreenState extends State<HistorialScreen> {
               Expanded(
                 child: Text(
                   t['title']?.toString() ?? 'Ticket',
-                  style: TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w700,
-                    height: 1.3,
-                    color: theme.textTheme.bodyLarge?.color,
-                  ),
+                  style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, height: 1.3, color: theme.textTheme.bodyLarge?.color),
                 ),
               ),
-              const SizedBox(width: 10),
+              if (numero.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Semantics(
+                  label: 'Intervención $numero',
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+                    child: Text(
+                      numero,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: cs.primary, letterSpacing: 0.2),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
                 child: Text(
                   cancelada ? "Cancelada" : (esRep ? "Reparación" : "Instalación"),
                   style: TextStyle(color: badgeColor, fontSize: 11, fontWeight: FontWeight.w700),
@@ -334,8 +332,12 @@ class _HistorialScreenState extends State<HistorialScreen> {
           ],
           if ((details['direccion']?.toString() ?? '').isNotEmpty) ...[
             const SizedBox(height: 6),
-            _infoRow(theme, Icons.location_on_outlined, theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                "${details['direccion']}${(details['ciudad']?.toString() ?? '').isNotEmpty ? ', ${details['ciudad']}' : ''}"),
+            _infoRow(
+              theme,
+              Icons.location_on_outlined,
+              theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+              "${details['direccion']}${(details['ciudad']?.toString() ?? '').isNotEmpty ? ', ${details['ciudad']}' : ''}",
+            ),
           ],
         ],
       ),
@@ -349,10 +351,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
         Icon(icon, size: 15, color: color),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 13, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8)),
-          ),
+          child: Text(text, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8))),
         ),
       ],
     );
@@ -374,9 +373,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40.0),
             child: Text(
-              hayHistorial
-                  ? "Ajusta la búsqueda o el filtro de fechas."
-                  : "Los tickets que completes o canceles aparecerán aquí.",
+              hayHistorial ? "Ajusta la búsqueda o el filtro de fechas." : "Los tickets que completes o canceles aparecerán aquí.",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
             ),

@@ -4,6 +4,7 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 
 ## Build 57 (en preparación)
 
+- **Número de intervención en el historial.** Cada tarjeta del historial muestra su número (por ejemplo «i67»), igual que en la lista de instalaciones; también puedes buscarlo.
 - **El reporte dice lo que de verdad instalaste.** En el cierre ya no se contestan «Cámaras», «Sensores» y «Sirena»: el reporte del cliente lista lo que diste de alta en «Agregar dispositivos» (energizador, sensores cableados, salidas, sensores 433, controles, sensores Wi‑Fi, cámaras y la prueba de sirena).
 - **Salidas auxiliares de 12 V.** Al registrar una salida, las opciones ahora son «Estrobo», «Sirena extra» u «Otro equipo de 12 V» (ya no luz, bomba ni portón).
 - **Sirena de demostración.** En «Agregar dispositivos › Sirena» hay «Encender» y «Apagar»: puedes hacerla sonar las veces que quieras frente al cliente (se apaga sola a los 15 segundos). La primera vez la app pregunta si sonó, como antes.
