@@ -38,8 +38,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Step 1 State: Photos, Metadatas and Anomaly Justifications
   final List<String> _categories = [
-    'Perfil izquierdo',
-    'Perfil derecho',
+    // Carlos (2026-10-20): «Foto cerca 1 y 2» en vez de «Perfil izquierdo/derecho».
+    'Foto cerca 1',
+    'Foto cerca 2',
     'Energizador',
     'Letrero OhmSafe'
   ];
@@ -805,7 +806,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   'Cada foto guarda la ubicación donde la tomaste.',
                 ]
               : const [
-                  'Perfil izquierdo y derecho: la cerca vista desde cada extremo, completa.',
+                  'Foto cerca 1 y 2: la cerca vista desde cada extremo, completa.',
                   'Energizador: el equipo ya instalado, con sus cables.',
                   'Letrero OhmSafe: el letrero de advertencia colocado.',
                   'Tómalas en el domicilio: cada foto guarda su ubicación.',

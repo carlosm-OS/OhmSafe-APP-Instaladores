@@ -104,7 +104,7 @@ Toca «Cierre de la instalación». Tiene 3 partes: **1 · Fotos**, **2 · Entre
 
 ### 5.1 Fotos
 
-1. En **«FOTOS OBLIGATORIAS»** toma las 4: «Perfil izquierdo», «Perfil derecho», «Energizador», «Letrero OhmSafe». El ⓘ dice qué debe verse en cada una.
+1. En **«FOTOS OBLIGATORIAS»** toma las 4: «Foto cerca 1», «Foto cerca 2», «Energizador», «Letrero OhmSafe». El ⓘ dice qué debe verse en cada una.
 2. Para cada una elige «Tomar foto» o «Elegir de la galería».
 3. Cada foto se sube en cuanto la tomas: «Subiendo…», «Subida» o «No se subió · Toca para reintentar».
 4. Cada foto guarda su ubicación. Si una dice **«Lejos del domicilio»**, aparece «Una foto no se tomó en el domicilio» y el campo cambia a **«¿POR QUÉ NO COINCIDE LA UBICACIÓN?»**: explica el motivo (por ejemplo, no había señal de GPS).

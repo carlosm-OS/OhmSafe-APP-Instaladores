@@ -5,6 +5,7 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 ## Build 55 (servidor de pruebas) — 20 de octubre de 2026
 
 - **Agregar dispositivos avisa si no pudo leer la casa.** En la 54, cuando el servidor no podía resolver la casa, la pantalla se quedaba sólo con «Vincular energizador» y sin sensores Wi‑Fi ni cámaras, sin explicar nada. Ahora muestra el motivo. (El servidor de pruebas también se corrigió: ya no crea casas repetidas.)
+- **Cierre › Fotos:** las dos fotos de la cerca se llaman «Foto cerca 1» y «Foto cerca 2» (antes «Perfil izquierdo» y «Perfil derecho»).
 - **Sin marcas en pantalla.** Los sensores y cámaras Wi‑Fi se llaman así, sin el nombre del fabricante, en filas, avisos y listas.
 
 ## Build 54 (servidor de pruebas) — 20 de octubre de 2026
