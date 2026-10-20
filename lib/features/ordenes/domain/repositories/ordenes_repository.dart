@@ -53,6 +53,8 @@ abstract class OrdenesRepository {
   Future<Result<Map<String, dynamic>>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono});
   Future<Result<Map<String, dynamic>>> cableadoProbarSirena(String id);
   Future<Result<Map<String, dynamic>>> cableadoConfirmarSirena(String id, {required bool sono});
+  /// Sirena de demostración (2026-10-20): encender/apagar varias veces; encendida se apaga sola a los 15 s.
+  Future<Result<Map<String, dynamic>>> cableadoSirena(String id, {required bool encender});
   Future<Result<Map<String, dynamic>>> cableadoProbarSalida(String id, int index);
   Future<Result<Map<String, dynamic>>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
   /// OhmBox adicional en la misma casa (add-on de su suscripción, 2026-10-14).

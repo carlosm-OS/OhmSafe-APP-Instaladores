@@ -37,6 +37,7 @@ abstract class OrdenesDataSource {
   Future<Map<String, dynamic>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono});
   Future<Map<String, dynamic>> cableadoProbarSirena(String id);
   Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono});
+  Future<Map<String, dynamic>> cableadoSirena(String id, {required bool encender});
   Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index);
   Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
   /// OhmBox adicional en la misma casa (2026-10-14): `GET/POST /instalador/ordenes/:id/ohmbox`.

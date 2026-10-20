@@ -260,6 +260,12 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   @override
   Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono}) async { await _ok(); return _cableado(); }
   @override
+  Future<Map<String, dynamic>> cableadoSirena(String id, {required bool encender}) async {
+    await _ok();
+    final c = _cableado();
+    return {...c, 'sirena': {'sonando': encender, 'probada': true, 'sono': null}};
+  }
+  @override
   Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async { await _ok(); _salidasProbadas.add(index); return _cableado(); }
   @override
   Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono}) async { await _ok(); return _cableado(); }

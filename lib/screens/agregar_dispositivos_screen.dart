@@ -26,7 +26,7 @@ import '../widgets/botones_dialogo.dart';
 /// «Agregar dispositivos» · cableado con prueba en vivo (build 39, Carlos 2026-10-13).
 /// Cada elemento se comprueba físicamente y la app sólo acepta lo que el equipo confirma:
 ///   · Entradas: «Cierra la puerta» → cerrada estable 3 s → «Ábrela» → abierta → nombre y alta.
-///   · Sirena: «Probar 3 s» → «¿Sonó?».
+///   · Sirena: «Encender» / «Apagar» las veces que se quiera (se apaga sola a los 15 s); la primera vez «¿Sonó?».
 ///   · Salidas aux: «Encender 5 s» → «¿Se encendió?» → tipo, modo y alta.
 /// Requiere firmware 2.10+, equipo en línea y la ventana de instalación abierta (la abre la prueba
 /// del energizador; si venció, aquí se vuelve a abrir). Devuelve 'dispositivos_listos' al terminar.
@@ -66,6 +66,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   void dispose() {
     _sondeo?.cancel();
     _ventana?.cancel();
+    _sirenaAutoApagado?.cancel();
     super.dispose();
   }
 
@@ -146,6 +147,9 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     setState(() => _saliendo = true);
     _ventana?.cancel();
     _sondeo?.cancel();
+    _sirenaAutoApagado?.cancel();
+    // Si sale con la sirena sonando, se apaga antes de cerrar la ventana de control.
+    if (_sirenaSonando) await _repo.cableadoSirena(_id, encender: false);
     await _repo.pruebaTerminar(_id);
     if (mounted) Navigator.pop(context, 'dispositivos_listos');
   }
@@ -468,10 +472,37 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   }
 
   // ---------------------------------------------------------------- sirena
-  Future<void> _probarSirena() async {
-    await _run(() => _repo.cableadoProbarSirena(_id));
-    if (!mounted || _sirena['probada'] != true || _sirena['sono'] != null) return;
-    final sono = await _preguntar('¿Sonó la sirena?', 'El equipo la hizo sonar 3 segundos.');
+  /// Sirena de demostración (Carlos, 2026-10-20): el instalador la enciende y la apaga cuantas veces
+  /// quiera frente al cliente; encendida se apaga sola a los 15 s. Al apagarla la primera vez, la app
+  /// pregunta «¿Sonó?» (eso deja el acta y la palomita); después se puede seguir mostrando.
+  bool _sirenaSonando = false;
+  Timer? _sirenaAutoApagado;
+
+  Future<void> _encenderSirena() async {
+    await _run(() => _repo.cableadoSirena(_id, encender: true));
+    if (!mounted || _sirena['sonando'] != true) return;
+    setState(() => _sirenaSonando = true);
+    _sirenaAutoApagado?.cancel();
+    // El servidor la apaga a los 15 s; la fila vuelve sola a «Encender».
+    _sirenaAutoApagado = Timer(const Duration(seconds: 15), () {
+      if (mounted && _sirenaSonando) {
+        setState(() => _sirenaSonando = false);
+        _preguntarSiSono();
+      }
+    });
+  }
+
+  Future<void> _apagarSirena() async {
+    _sirenaAutoApagado?.cancel();
+    await _run(() => _repo.cableadoSirena(_id, encender: false));
+    if (!mounted) return;
+    setState(() => _sirenaSonando = false);
+    await _preguntarSiSono();
+  }
+
+  Future<void> _preguntarSiSono() async {
+    if (!mounted || _sirena['sono'] != null) return;
+    final sono = await _preguntar('¿Sonó la sirena?', 'Si sonó, queda anotado en el acta. Puedes volver a encenderla para mostrársela al cliente.');
     if (sono == null || !mounted) return;
     await _run(() => _repo.cableadoConfirmarSirena(_id, sono: sono));
   }
@@ -740,19 +771,26 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               const EtiquetaSeccion(
                                 'SIRENA',
                                 tituloAyuda: 'Sirena',
-                                ayuda: ['Al probarla suena 3 segundos. Avísale al cliente antes: es fuerte.', 'Después la app te pregunta si sonó.'],
+                                ayuda: [
+                                  'Enciéndela y apágala las veces que quieras para mostrársela al cliente. Avísale antes: es fuerte.',
+                                  'Si la dejas encendida, se apaga sola a los 15 segundos.',
+                                  'La primera vez que la apagas, la app te pregunta si sonó (queda en el acta).',
+                                ],
                               ),
                               FilaFlujo(
                                 titulo: 'Sirena del energizador',
-                                subtitulo: _sirena['sono'] == true
-                                    ? 'Funciona'
+                                subtitulo: _sirenaSonando
+                                    ? 'Sonando… se apaga sola en 15 s'
+                                    : _sirena['sono'] == true
+                                    ? 'Funciona · puedes encenderla otra vez para mostrarla'
                                     : _sirena['sono'] == false
-                                    ? 'No sonó. Revisa el cable y vuelve a probar.'
-                                    : 'Suena 3 segundos',
-                                colorSubtitulo: _sirena['sono'] == false ? cs.error : null,
-                                trailing: _sirena['sono'] == true
-                                    ? const CirculoCheck(marcado: true)
-                                    : BotonFila(etiqueta: 'Probar', onPressed: _listo ? _probarSirena : null),
+                                    ? 'No sonó. Revisa el cable y vuelve a encenderla.'
+                                    : 'Enciéndela y apágala para probarla',
+                                colorSubtitulo: _sirena['sono'] == false && !_sirenaSonando ? cs.error : null,
+                                marcada: _sirena['sono'] == true && !_sirenaSonando,
+                                trailing: _sirenaSonando
+                                    ? BotonFila(etiqueta: 'Apagar', icono: Icons.volume_off_rounded, lleno: true, onPressed: _ocupado ? null : _apagarSirena)
+                                    : BotonFila(etiqueta: 'Encender', icono: Icons.campaign_rounded, onPressed: _listo ? _encenderSirena : null),
                               ),
 
                               // ---------------- Salidas

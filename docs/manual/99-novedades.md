@@ -2,7 +2,11 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
-## Build 56 (en preparación)
+## Build 57 (en preparación)
+
+- **Sirena de demostración.** En «Agregar dispositivos › Sirena» hay «Encender» y «Apagar»: puedes hacerla sonar las veces que quieras frente al cliente (se apaga sola a los 15 segundos). La primera vez la app pregunta si sonó, como antes.
+
+## Build 56 (TestFlight, servidor de pruebas) — 20 de octubre de 2026
 
 - **Sólo ves instalaciones con fecha.** Desaparece la sección «Pendientes de agendar»: una intervención asignada pero sin día y hora ya no aparece (antes salía todos los días). Cuando operaciones le ponga fecha, aparece en su día y te llega el aviso.
 - **Movimiento como en OhmSafe GO.** Las pantallas entran fundiendo y deslizándose un poco desde la derecha; las filas y tarjetas aparecen escalonadas; los botones se encogen al presionarlos; los cambios de estado (marcar, probar) se funden en vez de saltar. Con «Reducir movimiento» del teléfono todo es instantáneo.

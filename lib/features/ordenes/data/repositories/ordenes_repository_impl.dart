@@ -486,6 +486,21 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
+  Future<Result<Map<String, dynamic>>> cableadoSirena(String id, {required bool encender}) async {
+    try {
+      return Success(await dataSource.cableadoSirena(id, encender: encender));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Result<Map<String, dynamic>>> cableadoConfirmarSirena(String id, {required bool sono}) async {
     try {
       return Success(await dataSource.cableadoConfirmarSirena(id, sono: sono));

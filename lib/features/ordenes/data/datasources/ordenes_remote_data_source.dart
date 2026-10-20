@@ -138,6 +138,9 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono}) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/cableado/sirena/confirmar', body: {'sono': sono}));
   @override
+  Future<Map<String, dynamic>> cableadoSirena(String id, {required bool encender}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/sirena/${encender ? 'encender' : 'apagar'}', body: const {}));
+  @override
   Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/cableado/salidas/$index/probar', body: const {}));
   @override
