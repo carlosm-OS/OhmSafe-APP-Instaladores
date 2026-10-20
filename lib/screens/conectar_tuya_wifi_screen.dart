@@ -3,9 +3,11 @@ import 'package:geolocator/geolocator.dart';
 
 import '../core/di/injection_container.dart';
 import '../core/tuya/emparejador_tuya.dart';
+import '../core/wifi/redes_wifi.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/ayuda.dart';
 import '../widgets/botones_dialogo.dart';
+import '../widgets/campo_red_wifi.dart';
 import '../widgets/ohm_gradient_button.dart';
 
 /// «Conectar sensor / cámara Tuya a la Wi‑Fi» (2026-10-17, fase 2 de docs/instalador-wifi.md).
@@ -15,12 +17,15 @@ import '../widgets/ohm_gradient_button.dart';
 /// de nube que da el backend). El equipo queda en la cuenta del cliente, visible en OhmSafe GO; aquí
 /// se registra con el NOMBRE de la red. La contraseña no se guarda. Devuelve (pop) `true` si quedó.
 class ConectarTuyaWifiScreen extends StatefulWidget {
-  const ConectarTuyaWifiScreen({super.key, required this.ordenId, required this.clase, this.emparejador});
+  const ConectarTuyaWifiScreen({super.key, required this.ordenId, required this.clase, this.emparejador, this.listador});
   final String ordenId;
 
   /// `sensor` o `camara`.
   final String clase;
   final EmparejadorTuya? emparejador;
+
+  /// Las pruebas inyectan un listador de redes falso.
+  final ListadorRedes? listador;
 
   @override
   State<ConectarTuyaWifiScreen> createState() => _ConectarTuyaWifiScreenState();
@@ -34,7 +39,6 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
   String _tipo = 'door';
   String _modo = 'EZ';
   bool _verContrasena = false;
-  bool _leyendoRed = true;
 
   static const _tipos = {'door': 'Puerta', 'motion': 'Movimiento', 'smoke': 'Humo'};
 
@@ -44,7 +48,6 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
   void initState() {
     super.initState();
     _emp.addListener(_cambio);
-    _leerRed();
   }
 
   @override
@@ -67,17 +70,14 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
     }
   }
 
-  Future<void> _leerRed() async {
+  /// La red actual del teléfono para prellenarla (hace falta ubicación en iOS y Android). La lee
+  /// [CampoRedWifi] al abrir y cada vez que la app vuelve al frente.
+  Future<String?> _leerRedActual() async {
     try {
       var permiso = await Geolocator.checkPermission();
       if (permiso == LocationPermission.denied) permiso = await Geolocator.requestPermission();
     } catch (_) {}
-    final red = await _emp.puente.redActual();
-    if (!mounted) return;
-    setState(() {
-      _leyendoRed = false;
-      if (red != null && _red.text.isEmpty) _red.text = red;
-    });
+    return _emp.puente.redActual();
   }
 
   bool get _completo => _nombre.text.trim().isNotEmpty && _red.text.trim().isNotEmpty;
@@ -213,23 +213,8 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                         'La contraseña la escribe el cliente, sólo sirve para pasársela al equipo y no se guarda.',
                       ],
                     ),
-                    TextField(
-                      controller: _red,
-                      enabled: !ocupado,
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        labelText: 'Nombre de la red (Wi‑Fi)',
-                        helperText: _leyendoRed
-                            ? 'Leyendo la red del teléfono…'
-                            : 'Es la red a la que está conectado este teléfono. Si no es la de la casa, cambia la Wi‑Fi del teléfono y vuelve aquí.',
-                        suffixIcon: _leyendoRed
-                            ? const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                              )
-                            : null,
-                      ),
-                    ),
+                    // Selector de redes (2026-10-20): Android lista las cercanas; iOS relee la conectada.
+                    CampoRedWifi(controller: _red, enabled: !ocupado, leerRedActual: _leerRedActual, listador: widget.listador, onChanged: () => setState(() {})),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _contrasena,

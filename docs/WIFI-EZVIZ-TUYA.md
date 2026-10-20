@@ -108,6 +108,17 @@ el proyecto de nube. La contraseña Tuya de la casa nunca sale del servidor.
 | Android | `TuyaPlugin.kt` (común) + `src/tuyaOn|tuyaOff/…/TuyaBridgeFactory.kt` (`ActivatorBuilder().setToken(token)`), `thingsmart:7.8.0` + `security-algorithm*.aar` fuera del repo |
 | Pruebas | `test/tuya_wifi_test.dart` |
 
+## Selector de redes Wi‑Fi (2026-10-20)
+
+`lib/widgets/campo_red_wifi.dart` (`CampoRedWifi`) + `lib/core/wifi/redes_wifi.dart`, recorte del
+`wifi_networks.dart` de GO. Android escanea con `wifi_scan` (exige ubicación; el manifiesto ya no
+lleva `neverForLocation` en `NEARBY_WIFI_DEVICES`, igual que GO): hoja con las redes cercanas, 2.4 GHz
+primero y por señal, 5/6 GHz apagadas; la misma SSID en dos bandas se queda con la de 2.4. iOS no
+puede listar redes (Apple no da la API): el campo relee la red conectada al volver al frente
+(`didChangeAppLifecycleState`) y con el icono. `bandaPorNombre` avisa (no bloquea) cuando el nombre
+huele a 5 GHz. Android frena a 4 escaneos / 2 min: se leen los resultados en caché. Pruebas en
+`test/redes_wifi_test.dart` con un `ListadorRedes` falso.
+
 ## Llaves y paquetes (nunca en git)
 
 - Cuenta de Tuya de OhmSafe (`admin@ohmsafe.com`): app «OhmSafe Installer» (Smart Life App SDK 7.8.0,

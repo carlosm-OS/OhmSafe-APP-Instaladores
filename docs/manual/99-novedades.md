@@ -2,6 +2,11 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 53 (servidor de pruebas) — 20 de octubre de 2026
+
+- **Buscador de redes Wi‑Fi** al conectar un sensor o cámara Tuya: en Android, el icono junto a «Nombre de la red» abre la lista de redes cercanas (las de 2.4 GHz primero, con su señal; las de 5 GHz se ven apagadas porque el equipo no las ve) y tocas una. En iPhone Apple no permite listar redes: el campo sigue leyendo la red del teléfono, se actualiza solo al volver de Ajustes › Wi‑Fi y el icono la relee a mano.
+- **Aviso de 5 GHz:** si el nombre elegido o escrito parece de 5 GHz («…5G»), la app lo dice debajo del campo (no impide continuar).
+
 ## Build 52 — 20 de octubre de 2026
 
 - **Sólo cámaras y sensores Tuya.** Por decisión de dirección, la app deja de ofrecer cámaras EZVIZ e Imou: en «Agregar dispositivos» → Cámaras ya no aparecen «Conectar cámara a la Wi‑Fi» (EZVIZ), «Conectar cámara Imou» ni «Cámara ya conectada». Queda **«Conectar cámara Tuya»** y, en Sensores Wi‑Fi, **«Conectar sensor Wi‑Fi»** (Tuya). Las cámaras de otras marcas que ya estaban registradas se siguen viendo en la lista.
