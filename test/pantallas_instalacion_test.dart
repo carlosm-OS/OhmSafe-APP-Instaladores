@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ohmsafe_app/controllers/app_state.dart';
 import 'package:ohmsafe_app/controllers/app_state_provider.dart';
+import 'package:ohmsafe_app/core/config/marcas_camara.dart';
 import 'package:ohmsafe_app/core/di/injection_container.dart';
 import 'package:ohmsafe_app/core/teclado/teclado.dart';
 import 'package:ohmsafe_app/core/theme/app_theme.dart';
@@ -78,7 +79,12 @@ Future<void> _pantallaAbierta(WidgetTester t) async {
 }
 
 void main() {
-  setUp(() => sl.registerSingleton<OrdenesRepository>(OrdenesRepositoryImpl(dataSource: OrdenesMockDataSource())));
+  setUp(() {
+    sl.registerSingleton<OrdenesRepository>(OrdenesRepositoryImpl(dataSource: OrdenesMockDataSource()));
+    // Las pantallas de EZVIZ/Imou siguen en el repo apagadas (2026-10-20): aquí se encienden para probarlas.
+    MarcasCamara.habilitadas = MarcasCamara.todas;
+  });
+  tearDown(() => MarcasCamara.habilitadas = MarcasCamara.desde('tuya'));
 
   for (final tamano in const [Size(1206, 2622), Size(1080, 1920)]) {
     final nombre = '${tamano.width.toInt()}x${tamano.height.toInt()}';

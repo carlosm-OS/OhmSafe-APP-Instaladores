@@ -133,3 +133,47 @@ el proyecto de nube. La contraseña Tuya de la casa nunca sale del servidor.
   cliente) para que Tuya no llame a un OpenSSL ajeno.
 - Pendiente de probar con un sensor real: GO aún no existe en la cuenta nueva de Tuya (el bundle
   `com.ohmSafe` sigue en la cuenta de Dan).
+
+---
+
+# Retirada de EZVIZ e Imou de la app de instaladores (2026-10-20)
+
+**Decisión de Carlos (20-oct):** la app de instaladores ofrece **sólo Tuya**. Motivo: varias marcas
+complican tablas, procesos y peso, y el SDK de Imou nunca llegó a conectarse. Modo: **apagar, no
+borrar** — el código, los puentes nativos y los SDKs siguen en el repo; lo que cambia es un
+interruptor en la app. En GO y en el backend la retirada la lleva la sesión OS‑Product
+(`docs/IMOU-RETIRADO.md` del backend; `IMOU_ENABLED=false`); EZVIZ sigue en el backend por ahora.
+
+## Interruptor
+
+`lib/core/config/marcas_camara.dart` → `MarcasCamara.habilitadas`, por omisión `{tuya}`; se compila
+con `--dart-define=MARCAS_CAMARA=tuya,ezviz,imou` para reabrir marcas. Lo que apaga:
+
+| Con la marca apagada | Qué pasa |
+|---|---|
+| EZVIZ | No aparece «Conectar cámara a la Wi‑Fi» aunque el backend diga `wifi.emparejar.ezviz`. |
+| Imou | No aparece «Conectar cámara Imou». |
+| EZVIZ e Imou | No aparece «Cámara ya conectada» (registro por serie + código); las Tuya se registran al emparejarlas. Las ayudas de la sección Cámaras no mencionan la marca. |
+| (siempre) | Las cámaras y sensores YA registrados de cualquier marca se siguen listando con su marca. |
+
+No se tocan: `ConectarCamaraWifiScreen`, `ConectarImouScreen`, `EmparejadorEzviz`, `EzvizPuente`,
+`EzvizPlugin.swift/.kt`, los pods/AAR de EZVIZ (siguen enlazados: el peso no baja con este cambio;
+para quitar el SDK de EZVIZ hace falta `OHMSAFE_EZVIZ=0` en iOS y, en Android, un patrón on/off como
+el de Tuya que hoy no existe). Las pruebas de esas pantallas encienden todas las marcas en `setUp`.
+
+## Lo que queda guardado para reincorporar Imou
+
+- **SDK de Imou en la app (build 52, detenida):** rama `CarlosClaudDev-imou-sdk` y PR #4 (borrador,
+  «NO fusionar») de `carlosm-OS/OhmSafe-APP-Instaladores`: puente `ohmsafe/imou` (Dart + Kotlin,
+  `src/imouOn|imouOff`), `EmparejadorImou`, `conectar_imou_wifi_screen.dart` (modos rápido y por
+  hotspot), repo `imouSesion/imouSondeo`, pruebas, docs. El AAR vive en `~/dev/ohmsafe/keys/imou-sdk/`
+  (Android y el framework de iOS), fuera de git. iOS nunca se integró.
+- **Backend:** `POST …/wifi/imou/sesion` y `…/sondeo` (Back-#133) quedan en main; se apagan con
+  `IMOU_ENABLED=false` y contestan 503 `PROVIDER_NOT_CONFIGURED`.
+- **Apple:** solicitud del entitlement *Multicast Networking* **QN7AHWA6RR** (20-oct, cuenta Ohm Safe)
+  para `com.ohmsafe.instalador`. Si Apple lo aprueba, sólo sirve si Imou vuelve.
+- **Cuenta Imou institucional** (`admin@ohmsafe.com`, AppId `lc4b2fe6…`) sigue existiendo; las llaves
+  quedan en api-dev/prod aunque `IMOU_ENABLED` esté apagado.
+
+Para volver: fusionar `CarlosClaudDev-imou-sdk` sobre `dev`, compilar con `MARCAS_CAMARA` incluyendo
+`imou`, encender `IMOU_ENABLED` en el backend y repetir la prueba con una cámara real.

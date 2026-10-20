@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../core/config/marcas_camara.dart';
 import '../core/di/injection_container.dart';
 import '../core/network/actividad.dart';
 import '../core/error/failures.dart';
@@ -123,12 +124,13 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   bool get _rfSoportado => _sec('rf')['soportado'] != false;
   bool get _camarasOn => _sec('camaras')['habilitadas'] == true;
   Map<String, dynamic> get _proveedores => (_sec('camaras')['proveedores'] as Map?)?.cast<String, dynamic>() ?? const {};
-  bool get _hayProveedor => _camarasOn && (_proveedores['ezviz'] == true || _proveedores['imou'] == true);
+  // 2026-10-20 (Carlos): la app sólo ofrece Tuya; EZVIZ e Imou quedan apagadas detrás de MarcasCamara.
+  bool get _hayProveedor => _camarasOn && ((MarcasCamara.ezviz && _proveedores['ezviz'] == true) || (MarcasCamara.imou && _proveedores['imou'] == true));
 
   /// Qué se puede emparejar a la Wi‑Fi desde este teléfono (2026-10-17): lo dice el backend según
   /// lo que tenga encendido en el ambiente (`wifi.emparejar`).
-  bool get _emparejarEzviz => (_sec('wifi')['emparejar'] as Map?)?['ezviz'] == true;
-  bool get _emparejarTuya => (_sec('wifi')['emparejar'] as Map?)?['tuya'] == true;
+  bool get _emparejarEzviz => MarcasCamara.ezviz && (_sec('wifi')['emparejar'] as Map?)?['ezviz'] == true;
+  bool get _emparejarTuya => MarcasCamara.tuya && (_sec('wifi')['emparejar'] as Map?)?['tuya'] == true;
 
   /// Sensor o cámara Tuya nueva: el teléfono le pasa la Wi‑Fi con el permiso de la casa (2026-10-17).
   Future<void> _conectarTuya(String clase) async {
@@ -725,13 +727,18 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
                               // ---------------- Cámaras
                               const SizedBox(height: 12),
-                              const EtiquetaSeccion(
+                              EtiquetaSeccion(
                                 'CÁMARAS',
                                 tituloAyuda: 'Cámaras',
                                 ayuda: [
-                                  'Cámara EZVIZ nueva: «Conectar a la Wi‑Fi». El teléfono le pasa la red de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
-                                  'Cámara Imou: «Conectar cámara Imou». Se conecta a la red con la app Imou Life y aquí se registra con la serie y el código SC de su etiqueta.',
-                                  'Cámara que ya está en internet (conectada con la app del fabricante): «Cámara ya conectada», con la serie y el código de su etiqueta.',
+                                  if (MarcasCamara.tuya)
+                                    'Cámara Tuya nueva: «Conectar cámara Tuya». El teléfono le pasa la red de la casa con el permiso de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
+                                  if (MarcasCamara.ezviz)
+                                    'Cámara EZVIZ nueva: «Conectar a la Wi‑Fi». El teléfono le pasa la red de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
+                                  if (MarcasCamara.imou)
+                                    'Cámara Imou: «Conectar cámara Imou». Se conecta a la red con la app Imou Life y aquí se registra con la serie y el código SC de su etiqueta.',
+                                  if (MarcasCamara.registroPorSerie)
+                                    'Cámara que ya está en internet (conectada con la app del fabricante): «Cámara ya conectada», con la serie y el código de su etiqueta.',
                                   'Al guardarla, el cliente la ve en su app.',
                                 ],
                               ),
@@ -747,13 +754,15 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 _agregar('Conectar cámara a la Wi‑Fi', 'EZVIZ nueva: el teléfono le pasa la red', _ocupado ? null : _conectarCamaraWifi),
                               if (_emparejarTuya)
                                 _agregar('Conectar cámara Tuya', 'Tuya nueva: el teléfono le pasa la red', _ocupado ? null : () => _conectarTuya('camara')),
-                              if (_camarasOn && _proveedores['imou'] == true)
+                              if (MarcasCamara.imou && _camarasOn && _proveedores['imou'] == true)
                                 _agregar('Conectar cámara Imou', 'Imou nueva: se conecta con Imou Life y se registra aquí', _ocupado ? null : _conectarImou),
-                              _agregar(
-                                'Cámara ya conectada',
-                                _hayProveedor ? 'Ya está en internet: serie y código' : 'No disponibles por ahora',
-                                _ocupado || !_hayProveedor ? null : _agregarCamara,
-                              ),
+                              // Sólo con EZVIZ/Imou encendidas: las Tuya se registran al emparejarlas.
+                              if (MarcasCamara.registroPorSerie)
+                                _agregar(
+                                  'Cámara ya conectada',
+                                  _hayProveedor ? 'Ya está en internet: serie y código' : 'No disponibles por ahora',
+                                  _ocupado || !_hayProveedor ? null : _agregarCamara,
+                                ),
 
                               // ---------------- OhmBox: lo menos común, al final.
                               const SizedBox(height: 12),
