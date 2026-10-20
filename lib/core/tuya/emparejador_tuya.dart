@@ -97,7 +97,7 @@ class EmparejadorTuya extends ChangeNotifier {
     _categoria = null;
     error = null;
     registrado = null;
-    _ir(EtapaTuya.preparando, 'Pidiendo el permiso de la casa a Tuya…');
+    _ir(EtapaTuya.preparando, 'Pidiendo el permiso de la casa…');
 
     final t = await repo.tuyaToken(ordenId, modo: modo, zonaHoraria: await zonaHoraria());
     if (!_vigente(intento)) return;
@@ -168,7 +168,7 @@ class EmparejadorTuya extends ChangeNotifier {
       final malos = ((r.successValue['errorDevices'] as List?) ?? const []).whereType<Map>().toList();
       if (malos.isNotEmpty) {
         await _detener();
-        _fallar('El equipo intentó entrar pero Tuya lo rechazó${malos.first['error'] != null ? ' (${malos.first['error']})' : ''}. Reinícialo y vuelve a intentar.');
+        _fallar('El equipo intentó entrar pero la nube lo rechazó${malos.first['error'] != null ? ' (${malos.first['error']})' : ''}. Reinícialo y vuelve a intentar.');
       }
     } finally {
       _sondeando = false;
@@ -186,7 +186,7 @@ class EmparejadorTuya extends ChangeNotifier {
     final devId = _devId ?? '';
     await _detener();
     if (!_vigente(intento)) return;
-    if (devId.isEmpty) return _fallar('El equipo entró pero Tuya no dijo su identificador. Vuelve a intentarlo.');
+    if (devId.isEmpty) return _fallar('El equipo entró pero la nube no dio su identificador. Vuelve a intentarlo.');
     _ir(EtapaTuya.registrando, 'Guardando el equipo en la casa del cliente…');
     final r = await repo.dispositivoWifiAgregar(
       ordenId,
@@ -246,16 +246,16 @@ class EmparejadorTuya extends ChangeNotifier {
 }
 
 const copiaTiempo =
-    'El equipo no llegó a la nube de Tuya. Revisa que esté en modo de emparejamiento (luz parpadeando rápido), que la red sea de 2.4 GHz y la contraseña, y vuelve a intentar.';
+    'El equipo no llegó a la nube. Revisa que esté en modo de emparejamiento (luz parpadeando rápido), que la red sea de 2.4 GHz y la contraseña, y vuelve a intentar.';
 
 String copiaErrorToken(Failure f) => f is ServerFailure && f.code == 'TUYA_UID_DESCONOCIDO'
-    ? 'La casa todavía no tiene cuenta Tuya: el cliente debe entrar una vez a OhmSafe GO en su teléfono y luego vuelves a intentar.'
+    ? 'La casa todavía no tiene su cuenta de equipos Wi‑Fi: el cliente debe entrar una vez a OhmSafe GO en su teléfono y luego vuelves a intentar.'
     : f.message;
 
 String copiaPuente(TuyaError e) => switch (e.codigo) {
-  TuyaCodigo.noEnlazado => 'Esta versión de la app no puede emparejar equipos Tuya. Actualízala.',
+  TuyaCodigo.noEnlazado => 'Esta versión de la app no puede emparejar equipos Wi‑Fi. Actualízala.',
   TuyaCodigo.sinLlaves => e.mensaje,
-  TuyaCodigo.noConfigurado => 'No se pudo iniciar Tuya en este teléfono. Avisa a soporte.',
+  TuyaCodigo.noConfigurado => 'No se pudo iniciar el emparejamiento en este teléfono. Avisa a soporte.',
   TuyaCodigo.argumentos => 'Falta el nombre de la red o el permiso de la casa.',
   TuyaCodigo.tiempo => copiaTiempo,
   _ => e.mensaje,

@@ -145,7 +145,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              EncabezadoFlujo(titulo: _esSensor ? 'Conectar sensor Wi‑Fi' : 'Conectar cámara Tuya', alVolver: _salir),
+              EncabezadoFlujo(titulo: _esSensor ? 'Conectar sensor Wi‑Fi' : 'Conectar cámara Wi‑Fi', alVolver: _salir),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -155,8 +155,8 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                       MensajeFlujo(
                         icono: Icons.error_outline,
                         color: cs.error,
-                        titulo: 'Esta versión no puede emparejar equipos Tuya',
-                        texto: 'Falta la configuración de Tuya en la app. Avisa a soporte.',
+                        titulo: 'Esta versión no puede emparejar equipos Wi‑Fi',
+                        texto: 'Falta la configuración de emparejamiento en la app. Avisa a soporte.',
                       ),
                     if (_emp.etapa == EtapaTuya.error)
                       MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo conectar $que', texto: _emp.error),

@@ -49,7 +49,7 @@ class TuyaPuente {
   /// `ThingSmartSDK.start` / `ThingHomeSdk.init`. Una vez por proceso.
   Future<void> configurar() {
     if (!tieneLlaves) {
-      throw const TuyaError(TuyaCodigo.sinLlaves, 'Esta versión de la app no trae las llaves de Tuya. Avisa a soporte.');
+      throw const TuyaError(TuyaCodigo.sinLlaves, 'Esta versión de la app no trae las llaves de emparejamiento. Avisa a soporte.');
     }
     return _llamar<bool>('configure', {'appKey': _appKey, 'appSecret': _appSecret});
   }
@@ -82,9 +82,9 @@ class TuyaPuente {
       final r = await _canal.invokeMethod<T>(metodo, args);
       return r as T;
     } on MissingPluginException {
-      throw const TuyaError(TuyaCodigo.noEnlazado, 'Esta versión de la app no trae el emparejamiento de equipos Tuya.');
+      throw const TuyaError(TuyaCodigo.noEnlazado, 'Esta versión de la app no trae el emparejamiento de equipos Wi‑Fi.');
     } on PlatformException catch (e) {
-      throw TuyaError(e.code, e.message ?? 'El SDK de Tuya no respondió.');
+      throw TuyaError(e.code, e.message ?? 'El emparejamiento no respondió.');
     }
   }
 }

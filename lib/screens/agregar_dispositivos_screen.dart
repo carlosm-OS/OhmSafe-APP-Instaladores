@@ -617,8 +617,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
   // ---------------------------------------------------------------- UI
   /// Lo ya guardado: fila normal con el círculo marcado del paso 2.
-  static const _marcas = {'tuya': 'Tuya', 'ezviz': 'EZVIZ', 'imou': 'Imou'};
-  String _marca(Object? proveedor) => _marcas[(proveedor ?? '').toString().toLowerCase()] ?? 'Wi‑Fi';
+  // Regla de Carlos (2026-10-14, repetida 2026-10-20): la app no muestra marcas; todo es «Wi‑Fi».
+  String _marca(Object? proveedor) => 'Wi‑Fi';
 
   Widget _guardado(String titulo, String subtitulo) => FilaFlujo(titulo: titulo, subtitulo: subtitulo, trailing: const CirculoCheck(marcado: true));
 
@@ -805,7 +805,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                     '${_tipoWifiTexto[x['tipo']] ?? 'Sensor'} · ${_marca(x['proveedor'])} · ID ${x['externalId'] ?? ''}',
                                   ),
                                 if (_emparejarTuya)
-                                  _agregar('Conectar sensor Wi‑Fi', 'Tuya nuevo: el teléfono le pasa la red', _ocupado ? null : () => _conectarTuya('sensor')),
+                                  _agregar('Conectar sensor Wi‑Fi', 'Nuevo: el teléfono le pasa la red de la casa', _ocupado ? null : () => _conectarTuya('sensor')),
                                 if (_wifiHabilitado) _agregar('Sensor Wi‑Fi', 'Puerta, movimiento o humo', _ocupado || _disp == null ? null : _agregarWifi),
                               ],
 
@@ -816,7 +816,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 tituloAyuda: 'Cámaras',
                                 ayuda: [
                                   if (MarcasCamara.tuya)
-                                    'Cámara Tuya nueva: «Conectar cámara Tuya». El teléfono le pasa la red de la casa con el permiso de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
+                                    'Cámara Wi‑Fi nueva: «Conectar cámara Wi‑Fi». El teléfono le pasa la red de la casa con el permiso de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
                                   if (MarcasCamara.ezviz)
                                     'Cámara EZVIZ nueva: «Conectar a la Wi‑Fi». El teléfono le pasa la red de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
                                   if (MarcasCamara.imou)
@@ -837,7 +837,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               if (_emparejarEzviz)
                                 _agregar('Conectar cámara a la Wi‑Fi', 'EZVIZ nueva: el teléfono le pasa la red', _ocupado ? null : _conectarCamaraWifi),
                               if (_emparejarTuya)
-                                _agregar('Conectar cámara Tuya', 'Tuya nueva: el teléfono le pasa la red', _ocupado ? null : () => _conectarTuya('camara')),
+                                _agregar('Conectar cámara Wi‑Fi', 'Nueva: el teléfono le pasa la red de la casa', _ocupado ? null : () => _conectarTuya('camara')),
                               if (MarcasCamara.imou && _camarasOn && _proveedores['imou'] == true)
                                 _agregar('Conectar cámara Imou', 'Imou nueva: se conecta con Imou Life y se registra aquí', _ocupado ? null : _conectarImou),
                               // Sólo con EZVIZ/Imou encendidas: las Tuya se registran al emparejarlas.
