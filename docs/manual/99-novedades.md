@@ -2,7 +2,9 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
-## Build 51 (en preparación)
+## Build 51 (TestFlight, servidor de pruebas) — 20 de octubre de 2026
+
+Sólo para pruebas internas: apunta al **servidor de pruebas** (api-dev).
 
 - **«Conectar cámara Imou»** en «Agregar dispositivos» → Cámaras: pantalla completa con **escaneo del QR de la guía rápida** (llena la serie y el código SC solos), pasos para dejarla en internet y registro en la casa. «Cámara ya conectada» usa la misma pantalla para cámaras conectadas con la app del fabricante.
 - **Adiós a los diálogos con campos:** registrar una cámara ya no es un cuadro que el teclado tapaba; es una pantalla que se desplaza y deja el botón a la vista.
