@@ -104,16 +104,18 @@ void main() {
       await _sinErrores(t, tamano, () async {
         await t.pumpWidget(_app(const AgregarDispositivosScreen(ticket: {'id': 'i69'})));
         await t.pump(const Duration(seconds: 2));
-        for (final seccion in ['SENSORES CABLEADOS', 'SIRENA', 'SALIDAS AUXILIARES', 'SENSORES INALÁMBRICOS', 'CÁMARAS', 'AGREGAR OTRO ENERGIZADOR']) {
+        // Build 54: el energizador es la primera sección (opcional); «otro OhmBox» y «Probar» viven ahí.
+        // Energizadores de la casa: información de sólo lectura (serie, «Principal», estado), sin botón.
+        await _ver(t, find.text('Principal'));
+        expect(find.text('OS-PRUEBA-0001'), findsOneWidget);
+        expect(find.text('En línea'), findsWidgets);
+        expect(find.text('Prueba del energizador'), findsOneWidget);
+        for (final seccion in ['ENERGIZADOR (OHMBOX)', 'SENSORES CABLEADOS', 'SIRENA', 'SALIDAS AUXILIARES', 'SENSORES INALÁMBRICOS', 'CÁMARAS']) {
           await _ver(t, find.textContaining(seccion));
         }
         // Sensores Wi‑Fi apagados por ahora (_wifiHabilitado): ni sección ni «Agregar».
         expect(find.textContaining('SENSORES WI'), findsNothing);
         expect(find.text('Sensor Wi‑Fi'), findsNothing);
-        // Energizadores de la casa: información de sólo lectura (serie, «Principal», estado), sin botón.
-        await _ver(t, find.text('Principal'));
-        expect(find.text('OS-PRUEBA-0001'), findsOneWidget);
-        expect(find.text('En línea'), findsWidgets);
         // «Cámara ya conectada» ya no es diálogo: abre la pantalla de registro (2026-10-19).
         t.state<ScrollableState>(_lista).position.jumpTo(0);
         await t.pump(const Duration(milliseconds: 600));
@@ -163,12 +165,13 @@ void main() {
       await t.tap(infos.first);
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Sensores cableados'), findsOneWidget);
+      // La primera ⓘ es la del energizador (build 54).
+      expect(find.text('Energizador'), findsOneWidget);
       await t.tapAt(const Offset(200, 120)); // fuera de la hoja
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Sensores cableados'), findsNothing);
+      expect(find.text('Energizador'), findsNothing);
     });
   });
 

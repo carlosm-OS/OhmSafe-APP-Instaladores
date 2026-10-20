@@ -2,6 +2,11 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 54 (servidor de pruebas) — 20 de octubre de 2026
+
+- **El energizador ya no es obligatorio.** Los pasos «Vincular el energizador» y «Prueba del energizador» desaparecen de la lista: ahora la instalación tiene 5 pasos (ruta y llegada, inspección, instalación, **Agregar dispositivos**, cierre). En «Agregar dispositivos», la primera sección es **Energizador (OhmBox)**: si la casa lleva energizador, toca «Vincular» (y la prueba de la cerca se abre sola); si no, sigue con sensores Wi‑Fi y cámaras. Sensores cableados, sirena, salidas y sensores inalámbricos sólo aparecen cuando hay energizador. «Probar» y «Agregar otro OhmBox» están en esa misma sección.
+- Requiere el servidor con el cambio «energizador opcional» (ya en el servidor de pruebas).
+
 ## Build 53 (servidor de pruebas) — 20 de octubre de 2026
 
 - **Buscador de redes Wi‑Fi** al conectar un sensor o cámara Tuya: en Android, el icono junto a «Nombre de la red» abre la lista de redes cercanas (las de 2.4 GHz primero, con su señal; las de 5 GHz se ven apagadas porque el equipo no las ve) y tocas una. En iPhone Apple no permite listar redes: el campo sigue leyendo la red del teléfono, se actualiza solo al volver de Ajustes › Wi‑Fi y el icono la relee a mano.

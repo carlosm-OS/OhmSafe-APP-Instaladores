@@ -891,14 +891,15 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   /// Abre el flujo directamente en el paso pendiente, sin la animación de
   /// salida ni volver a marcar "en ruta" (eso ya quedó registrado en Odoo).
   Future<void> _retomarServicio(Orden orden) async {
+    // Energizador opcional (2026-10-20): «vincular» y «prueba» viven dentro de «Agregar dispositivos» (paso 4).
     const paso = {
       'marcar_llegada': 1,
       'inspeccion': 2,
       'instalacion': 3,
       'vinculacion': 4,
-      'prueba': 5,
-      'dispositivos': 6,
-      'cierre': 7,
+      'prueba': 4,
+      'dispositivos': 4,
+      'cierre': 5,
     };
     await Navigator.push(
       context,

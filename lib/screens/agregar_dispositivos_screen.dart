@@ -16,6 +16,8 @@ import 'conectar_camara_wifi_screen.dart';
 import 'conectar_imou_screen.dart';
 import 'conectar_tuya_wifi_screen.dart';
 import 'escanear_serie_screen.dart';
+import 'link_energizer_screen.dart';
+import 'prueba_energizador_screen.dart';
 import '../widgets/aprender_rf_sheet.dart';
 import '../widgets/con_textos.dart';
 import '../widgets/botones_dialogo.dart';
@@ -83,9 +85,44 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
         _e = d;
         _error = null;
       }),
-      (f) => setState(() => _error = f.message),
+      (f) => setState(() {
+        _e = null;
+        // Sin energizador no hay cableados ni sirena: no es un error, es una casa sólo Wi‑Fi (2026-10-20).
+        _error = f is ServerFailure && (f.code == 'EQUIPO_NO_VINCULADO' || f.code == 'SIN_ENERGIZADOR') ? null : f.message;
+      }),
     );
     _ajustarSondeo();
+  }
+
+  /// ¿La casa ya tiene energizador vinculado? Lo dice el backend (`energizador` en /dispositivos) o la
+  /// lista de energizadores de la casa. Sin él, sólo sensores Wi‑Fi y cámaras (energizador opcional).
+  bool get _hayEnergizador => _disp?['energizador'] != null || _energizadores.isNotEmpty;
+
+  /// «Vincular energizador» (2026-10-20): el primero de la casa, opcional, desde aquí. Al vincular se
+  /// abre su prueba y al volver se recarga todo (el ancla pasa de la central al energizador).
+  Future<void> _vincularEnergizador() async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => LinkEnergizerScreen(ticket: widget.ticket)));
+    if (!mounted) return;
+    if (result == 'device_linked') await _probarEnergizador();
+    if (mounted) await _recargarTodo();
+  }
+
+  /// La prueba del energizador (encender/apagar la cerca frente al cliente) vive aquí (2026-10-20).
+  Future<void> _probarEnergizador() async {
+    _ventana?.cancel();
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => PruebaEnergizadorScreen(ticket: widget.ticket)));
+    if (!mounted) return;
+    // La prueba cierra su ventana al salir: se vuelve a abrir la de esta pantalla.
+    await _repo.pruebaAbrir(_id);
+    _ventana = Timer.periodic(const Duration(minutes: 1), (_) => Actividad.enSilencio(_renovarVentana));
+    await _recargarTodo();
+  }
+
+  Future<void> _recargarTodo() async {
+    if (!mounted) return;
+    setState(() => _cargando = true);
+    await Future.wait([_cargar(), _cargarOhmbox(), _cargarDisp()]);
+    if (mounted) setState(() => _cargando = false);
   }
 
   Future<void> _renovarVentana() async {
@@ -636,6 +673,35 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 ),
                               ),
 
+                              // ---------------- Energizador (OhmBox): opcional desde la build 54 (Carlos, 2026-10-20).
+                              EtiquetaSeccion(
+                                'ENERGIZADOR (OHMBOX)',
+                                tituloAyuda: 'Energizador',
+                                ayuda: [
+                                  'Una casa puede llevar energizador o no: sin él se instalan sensores Wi‑Fi y cámaras.',
+                                  'Con energizador se pueden agregar además sensores cableados, sirena, salidas y sensores inalámbricos (433).',
+                                  if (_hayEnergizador) 'Prueba la cerca frente al cliente con «Probar»; un segundo energizador en la misma casa se suma como complemento de su suscripción.',
+                                  if (!_hayEnergizador) 'Si el cliente compró energizador, toca «Vincular»: se escanea su QR y luego se prueba la cerca.',
+                                ],
+                              ),
+                              if (_energizadores.isNotEmpty) _EnergizadoresDeLaCasa(energizadores: _energizadores),
+                              if (!_hayEnergizador)
+                                FilaFlujo(
+                                  titulo: 'Vincular energizador',
+                                  subtitulo: 'Opcional · escanea su QR y lígalo a la casa',
+                                  trailing: BotonFila(etiqueta: 'Vincular', icono: Icons.qr_code_scanner_rounded, onPressed: _ocupado ? null : _vincularEnergizador),
+                                )
+                              else ...[
+                                FilaFlujo(
+                                  titulo: 'Prueba del energizador',
+                                  subtitulo: 'Enciende y apaga la cerca frente al cliente',
+                                  trailing: BotonFila(etiqueta: 'Probar', onPressed: _ocupado ? null : _probarEnergizador),
+                                ),
+                                _agregar('Agregar otro OhmBox', 'Sólo si compró un segundo energizador para esta casa', _ocupado || _ohmbox == null ? null : _agregarOhmbox),
+                              ],
+
+                              // ---------------- Con energizador: cableados, sirena, salidas y 433.
+                              if (_hayEnergizador) ...[
                               // ---------------- Entradas
                               const EtiquetaSeccion(
                                 'SENSORES CABLEADOS',
@@ -701,6 +767,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                     : (_enLinea ? 'Puerta, movimiento, humo o pánico' : 'Necesita señal para aprenderlo'),
                                 _ocupado || _disp == null || !_rfSoportado || !_enLinea ? null : _agregarRf,
                               ),
+                              ], // fin: con energizador
 
                               // ---------------- Sensores Wi‑Fi (apagados por ahora: ver _wifiHabilitado)
                               if (_wifiHabilitado || _emparejarTuya || _lista('wifi', 'sensores').isNotEmpty) ...[
@@ -764,22 +831,6 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   _ocupado || !_hayProveedor ? null : _agregarCamara,
                                 ),
 
-                              // ---------------- OhmBox: lo menos común, al final.
-                              const SizedBox(height: 12),
-                              const EtiquetaSeccion(
-                                'AGREGAR OTRO ENERGIZADOR EN ESTA CASA',
-                                tituloAyuda: 'Otro energizador (OhmBox)',
-                                ayuda: [
-                                  'Sólo si el cliente compró un segundo energizador para la misma casa.',
-                                  'Se suma como complemento de su suscripción; no crea una nueva.',
-                                  'Para otra dirección se hace una venta aparte.',
-                                ],
-                              ),
-                              // Lo que ya hay en la casa es INFORMACIÓN, no un botón: bloque gris plano, sin borde ni
-                              // círculo de selección (antes se confundía con la fila de «Agregar» de abajo).
-                              if (_energizadores.isNotEmpty) _EnergizadoresDeLaCasa(energizadores: _energizadores),
-                              const SizedBox(height: 12),
-                              _agregar('Agregar otro OhmBox', 'Escanea su QR o escribe su serie', _ocupado || _ohmbox == null ? null : _agregarOhmbox),
 
                               const SizedBox(height: 20),
                               OhmGradientButton(label: 'Listo, volver a los pasos', loading: _saliendo, onPressed: _ocupado ? null : _salir),

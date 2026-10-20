@@ -66,28 +66,24 @@ El metraje real queda como «Metros a instalar» en el paso 3 y en la tarjeta de
 - Donde algo puede confundir hay un ícono **ⓘ**. Tócalo: se abre una hoja corta con el «cómo funciona». Se cierra con **«Entendido»**.
 - Si el botón final del cierre está apagado, la pantalla dice **qué falta** («Para terminar falta: …»).
 
-## Paso 4 — Vincular el energizador
+## Paso 4 — Agregar dispositivos (energizador opcional)
 
-Ver el procedimiento completo en [04 — Vincular energizador](04-vincular-energizador.md). Al vincular, la app abre sola la prueba del energizador.
+> **Desde la build 54 (20 de octubre):** «Vincular el energizador» y «Prueba del energizador» ya no son pasos aparte. Una casa puede llevar energizador o no: **sin energizador** se instalan sensores Wi‑Fi y cámaras; **con energizador** se pueden agregar además sensores cableados, sirena, salidas y sensores inalámbricos (433). Todo vive en este paso, que se abre en cuanto terminas la instalación de la cerca.
 
-## Paso 5 — Prueba del energizador
-
-Es obligatoria para poder cerrar. Sirve para que el cliente vea que la cerca funciona.
-
-1. Arriba ves la serie, la conexión y si la cerca está encendida o apagada.
-2. Toca **«Encender la cerca»** y luego **«Apagar la cerca»** (es el mismo botón, cambia según el estado). Mientras el equipo responde verás «Enviando al energizador…».
-3. En **«MUÉSTRALE AL CLIENTE»** se marcan «Encendiste la cerca» y «La apagaste» conforme lo haces. Con las dos marcadas, **«Terminar prueba»** se vuelve el botón principal.
-4. Toca **«Terminar prueba»**. Si la cerca quedó encendida, la app pregunta **«¿Dejas la cerca encendida?»**.
-
-- El equipo debe tener señal. Si no, verás **«El energizador no tiene señal»**; la pantalla se actualiza sola.
-- Lo que dispare el equipo durante la prueba (por ejemplo, tocar las líneas) **no manda avisos ni llamadas**: queda registrado como prueba.
-- Sólo controlas la cerca del cliente **mientras esta pantalla está abierta**. Al terminar, o al salir con la flecha o el gesto de regresar, el control se retira y queda sólo en manos del cliente.
-
-## Paso 6 — Agregar dispositivos (opcional)
-
-Agrega **sólo lo que el cliente compró**. Cada cosa se prueba en vivo y sólo se guarda si funciona. Si no instalaste nada extra, salta este paso. Puedes volver a entrar hasta antes del cierre (por ejemplo, si el cliente compra algo más en sitio). Al terminar toca **«Listo, volver a los pasos»**. Cada sección tiene su ⓘ.
+Agrega **sólo lo que el cliente compró**. Cada cosa se prueba en vivo y sólo se guarda si funciona. Si no instalaste nada, puedes ir directo al cierre. Puedes volver a entrar hasta antes del cierre (por ejemplo, si el cliente compra algo más en sitio). Al terminar toca **«Listo, volver a los pasos»**. Cada sección tiene su ⓘ.
 
 Las secciones, en este orden:
+
+- **Energizador (OhmBox).** Si la casa lleva energizador, toca **«Vincular»** y sigue [04 — Vincular energizador](04-vincular-energizador.md) (escaneas su QR, confirmas la tierra y a qué casa va). Al vincular, la app abre sola la **prueba del energizador**:
+  1. Arriba ves la serie, la conexión y si la cerca está encendida o apagada.
+  2. Toca **«Encender la cerca»** y luego **«Apagar la cerca»** (es el mismo botón, cambia según el estado). Mientras el equipo responde verás «Enviando al energizador…».
+  3. En **«MUÉSTRALE AL CLIENTE»** se marcan «Encendiste la cerca» y «La apagaste» conforme lo haces. Con las dos marcadas, **«Terminar prueba»** se vuelve el botón principal.
+  4. Toca **«Terminar prueba»**. Si la cerca quedó encendida, la app pregunta **«¿Dejas la cerca encendida?»**.
+
+  - El equipo debe tener señal. Si no, verás **«El energizador no tiene señal»**; la pantalla se actualiza sola.
+  - Lo que dispare el equipo durante la prueba (por ejemplo, tocar las líneas) **no manda avisos ni llamadas**: queda registrado como prueba.
+  - Sólo controlas la cerca del cliente **mientras esta pantalla está abierta**. Al terminar, o al salir con la flecha o el gesto de regresar, el control se retira y queda sólo en manos del cliente.
+  Después, en esta misma sección, ves los energizadores de la casa (serie, «Principal», «En línea»), **«Probar»** para repetir la prueba y **«Agregar otro OhmBox»** si el cliente compró un segundo energizador para la misma casa (se suma como complemento de su suscripción; para otra dirección se hace una venta aparte).
 
 > **Según tu build:** «Conectar sensor Wi‑Fi» y «Conectar cámara Tuya» llegan con la **build 49**, que hoy está **sólo en pruebas**. En la build de la tienda (47) la sección de sensores Wi‑Fi está apagada. **Desde la build 52 la app sólo ofrece Tuya**: las cámaras EZVIZ e Imou dejaron de darse de alta desde aquí (decisión de dirección, 20 de octubre).
 
@@ -99,15 +95,14 @@ Las secciones, en este orden:
     - «La casa todavía no tiene cuenta Tuya»: el cliente debe entrar una vez a OhmSafe GO en su teléfono; luego vuelves a intentar.
     - «El equipo no llegó a la nube»: casi siempre es la contraseña o una red de 5 GHz; revisa que la luz siga parpadeando rápido.
 - **Cámaras (Tuya).** Toca **«Conectar cámara Tuya»** (aparece cuando el servidor tiene Tuya encendido). Igual que el sensor Wi‑Fi: cámara en modo de emparejamiento (mantén RESET hasta que la luz parpadee), tu teléfono en la Wi‑Fi de la casa **de 2.4 GHz**, contraseña del cliente (no se guarda), ponle nombre y toca **«Conectar la cámara»**; tarda hasta 2 minutos. La cámara queda en la cuenta del cliente y la ve en OhmSafe GO. Las cámaras de otras marcas que ya estaban registradas se siguen viendo en la lista, pero la app ya no da de alta cámaras EZVIZ ni Imou.
-- **Agregar otro energizador en esta casa.** Arriba, en un recuadro oscuro, ves los energizadores que ya tiene la casa (serie, «Principal» y si está «En línea»); es sólo información. Si el cliente compró un segundo energizador para la misma casa, toca **«Agregar»** en **«Agregar otro OhmBox»** y escanea o escribe su serie. Se suma como complemento de la suscripción de esa casa; no crea una nueva.
 
 Las puertas con cable, la sirena y las salidas piden firmware **2.10 o superior**; si el equipo es más viejo verás «Este energizador necesita actualizarse» (lo demás sí se puede agregar). Todo lo guardado queda en el acta de la instalación (Odoo).
 
-## Paso 7 — Cierre de la instalación
+## Paso 5 — Cierre de la instalación
 
 Toca «Cierre de la instalación». Tiene 3 partes: **1 · Fotos**, **2 · Entrega** y **3 · Firma**.
 
-### 7.1 Fotos
+### 5.1 Fotos
 
 1. En **«FOTOS OBLIGATORIAS»** toma las 4: «Perfil izquierdo», «Perfil derecho», «Energizador», «Letrero OhmSafe». El ⓘ dice qué debe verse en cada una.
 2. Para cada una elige «Tomar foto» o «Elegir de la galería».
@@ -116,7 +111,7 @@ Toca «Cierre de la instalación». Tiene 3 partes: **1 · Fotos**, **2 · Entre
 5. Si quieres, escribe algo en **«COMENTARIOS (OPCIONAL)»**.
 6. Toca **«Siguiente»**. Si falta alguna: «Faltan fotos: toma las 4 para seguir.»
 
-### 7.2 Entrega
+### 5.2 Entrega
 
 1. Marca **«Le entregué el control remoto y funciona»**.
 2. En **«EXTRAS DEL SERVICIO»** responde **Cámaras**, **Sensores** y **Sirena** con «Instalé y funciona» o «No aplica» (no venía en lo que compró). El ⓘ lo explica.
@@ -126,7 +121,7 @@ Toca «Cierre de la instalación». Tiene 3 partes: **1 · Fotos**, **2 · Entre
 
 Mensajes si falta algo: «Falta confirmar la entrega del control remoto.», «Responde cámaras, sensores y sirena (o marca «No aplica»).», «Marca qué pasó o descríbelo abajo.»
 
-### 7.3 Firma
+### 5.3 Firma
 
 1. Pide al cliente que firme con el dedo en el recuadro que dice **«Firma aquí con el dedo»**.
 2. «Limpiar» borra la firma; cuando esté bien, toca **«Confirmar firma»**. Verás «Firma guardada». Para corregirla toca **«Volver a firmar»**.
@@ -143,7 +138,7 @@ Otros mensajes:
 - «No se pudo capturar la firma. Pide al cliente que firme de nuevo.»
 - «No se pudo enviar el cierre: …» — el cierre no se guardó. Revisa señal y vuelve a tocar «Terminar instalación».
 
-### 7.4 Terminar
+### 5.4 Terminar
 
 Al cerrar regresas a la lista de pasos con todo en verde. Toca «Terminar instalación»: aparece «¡Instalación terminada!» y el botón «Volver a instalaciones».
 

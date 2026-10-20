@@ -11,8 +11,6 @@ import 'route_details_screen.dart';
 import 'perimeter_inspection_screen.dart';
 import 'fence_installation_screen.dart';
 import 'reparacion_screen.dart';
-import 'link_energizer_screen.dart';
-import 'prueba_energizador_screen.dart';
 import 'agregar_dispositivos_screen.dart';
 import 'instalaciones_screen.dart';
 import 'reparaciones_screen.dart';
@@ -350,10 +348,9 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   bool _step1Completed = false;
   bool _step2Completed = false;
   bool _step3Completed = false;
-  bool _step4Completed = false;
-  /// Prueba del energizador (build 39): paso opcional entre vincular y cierre; no lo guarda Odoo.
-  bool _pruebaHecha = false;
   /// «Agregar dispositivos» (build 39): cableado con prueba en vivo; opcional, antes del cierre.
+  /// Desde la build 54 (energizador opcional, Carlos 2026-10-20) también vincular el energizador y
+  /// su prueba viven ahí dentro: una casa puede no llevar energizador.
   bool _dispositivosHechos = false;
 
   /// «Agregar dispositivos» se abre sólo al tocar el paso y al terminar regresa aquí. Queda
@@ -367,17 +364,6 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     if (result == 'dispositivos_listos') setState(() => _dispositivosHechos = true);
   }
   bool _step5Completed = false;
-
-  /// Prueba del energizador: se abre sola al vincular y al terminar (u omitir) regresa a la
-  /// lista de pasos; la ventana de control se cierra al salir (2026-10-14).
-  Future<void> _abrirPrueba(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => PruebaEnergizadorScreen(ticket: widget.ticket)),
-    );
-    if (!mounted) return;
-    if (result == 'prueba_terminada') setState(() => _pruebaHecha = true);
-  }
 
   /// Abre el cierre (paso 5 en instalaciones, 4 en reparaciones) y marca el paso al terminar.
   Future<void> _abrirCierre(BuildContext context) async {
@@ -408,10 +394,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     _step1Completed = widget.pasoInicial > 1;
     _step2Completed = widget.pasoInicial > 2;
     _step3Completed = widget.pasoInicial > 3;
-    // En reparación no hay paso de vinculación; el cierre sigue al paso 3.
-    _step4Completed = widget.pasoInicial > 4 || (_isReparacion && widget.pasoInicial > 3);
-    // Build 40: 5 = prueba pendiente, 6 = prueba hecha (dispositivos/cierre abiertos), 7 = cierre.
-    _pruebaHecha = !_isReparacion && widget.pasoInicial > 5;
+    // Build 54: 4 = «Agregar dispositivos» (energizador opcional, prueba y demás), 5 = cierre.
     // El aviso «Técnico en camino» sólo aplica al arrancar la ruta, no al retomar.
     _showToast = widget.pasoInicial <= 1;
     // Hide the toast automatically after 4 seconds
@@ -760,68 +743,30 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                               }
                             : null,
                       ),
-                      // Vinculación del energizador: solo aplica a instalaciones.
-                      // En reparaciones este paso no existe.
+                      // Energizador opcional (Carlos, 2026-10-20): vincular el energizador y su prueba viven
+                      // dentro de «Agregar dispositivos», que se abre en cuanto termina la instalación.
                       if (!_isReparacion)
                         _buildStepItem(
                           context,
                           number: "4",
-                          title: "Vincular el energizador",
-                          subtitle: "Escanea el QR del equipo y lígalo al cliente",
-                          isActive: _step3Completed && !_step4Completed,
-                          isCompleted: _step4Completed,
-                          onTap: (_step3Completed && !_step4Completed)
-                              ? () async {
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => LinkEnergizerScreen(ticket: widget.ticket),
-                                    ),
-                                  );
-                                  if (result == 'device_linked') {
-                                    setState(() {
-                                      _step4Completed = true;
-                                    });
-                                    // Vinculado → prueba del energizador → de vuelta a los pasos (build 40).
-                                    if (context.mounted) await _abrirPrueba(context);
-                                  }
-                                }
-                              : null,
-                        ),
-                      if (!_isReparacion)
-                        _buildStepItem(
-                          context,
-                          number: "5",
-                          title: "Prueba del energizador",
-                          subtitle: "Enciende y apaga la cerca frente al cliente",
-                          isActive: _step4Completed && !_pruebaHecha && !_step5Completed,
-                          isCompleted: _pruebaHecha,
-                          onTap: (_step4Completed && !_step5Completed) ? () => _abrirPrueba(context) : null,
-                        ),
-                      if (!_isReparacion)
-                        _buildStepItem(
-                          context,
-                          number: "6",
                           title: "Agregar dispositivos",
                           subtitle: _dispositivosHechos
                               ? "Listo. Puedes volver a entrar si el cliente compra algo más"
-                              : "Opcional · sensores, sirena, cámaras u otro OhmBox",
-                          // Sólo después de la prueba; sigue tocable aunque ya esté hecho, hasta el cierre.
-                          isActive: _pruebaHecha && !_dispositivosHechos && !_step5Completed,
+                              : "Energizador (si lleva), sensores, cámaras y sus pruebas",
+                          isActive: _step3Completed && !_dispositivosHechos && !_step5Completed,
                           isCompleted: _dispositivosHechos,
-                          onTap: (_pruebaHecha && !_step5Completed) ? () => _abrirDispositivos(context) : null,
+                          onTap: (_step3Completed && !_step5Completed) ? () => _abrirDispositivos(context) : null,
                         ),
-                      // Cierre: paso 4 en reparaciones (sin energizador) o 7 en
-                      // instalaciones. Se habilita tras el paso 3 en reparaciones.
+                      // Cierre: paso 4 en reparaciones o 5 en instalaciones; se habilita tras el paso 3
+                      // («Agregar dispositivos» es opcional).
                       _buildStepItem(
                         context,
-                        number: _isReparacion ? "4" : "7",
+                        number: _isReparacion ? "4" : "5",
                         title: _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
                         subtitle: _isReparacion ? "Fotos, entrega y firma del cliente" : "Fotos, entrega del equipo y firma del cliente",
-                        // Instalación: el cierre es lo último, después de la prueba (dispositivos es opcional).
-                        isActive: (_isReparacion ? _step3Completed : _pruebaHecha) && !_step5Completed,
+                        isActive: _step3Completed && !_step5Completed,
                         isCompleted: _step5Completed,
-                        onTap: ((_isReparacion ? _step3Completed : _pruebaHecha) && !_step5Completed)
+                        onTap: (_step3Completed && !_step5Completed)
                             ? () => _abrirCierre(context)
                             : null,
                       ),

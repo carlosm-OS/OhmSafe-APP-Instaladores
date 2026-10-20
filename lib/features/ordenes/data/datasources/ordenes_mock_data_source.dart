@@ -177,6 +177,9 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> dispositivosEstado(String id) async {
     await _ok();
     return {
+      // Energizador opcional (2026-10-20): null cuando la casa aún no tiene energizador vinculado.
+      'energizador': {'id': 'dev-1', 'serie': 'OS-PRUEBA-0005'},
+     
       'equipo': {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'firmware': '2.11.0.14'},
       'rf': {'soportado': true, 'dispositivos': _mockRf, 'limites': {}, 'aprendizaje': null},
       'wifi': {'sensores': _mockWifi, 'limites': {}, 'usados': {}},
