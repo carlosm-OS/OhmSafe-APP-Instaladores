@@ -2,6 +2,13 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 52 (Android, servidor de pruebas) — 20 de octubre de 2026
+
+Sólo para pruebas internas: apunta al **servidor de pruebas** (api-dev). Primero Android; iPhone sigue en cuanto Apple apruebe el permiso de red (solicitud QN7AHWA6RR del 20 de octubre).
+
+- **Cámaras Imou sin Imou Life.** «Conectar cámara Imou» ahora le pasa la Wi‑Fi de la casa a la cámara desde la app, con el programa de Imou dentro de la app (igual que Tuya y EZVIZ): escaneas el QR de la guía (serie + SC), el cliente escribe su contraseña, eliges **Rápido** (por la Wi‑Fi) o **Por hotspot** (el teléfono se une a la red «DAP‑…» de la cámara) y la app espera a que llegue a internet y la registra en la casa. La contraseña no se guarda; el nombre de la red sí.
+- **«Cámara ya conectada»** queda sólo para cámaras que ya están en internet (de un intento anterior o de otra marca).
+
 ## Build 51 (TestFlight, servidor de pruebas) — 20 de octubre de 2026
 
 Sólo para pruebas internas: apunta al **servidor de pruebas** (api-dev).

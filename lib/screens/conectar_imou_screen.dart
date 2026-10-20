@@ -139,9 +139,8 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
                         'ANTES DE EMPEZAR',
                         tituloAyuda: 'Cómo preparar la cámara Imou',
                         ayuda: [
-                          'Enchufa la cámara; la luz verde parpadea cuando está lista para conectarse.',
-                          'La cámara tiene que estar en internet para registrarla: conéctala a la Wi‑Fi de la casa (2.4 GHz) con la app Imou Life iniciada con la cuenta de OhmSafe. En la próxima versión este paso se hará desde aquí.',
-                          'Si ya se usó antes, mantén RESET 10 s hasta que la luz vuelva a parpadear.',
+                          'Sólo para una cámara Imou que YA está en internet (luz verde fija), por ejemplo porque quedó conectada en un intento anterior.',
+                          'Si la cámara es nueva o la luz parpadea, vuelve y usa «Conectar cámara Imou»: el teléfono le pasa la Wi‑Fi de la casa.',
                         ],
                       ),
                       TarjetaFlujo(

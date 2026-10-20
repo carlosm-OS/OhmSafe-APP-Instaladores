@@ -25,6 +25,12 @@ val tuyaLinked: Boolean = rootProject.extra["ohmsafeTuyaLinked"] as Boolean
 val tuyaSecDir = rootProject.extra["ohmsafeTuyaAndroidSdk"] as java.io.File
 logger.lifecycle(if (tuyaLinked) "[ohmsafe] Tuya SDK enlazado desde $tuyaSecDir" else "[ohmsafe] Tuya SDK ausente: build sin emparejamiento Tuya (TUYA_NOT_LINKED)")
 
+// Imou (2026-10-20): con LCOpenSDK.aar fuera del repo se compila src/imouOn (puente real); sin él,
+// src/imouOff (contesta IMOU_NOT_LINKED). Las dos carpetas declaran la MISMA clase (como Tuya).
+val imouLinked: Boolean = rootProject.extra["ohmsafeImouLinked"] as Boolean
+val imouSdkDir = rootProject.extra["ohmsafeImouAndroidSdk"] as java.io.File
+logger.lifecycle(if (imouLinked) "[ohmsafe] Imou SDK enlazado desde $imouSdkDir" else "[ohmsafe] Imou SDK ausente: build sin emparejamiento Imou (IMOU_NOT_LINKED)")
+
 android {
     namespace = "com.ohmsafe.instalador"
     compileSdk = flutter.compileSdkVersion
@@ -64,12 +70,18 @@ android {
             // Varios AAR de Tuya traen las mismas libs nativas (igual que en la app del cliente).
             jniLibs.pickFirsts += listOf("**/libc++_shared.so", "**/libthing*.so", "**/libtt*.so", "**/libyuv.so", "**/libopenssl*.so", "**/libcrypto*.so", "**/libssl*.so")
         }
+        if (imouLinked) {
+            // El AAR de Imou trae su propio libc++_shared (y los jar de bouncycastle que ya traen EZVIZ/Tuya).
+            jniLibs.pickFirsts += listOf("**/libc++_shared.so")
+            resources.excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/BC1024KE.*", "META-INF/BC2048KE.*")
+        }
         resources.excludes += setOf("META-INF/LICENSE*", "META-INF/NOTICE*", "META-INF/INDEX.LIST", "META-INF/DEPENDENCIES", "META-INF/rxjava.properties")
     }
 
     sourceSets {
         getByName("main") {
             java.srcDir(if (tuyaLinked) "src/tuyaOn/kotlin" else "src/tuyaOff/kotlin")
+            java.srcDir(if (imouLinked) "src/imouOn/kotlin" else "src/imouOff/kotlin")
         }
     }
 
@@ -95,12 +107,29 @@ flutter {
     source = "../.."
 }
 
+// Copia del AAR de Imou sin proguard.txt (ver dependencies). Sale en build/app/imou/.
+val ohmsafeImouAar = tasks.register<Zip>("ohmsafeImouAar") {
+    onlyIf { imouLinked }
+    if (imouLinked) from(zipTree(File(imouSdkDir, "LCOpenSDK.aar"))) { exclude("proguard.txt") }
+    archiveFileName.set("LCOpenSDK-sin-proguard.aar")
+    destinationDirectory.set(layout.buildDirectory.dir("imou"))
+    entryCompression = ZipEntryCompression.STORED
+    isZip64 = true
+}
+
 dependencies {
     // EZVIZ Open SDK global (`com.videogo.openapi.EZGlobalSDK`). okhttp y gson los exige el SDK y su POM
     // NO los declara: sin ellos revienta en ejecución (NoClassDefFoundError), no al compilar.
     implementation("io.github.ezviz-open:ezviz-sdk:5.32")
     implementation("com.squareup.okhttp3:okhttp:3.12.1")
     implementation("com.google.code.gson:gson:2.8.5")
+
+    if (imouLinked) {
+        // Imou LCOpenSDK (sólo emparejamiento: LCOpenSDK.aar; LCOpenMediaSDK.aar es vídeo y no se enlaza).
+        // Se enlaza una copia SIN su proguard.txt: esas reglas (-dontoptimize, -keepparameternames…) se
+        // aplican a toda la app como consumer rules y tumban a R8 («Compilation failed to complete»).
+        implementation(files(ohmsafeImouAar))
+    }
 
     if (tuyaLinked) {
         // Paquete de seguridad propio de la app: vive FUERA del repo, se trata como el AppSecret.

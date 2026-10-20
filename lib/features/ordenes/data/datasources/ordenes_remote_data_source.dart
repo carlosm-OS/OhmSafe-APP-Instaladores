@@ -170,6 +170,12 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> ezvizSondeo(String id, String serie) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/wifi/ezviz/sondeo', body: {'serie': serie}, sinReintento: true));
   @override
+  Future<Map<String, dynamic>> imouSesion(String id) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/wifi/imou/sesion', body: const {}, sinReintento: true));
+  @override
+  Future<Map<String, dynamic>> imouSondeo(String id, String serie) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/wifi/imou/sondeo', body: {'serie': serie}, sinReintento: true));
+  @override
   Future<Map<String, dynamic>> tuyaToken(String id, {required String modo, String? zonaHoraria}) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/wifi/tuya/token', body: {'modo': modo, if (zonaHoraria != null && zonaHoraria.isNotEmpty) 'zonaHoraria': zonaHoraria}, sinReintento: true));
   @override

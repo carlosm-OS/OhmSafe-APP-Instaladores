@@ -20,6 +20,8 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <!-- Hardware opcional: Play deduce «funciones necesarias» de los permisos. -->
     <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <!-- El AAR de Imou declara bluetooth_le como obligatorio (su modo Bluetooth, que no usamos): no lo es. -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" tools:replace="android:required" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
     <application

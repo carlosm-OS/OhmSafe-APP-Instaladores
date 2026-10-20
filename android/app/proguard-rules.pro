@@ -44,3 +44,22 @@
 -dontwarn com.alibaba.fastjson.**
 -dontwarn com.facebook.soloader.SoLoader
 -dontwarn com.google.android.play.core.**
+
+# Imou LCOpenSDK (2026-10-20). El AAR trae un proguard.txt sin reglas -keep útiles: JNI y reflexión.
+-keep class com.lc.opensdk.** { *; }
+-keep interface com.lc.opensdk.** { *; }
+-keep class com.lechange.** { *; }
+-keep interface com.lechange.** { *; }
+-keep class com.company.NetSDK.** { *; }
+-keep class com.mm.android.** { *; }
+-keep class com.lcopensdk.** { *; }
+-dontwarn com.lc.opensdk.**
+-dontwarn com.lechange.**
+-dontwarn com.company.NetSDK.**
+-dontwarn com.mm.android.**
+-dontwarn org.bouncycastle.**
+# Clases que el AAR de Imou referencia y no trae (LDAP de spongycastle, un Base64 interno): R8 las
+# trata como error. Lista generada por R8 (missing_rules.txt) al enlazar LCOpenSDK 3.15.
+-dontwarn com.lc.**
+-dontwarn javax.naming.**
+-dontwarn org.spongycastle.**

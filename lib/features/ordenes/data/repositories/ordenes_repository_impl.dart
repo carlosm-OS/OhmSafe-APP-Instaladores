@@ -351,6 +351,36 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
+  Future<Result<Map<String, dynamic>>> imouSesion(String id) async {
+    try {
+      return Success(await dataSource.imouSesion(id));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> imouSondeo(String id, String serie) async {
+    try {
+      return Success(await dataSource.imouSondeo(id, serie));
+    } on UnauthorizedException {
+      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+    } on ServerException catch (e) {
+      return FailureResult(ServerFailure(e.message, e.code, e.details));
+    } on NetworkException {
+      return const FailureResult(NetworkFailure());
+    } catch (e) {
+      return FailureResult(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Result<Map<String, dynamic>>> tuyaToken(String id, {required String modo, String? zonaHoraria}) async {
     try {
       return Success(await dataSource.tuyaToken(id, modo: modo, zonaHoraria: zonaHoraria));

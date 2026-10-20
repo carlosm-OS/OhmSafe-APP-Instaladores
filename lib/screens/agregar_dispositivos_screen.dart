@@ -13,6 +13,7 @@ import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import 'conectar_camara_wifi_screen.dart';
 import 'conectar_imou_screen.dart';
+import 'conectar_imou_wifi_screen.dart';
 import 'conectar_tuya_wifi_screen.dart';
 import 'escanear_serie_screen.dart';
 import '../widgets/aprender_rf_sheet.dart';
@@ -276,10 +277,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (ok == true && mounted) await _cargarDisp();
   }
 
-  /// Cámara Imou (2026-10-19, Carlos): pantalla completa con escaneo del QR de la guía (serie + SC),
-  /// sin diálogos que el teclado tape. Hoy registra la cámara ya en internet; la Wi‑Fi desde la app
-  /// llega con el SDK de Imou (build 51).
-  Future<void> _conectarImou() => _abrirRegistroCamara(proveedor: 'imou');
+  /// Cámara Imou nueva (2026-10-20, build 52): el teléfono le pasa la Wi‑Fi de la casa con el SDK
+  /// de Imou (nunca Imou Life) y la registra. Escaneo del QR de la guía (serie + SC).
+  Future<void> _conectarImou() async {
+    final ok = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => ConectarImouWifiScreen(ordenId: _id)));
+    if (ok == true && mounted) await _cargarDisp();
+  }
 
   /// «Cámara ya conectada»: misma pantalla sin marca; el backend prueba cada nube habilitada.
   Future<void> _agregarCamara() => _abrirRegistroCamara();
@@ -730,7 +733,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 tituloAyuda: 'Cámaras',
                                 ayuda: [
                                   'Cámara EZVIZ nueva: «Conectar a la Wi‑Fi». El teléfono le pasa la red de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
-                                  'Cámara Imou: «Conectar cámara Imou». Se conecta a la red con la app Imou Life y aquí se registra con la serie y el código SC de su etiqueta.',
+                                  'Cámara Imou nueva: «Conectar cámara Imou». El teléfono le pasa la red de la casa (modo rápido o por hotspot) y la registra con la serie y el código SC de su guía.',
                                   'Cámara que ya está en internet (conectada con la app del fabricante): «Cámara ya conectada», con la serie y el código de su etiqueta.',
                                   'Al guardarla, el cliente la ve en su app.',
                                 ],
@@ -748,7 +751,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                               if (_emparejarTuya)
                                 _agregar('Conectar cámara Tuya', 'Tuya nueva: el teléfono le pasa la red', _ocupado ? null : () => _conectarTuya('camara')),
                               if (_camarasOn && _proveedores['imou'] == true)
-                                _agregar('Conectar cámara Imou', 'Imou nueva: se conecta con Imou Life y se registra aquí', _ocupado ? null : _conectarImou),
+                                _agregar('Conectar cámara Imou', 'Imou nueva: el teléfono le pasa la red', _ocupado ? null : _conectarImou),
                               _agregar(
                                 'Cámara ya conectada',
                                 _hayProveedor ? 'Ya está en internet: serie y código' : 'No disponibles por ahora',
