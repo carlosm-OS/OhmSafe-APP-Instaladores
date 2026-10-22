@@ -305,21 +305,102 @@ void main() {
     expect(esRedDeEquipo(null), isFalse);
   });
 
-  testWidgets('si el teléfono ve la red del equipo, sugiere «Punto de acceso»', (t) async {
+  Future<void> montarCon(WidgetTester t, {ListadorRedes? listador, bool conWifi = true}) async {
     t.view.physicalSize = const Size(1206, 6000);
     t.view.devicePixelRatio = 3;
     addTearDown(t.view.reset);
+    final local = WifiCasaLocal(almacen: _MemoriaWifi());
+    if (conWifi) await t.runAsync(() => local.guardar('i99', const WifiCasa(red: 'Casa Pérez', contrasena: 'secreta123')));
     await t.pumpWidget(AppStateProvider(
       notifier: AppState(),
       child: MaterialApp(
         theme: AppTheme.light,
-        home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _ConRedEquipo(), local: WifiCasaLocal(almacen: _MemoriaWifi())),
+        home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: listador ?? _SinLista(), local: local),
       ),
     ));
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+    await t.pump(const Duration(milliseconds: 400));
+  }
+
+  /// El cambio de paso funde el anterior: un cuadro para la animación y otro para quitarlo.
+  Future<void> asentar(WidgetTester t) async {
+    for (var i = 0; i < 8; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+  }
+
+  Future<void> alPaso2(WidgetTester t) async {
+    await t.enterText(find.byType(TextField).first, 'Jardín');
     await t.pump();
+    await t.tap(find.text('Siguiente'));
+    await t.pumpAndSettle();
+  }
+
+  testWidgets('si el teléfono ve la red del equipo, sugiere «Punto de acceso» (paso 2)', (t) async {
+    await montarCon(t, listador: _ConRedEquipo());
+    await alPaso2(t);
     expect(find.text('El equipo está en modo punto de acceso'), findsOneWidget);
     expect(find.textContaining('«SmartLife-9997»'), findsOneWidget);
+  });
+
+  testWidgets('regla de oro: el flujo va en pasos (1 datos → 2 preparar) y «Atrás» regresa', (t) async {
+    await montarCon(t);
+    expect(find.textContaining('PASO 1 DE 4', findRichText: true), findsOneWidget);
+    expect(find.text('Escribe un nombre para la cámara y sigue.'), findsOneWidget);
+    // Sin nombre no se avanza.
+    await t.tap(find.text('Siguiente'));
+    await asentar(t);
+    expect(find.textContaining('PASO 1 DE 4', findRichText: true), findsOneWidget);
+
+    await alPaso2(t);
+    expect(find.textContaining('PASO 2 DE 4', findRichText: true), findsOneWidget);
+    // Lo ya capturado se resume, no se vuelve a mostrar el formulario.
+    expect(find.text('«Jardín»'), findsOneWidget);
+    expect(find.text('Número de serie (opcional)'), findsNothing);
+    expect(find.text('Conectar la cámara'), findsOneWidget);
+
+    await t.tap(find.text('Atrás'));
+    await asentar(t);
+    expect(find.textContaining('PASO 1 DE 4', findRichText: true), findsOneWidget);
+  });
+
+  testWidgets('regla de oro: al conectar dice en qué etapa va (hecho / en curso / pendiente)', (t) async {
+    final sem = t.ensureSemantics();
+    await montarCon(t);
+    await t.runAsync(() => emp.empezar(clase: 'camara', nombre: 'Jardín', red: 'Casa Pérez', contrasena: 'x'));
+    await asentar(t);
+    expect(find.textContaining('PASO 3 DE 4', findRichText: true), findsOneWidget);
+    expect(find.text('Conectando la cámara…'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Pedir el permiso de la casa, hecho')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Pasarle la red de la casa a la cámara, en curso')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Esperar a que la cámara avise a la nube, pendiente')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Guardar en la casa del cliente, pendiente')), findsOneWidget);
+    // Cancelar pide confirmación y regresa al paso 2 (no saca de la pantalla).
+    await t.tap(find.text('Cancelar'));
+    await asentar(t);
+    expect(find.text('¿Cancelar el emparejamiento?'), findsOneWidget);
+    await t.tap(find.text('Cancelar').last);
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await asentar(t);
+    expect(find.textContaining('PASO 2 DE 4', findRichText: true), findsOneWidget);
+    sem.dispose();
+  });
+
+  testWidgets('regla de oro: si falla, dice en qué etapa y qué hacer', (t) async {
+    final sem = t.ensureSemantics();
+    repo.sinUid = true;
+    await montarCon(t);
+    await t.runAsync(() => emp.empezar(clase: 'camara', nombre: 'Jardín', red: 'Casa Pérez', contrasena: 'x'));
+    await asentar(t);
+    expect(find.text('No se pudo conectar la cámara'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Pedir el permiso de la casa, con error')), findsOneWidget);
+    expect(find.textContaining('OhmSafe GO'), findsOneWidget);
+    expect(find.text('Volver a intentar'), findsOneWidget);
+    await t.tap(find.text('Cambiar el modo o los datos'));
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await asentar(t);
+    expect(find.textContaining('PASO 2 DE 4', findRichText: true), findsOneWidget);
+    sem.dispose();
   });
 
   test('cancelar para el SDK y vuelve al reposo', () async {

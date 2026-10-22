@@ -270,3 +270,37 @@ llegó el alta. Cambios en la app (build 58):
    (salvo que el instalador ya haya tocado el selector) y lo explica con el nombre de esa red.
 
 Pendiente: conectar desde la app con `WifiNetworkSpecifier` (Android 10+) y el modo QR.
+
+## Conectar en 4 pasos y «siempre decir qué está pasando» (2026-10-22, regla de oro de Carlos)
+
+**Por qué:** en el video de Nahum (i77, modo punto de acceso) la app se quedó minutos en
+«pasándole la red de la casa…» con un spinner y todo el formulario abajo; no se sabía si avanzaba,
+en qué iba ni qué seguía. (El fallo real era del servidor: el sondeo no leía `{ success, failed }`
+de Tuya, Back-#167.) Regla de oro desde ese día: **todo botón dice qué está pasando, con frases
+que avanzan y sensación de progreso, y los procesos largos van en pasos consecutivos**.
+
+**`ConectarTuyaWifiScreen` ahora es un flujo de 4 pasos** con «PASO N DE 4 · título» y barra
+segmentada (`IndicadorPasos`); la flecha de regreso va un paso atrás:
+
+1. **Datos** — qué es (sensor), nombre, serie opcional (escanear) y la Wi‑Fi del paso 4 (o «Ir a
+   Wi‑Fi de la casa»). «Siguiente» se habilita con nombre + Wi‑Fi; si falta algo, una nota dice qué.
+2. **Prepara el equipo** — resumen de lo capturado con «Editar» (no se re-muestra el formulario),
+   los 3 puntos según el modo y «Cómo se va a conectar» como tres opciones con su explicación
+   (antes un `SegmentedButton` que partía «Bluetooth» en dos líneas). La sugerencia de punto de
+   acceso (si el teléfono ve `SmartLife-*`) vive aquí.
+3. **Conectando** — `TarjetaProceso` + `LineaProgreso` con las etapas: pedir el permiso de la casa
+   → (punto de acceso) unir el teléfono a la red del equipo, con sus botones dentro → pasarle la red
+   → esperar a que avise a la nube → guardar en la casa. Cada etapa sale hecha / en curso /
+   pendiente / con error. La etapa en curso rota frases cada 5 s y muestra «Llevamos m:ss de 5:00
+   como máximo» con una barra contra el vencimiento del permiso (`venceToken`). «Pasarle la red»
+   pasa a «esperar la nube» cuando el SDK lo dice (texto con «nube»/«recibió») o a los 20 s.
+   Si falla, la etapa queda en rojo con el mensaje y «Volver a intentar» / «Cambiar el modo o los
+   datos» (regresa al paso 2). «Cancelar» pide confirmación y regresa al paso 2.
+4. **Listo** — la tarjeta «Equipo conectado» de siempre (con «No es este equipo») y vibración corta.
+
+**Piezas reutilizables** (`lib/widgets/progreso_flujo.dart`): `IndicadorPasos`, `LineaProgreso`
+(con `EtapaProgreso` y `EstadoEtapa`) y `TarjetaProceso`. Accesibles: cada etapa es un nodo con
+«título, estado. frase» y la etapa en curso es región viva. Respetan «Reducir movimiento».
+
+**La lógica no cambió:** `EmparejadorTuya` es el mismo (etapas, sondeo, Bluetooth → rápido,
+pausa de punto de acceso). Pruebas nuevas en `test/tuya_wifi_test.dart` («regla de oro: …»).
