@@ -231,9 +231,9 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
-  Future<Result<Map<String, dynamic>>> rfAprender(String id, {required String tipo, String? nombre}) async {
+  Future<Result<Map<String, dynamic>>> rfAprender(String id, {required String tipo, String? nombre, int? botones}) async {
     try {
-      return Success(await dataSource.rfAprender(id, tipo: tipo, nombre: nombre));
+      return Success(await dataSource.rfAprender(id, tipo: tipo, nombre: nombre, botones: botones));
     } on UnauthorizedException {
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {

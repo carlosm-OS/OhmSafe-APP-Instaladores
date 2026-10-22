@@ -176,7 +176,7 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                         'Conecta la cámara a la corriente y espera 2 minutos a que esté lista.',
                         'Si ya se usó antes, mantén RESET 10–15 s hasta que la luz parpadee.',
                         'Este teléfono debe estar en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»); la cámara no se conecta a redes de 5 GHz.',
-                        'Si el teléfono pregunta «¿Conectarse a la red EZVIZ_…?», acepta: es la cámara.',
+                        'Si el teléfono pregunta si quieres conectarte a la red de la cámara, acepta.',
                       ],
                     ),
                     TarjetaFlujo(

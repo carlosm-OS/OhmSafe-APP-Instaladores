@@ -251,7 +251,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (tipo == null || !mounted) return;
     final nombre = await aprenderSensorRf(context, ordenId: _id, tipo: tipo.id, etiqueta: tipo.etiqueta);
     if (!mounted) return;
-    if (nombre != null) _aviso('Sensor «$nombre» guardado');
+    if (nombre != null) _aviso(tipo.id == 'fob' ? 'Control «$nombre» guardado' : 'Sensor «$nombre» guardado');
     await _cargarDisp();
   }
 
@@ -823,7 +823,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 'Sensor inalámbrico',
                                 !_rfSoportado
                                     ? 'Este energizador no los maneja'
-                                    : (_enLinea ? 'Puerta, movimiento, humo o pánico' : 'Necesita señal para aprenderlo'),
+                                    : (_enLinea ? 'Puerta, movimiento, humo, pánico o control' : 'Necesita señal para aprenderlo'),
                                 _ocupado || _disp == null || !_rfSoportado || !_enLinea ? null : _agregarRf,
                               ),
                               ], // fin: con energizador
@@ -862,7 +862,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   if (MarcasCamara.ezviz)
                                     'Cámara EZVIZ nueva: «Conectar a la Wi‑Fi». El teléfono le pasa la red de la casa y la registra; el cliente escribe su contraseña aquí y no se guarda.',
                                   if (MarcasCamara.imou)
-                                    'Cámara Imou: «Conectar cámara Imou». Se conecta a la red con la app Imou Life y aquí se registra con la serie y el código SC de su etiqueta.',
+                                    'Cámara con serie: «Conectar cámara con su serie». Se registra con la serie y el código de su etiqueta.',
                                   if (MarcasCamara.registroPorSerie)
                                     'Cámara que ya está en internet (conectada con la app del fabricante): «Cámara ya conectada», con la serie y el código de su etiqueta.',
                                   'Al guardarla, el cliente la ve en su app.',
@@ -877,11 +877,11 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   trailing: CirculoCheck(marcado: x['estado'] == 'online'),
                                 ),
                               if (_emparejarEzviz)
-                                _agregar('Conectar cámara a la Wi‑Fi', 'EZVIZ nueva: el teléfono le pasa la red', _ocupado ? null : _conectarCamaraWifi),
+                                _agregar('Conectar cámara a la Wi‑Fi', 'Nueva: el teléfono le pasa la red', _ocupado ? null : _conectarCamaraWifi),
                               if (_emparejarTuya)
                                 _agregar('Conectar cámara Wi‑Fi', 'Nueva: el teléfono le pasa la red de la casa', _ocupado ? null : () => _conectarTuya('camara')),
                               if (MarcasCamara.imou && _camarasOn && _proveedores['imou'] == true)
-                                _agregar('Conectar cámara Imou', 'Imou nueva: se conecta con Imou Life y se registra aquí', _ocupado ? null : _conectarImou),
+                                _agregar('Conectar cámara con su serie', 'Nueva: se conecta con su serie y su código', _ocupado ? null : _conectarImou),
                               // Sólo con EZVIZ/Imou encendidas: las Tuya se registran al emparejarlas.
                               if (MarcasCamara.registroPorSerie)
                                 _agregar(

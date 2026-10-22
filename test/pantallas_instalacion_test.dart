@@ -392,4 +392,36 @@ void main() {
       await t.pump(const Duration(seconds: 1));
     });
   });
+
+  testWidgets('Control remoto 433: está en la lista, pide cada botón y explica sus funciones', (t) async {
+    expect(tiposRf.map((e) => e.id), contains('fob'));
+    await _sinErrores(t, const Size(1206, 2622), () async {
+      await t.pumpWidget(
+        _app(
+          Builder(
+            builder: (ctx) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed: () => aprenderSensorRf(ctx, ordenId: 'i69', tipo: 'fob', etiqueta: 'Control remoto'),
+                  child: const Text('rf'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await t.tap(find.text('rf'));
+      await t.pump(const Duration(seconds: 1));
+      await t.pump(const Duration(seconds: 1));
+      expect(find.textContaining('Mantén presionado el botón 1 del control'), findsOneWidget);
+      for (var i = 0; i < 6; i++) {
+        await t.pump(const Duration(seconds: 1));
+      }
+      expect(find.text('Aprendido'), findsOneWidget);
+      expect(find.textContaining('Botón 1: enciende y apaga la cerca. Botón 2: pánico.'), findsOneWidget);
+      expect(find.text('Nombre del control'), findsOneWidget);
+      await t.tap(find.text('Cerrar'));
+      await t.pump(const Duration(seconds: 1));
+    });
+  });
 }

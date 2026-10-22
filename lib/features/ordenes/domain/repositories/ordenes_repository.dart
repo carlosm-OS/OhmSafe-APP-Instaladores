@@ -62,7 +62,7 @@ abstract class OrdenesRepository {
   Future<Result<Map<String, dynamic>>> ohmboxAgregar(String id, {required String serie, String? mac});
   /// Sensores 433, Wi‑Fi y cámaras desde «Agregar dispositivos» (2026-10-14).
   Future<Result<Map<String, dynamic>>> dispositivosEstado(String id);
-  Future<Result<Map<String, dynamic>>> rfAprender(String id, {required String tipo, String? nombre});
+  Future<Result<Map<String, dynamic>>> rfAprender(String id, {required String tipo, String? nombre, int? botones});
   Future<Result<Map<String, dynamic>>> rfSesion(String id, String sid);
   Future<Result<Map<String, dynamic>>> rfTerminar(String id, String sid, {required String nombre});
   Future<Result<Map<String, dynamic>>> rfCancelar(String id, String sid);

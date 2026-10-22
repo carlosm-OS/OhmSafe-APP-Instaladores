@@ -150,8 +150,8 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   @override
   Future<Map<String, dynamic>> dispositivosEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/dispositivos'));
   @override
-  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre}) async =>
-      _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender', body: {'tipo': tipo, if (nombre != null && nombre.isNotEmpty) 'nombre': nombre}));
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre, int? botones}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender', body: {'tipo': tipo, if (nombre != null && nombre.isNotEmpty) 'nombre': nombre, if (botones != null) 'botones': botones}));
   @override
   Future<Map<String, dynamic>> rfSesion(String id, String sid) async => _data(await dioClient.get('/instalador/ordenes/$id/rf/aprender/$sid'));
   @override

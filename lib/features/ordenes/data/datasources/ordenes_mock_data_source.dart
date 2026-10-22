@@ -186,10 +186,10 @@ class OrdenesMockDataSource implements OrdenesDataSource {
       'camaras': {'habilitadas': true, 'proveedores': {'ezviz': true, 'imou': true}, 'lista': _mockCams, 'max': 32},
     };
   }
-  Map<String, dynamic> _sesion(String tipo, {String status = 'listening'}) => {'sid': 'mock1', 'kind': tipo, 'status': status, 'phase': tipo == 'door' ? (_mockPaso == 0 ? 'open' : 'close') : 'btn', 'step': _mockPaso + 1, 'steps': tipo == 'door' ? 2 : 1, 'frames': 0, 'need': 2, 'addr': status == 'listening' ? null : 'A1B2C3', 'captured': []};
+  Map<String, dynamic> _sesion(String tipo, {String status = 'listening'}) => {'sid': 'mock1', 'kind': tipo, 'status': status, 'phase': tipo == 'door' ? (_mockPaso == 0 ? 'open' : 'close') : 'btn', 'step': _mockPaso + 1, 'steps': tipo == 'door' ? 2 : tipo == 'fob' ? 3 : 1, 'frames': 0, 'need': 2, 'addr': status == 'listening' ? null : 'A1B2C3', 'captured': []};
   String _mockTipo = 'door';
   @override
-  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre}) async { await _ok(); _mockTipo = tipo; _mockPaso = 0; return {'sesion': _sesion(tipo)}; }
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre, int? botones}) async { await _ok(); _mockTipo = tipo; _mockPaso = 0; return {'sesion': _sesion(tipo)}; }
   @override
   Future<Map<String, dynamic>> rfSesion(String id, String sid) async { await _ok(); _mockPaso++; return {'sesion': _sesion(_mockTipo, status: _mockPaso >= 2 ? 'done' : 'listening')}; }
   @override

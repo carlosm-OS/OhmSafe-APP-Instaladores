@@ -114,7 +114,7 @@ class EmparejadorTuya extends ChangeNotifier {
     }
     if (!_vigente(intento)) return;
 
-    _ir(EtapaTuya.emparejando, modo == 'AP' ? 'Conéctate a la red «SmartLife-…» del equipo si el teléfono lo pide…' : 'Pasándole la red de la casa al equipo…');
+    _ir(EtapaTuya.emparejando, modo == 'AP' ? 'Si el teléfono lo pide, conéctate a la red Wi‑Fi nueva que crea el equipo (no tiene contraseña)…' : 'Pasándole la red de la casa al equipo…');
     _sub = puente.eventos.listen((e) {
       if (!_vigente(intento)) return;
       if (e.listo) {

@@ -45,7 +45,7 @@ abstract class OrdenesDataSource {
   Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac});
   /// Sensores 433, Wi‑Fi y cámaras (2026-10-14): `/instalador/ordenes/:id/{dispositivos,rf/aprender…,sensores-wifi,camaras}`.
   Future<Map<String, dynamic>> dispositivosEstado(String id);
-  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre});
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre, int? botones});
   Future<Map<String, dynamic>> rfSesion(String id, String sid);
   Future<Map<String, dynamic>> rfTerminar(String id, String sid, {required String nombre});
   Future<Map<String, dynamic>> rfCancelar(String id, String sid);

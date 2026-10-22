@@ -9,14 +9,19 @@ import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'botones_dialogo.dart';
 import 'ayuda.dart';
 
-/// Tipos de sensor 433 que el instalador da de alta en sitio (2026-10-14). El control remoto
-/// (llavero) se queda en el dashboard por ahora: necesita asignar función a cada botón.
+/// Tipos de sensor 433 que el instalador da de alta en sitio (2026-10-14). El control remoto volvió
+/// el 2026-10-22: el backend le pone las funciones por omisión de GO (botón 1 cerca, botón 2 pánico)
+/// y el cliente las cambia en su app.
 const tiposRf = <({String id, String etiqueta, IconData icono})>[
   (id: 'door', etiqueta: 'Contacto de puerta', icono: Icons.sensor_door_outlined),
   (id: 'pir', etiqueta: 'Movimiento', icono: Icons.directions_walk),
   (id: 'smoke', etiqueta: 'Humo', icono: Icons.local_fire_department_outlined),
   (id: 'panic_button', etiqueta: 'Botón de pánico', icono: Icons.emergency_outlined),
+  (id: 'fob', etiqueta: 'Control remoto', icono: Icons.settings_remote_outlined),
 ];
+
+/// El control que vende OhmSafe es de 3 botones; si tiene menos, se guarda en cuanto capta el primero.
+const botonesControl = 3;
 
 const _fase = <String, String>{
   'btn': 'Pulsa el botón del aparato',
@@ -57,6 +62,7 @@ class _AprenderRfState extends State<_AprenderRf> {
   bool _guardando = false;
   Timer? _sondeo;
 
+  bool get _esControl => widget.tipo == 'fob';
   String? get _sid => _s?['sid']?.toString();
   String get _status => (_s?['status'] ?? '').toString();
   bool get _viva => const {'listening', 'captured', 'awaiting_next'}.contains(_status);
@@ -81,7 +87,7 @@ class _AprenderRfState extends State<_AprenderRf> {
       _s = null;
       _error = null;
     });
-    final r = await _repo.rfAprender(widget.ordenId, tipo: widget.tipo);
+    final r = await _repo.rfAprender(widget.ordenId, tipo: widget.tipo, botones: _esControl ? botonesControl : null);
     if (!mounted) return;
     r.fold((d) {
       setState(() => _s = (d['sesion'] as Map?)?.cast<String, dynamic>());
@@ -129,7 +135,10 @@ class _AprenderRfState extends State<_AprenderRf> {
     final ohm = context.ohm;
     final paso = (_s?['step'] as num?)?.toInt() ?? 1;
     final pasos = (_s?['steps'] as num?)?.toInt() ?? 1;
-    final fase = _fase[(_s?['phase'] ?? '').toString()] ?? 'Dispara el sensor';
+    final faseId = (_s?['phase'] ?? '').toString();
+    final fase = _esControl && (faseId == 'btn' || faseId.isEmpty)
+        ? 'Mantén presionado el botón $paso del control ~1 s'
+        : _fase[faseId] ?? 'Dispara el sensor';
     final frames = (_s?['frames'] as num?)?.toInt() ?? 0;
     final need = (_s?['need'] as num?)?.toInt() ?? 0;
 
@@ -154,7 +163,9 @@ class _AprenderRfState extends State<_AprenderRf> {
         color: ohm.success,
         icono: Icons.check_circle,
         titulo: 'Aprendido',
-        texto: 'El energizador ya reconoce el sensor.${_s?['openOnly'] == true ? ' Este sensor sólo avisa cuando se abre.' : ''} Ponle nombre y guárdalo.',
+        texto: _esControl
+            ? 'El energizador ya reconoce el control. Botón 1: enciende y apaga la cerca. Botón 2: pánico. El cliente puede cambiarlos en su app. Ponle nombre y guárdalo.'
+            : 'El energizador ya reconoce el sensor.${_s?['openOnly'] == true ? ' Este sensor sólo avisa cuando se abre.' : ''} Ponle nombre y guárdalo.',
       );
     } else if (_status == 'duplicate') {
       estado = _Caja(color: cs.error, icono: Icons.copy_all, titulo: 'Ya estaba aprendido', texto: 'Es «${(_s?['duplicateOf'] as Map?)?['name'] ?? 'otro sensor'}». No hace falta agregarlo otra vez.');
@@ -194,7 +205,10 @@ class _AprenderRfState extends State<_AprenderRf> {
               TextField(
                 controller: _nombre,
                 maxLength: 40,
-                decoration: const InputDecoration(labelText: 'Nombre del sensor', hintText: 'Ej. Puerta de la cocina'),
+                decoration: InputDecoration(
+                  labelText: _esControl ? 'Nombre del control' : 'Nombre del sensor',
+                  hintText: _esControl ? 'Ej. Control de Carlos' : 'Ej. Puerta de la cocina',
+                ),
               ),
             ],
             const SizedBox(height: 16),

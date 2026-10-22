@@ -167,7 +167,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                       ayuda: [
                         'Enciende $que y ponlo en modo de emparejamiento: mantén su botón (RESET) 5–10 s hasta que la luz parpadee rápido.',
                         'Este teléfono debe estar en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»); los equipos no se conectan a redes de 5 GHz.',
-                        'Modo rápido (EZ): el equipo escucha en la red; es el normal. Modo AP: el teléfono se une a la red «SmartLife-XXXX» del equipo; úsalo si el rápido falla.',
+                        'Modo rápido: el equipo escucha en la red; es el normal. Modo punto de acceso: el teléfono se conecta un momento a la red Wi‑Fi que crea el equipo (aparece nueva y sin contraseña); úsalo si el rápido falla.',
                         'Ten al cliente cerca: él escribe la contraseña de su Wi‑Fi en este teléfono.',
                       ],
                     ),

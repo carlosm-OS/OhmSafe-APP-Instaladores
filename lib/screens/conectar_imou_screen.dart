@@ -101,7 +101,7 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
   /// Los códigos de Imou dicen poco al instalador; aquí se traducen a qué hacer.
   static String _explicar(String msg) {
     if (msg.contains('DV1002')) {
-      return 'Imou todavía no ve esta cámara en internet: no se ha conectado a la Wi‑Fi (la luz sigue parpadeando) o la serie está mal escrita.';
+      return 'La nube todavía no ve esta cámara en internet: no se ha conectado a la Wi‑Fi (la luz sigue parpadeando) o la serie está mal escrita.';
     }
     if (msg.contains('DV1001')) {
       return 'Esta cámara está ligada a otra cuenta de Imou. Hay que quitarla de esa app (o restablecerla de fábrica) y volver a intentar.';
@@ -140,7 +140,7 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
                         tituloAyuda: 'Cómo preparar la cámara Imou',
                         ayuda: [
                           'Enchufa la cámara; la luz verde parpadea cuando está lista para conectarse.',
-                          'La cámara tiene que estar en internet para registrarla: conéctala a la Wi‑Fi de la casa (2.4 GHz) con la app Imou Life iniciada con la cuenta de OhmSafe. En la próxima versión este paso se hará desde aquí.',
+                          'La cámara tiene que estar en internet para registrarla: conéctala primero a la Wi‑Fi de la casa (2.4 GHz).',
                           'Si ya se usó antes, mantén RESET 10 s hasta que la luz vuelva a parpadear.',
                         ],
                       ),
