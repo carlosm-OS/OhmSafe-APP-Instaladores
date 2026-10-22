@@ -1,6 +1,8 @@
 import '../core/utils/como_llegar.dart';
 import '../core/navigation/volver_a_listado.dart';
 import 'dart:async';
+import '../core/wifi/wifi_casa_local.dart';
+import 'wifi_casa_screen.dart';
 import '../widgets/notification_bell.dart';
 import 'package:flutter/material.dart';
 
@@ -307,12 +309,38 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   /// «Agregar dispositivos» se abre sólo al tocar el paso y al terminar regresa aquí. Queda
   /// abierto hasta el cierre: si el cliente compra algo más en sitio se vuelve a entrar (Carlos, 2026-10-14).
   Future<void> _abrirDispositivos(BuildContext context) async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => AgregarDispositivosScreen(ticket: widget.ticket)));
+    final ticket = {...widget.ticket, 'wifiCasa': {'estado': _wifiEstado, 'red': _wifiRed}};
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => AgregarDispositivosScreen(ticket: ticket)));
     if (!mounted) return;
+    // Desde «Agregar dispositivos» también se puede capturar o cambiar la Wi‑Fi de la casa.
+    final w = await WifiCasaLocal.instancia.leer((widget.ticket['id'] ?? '').toString());
+    if (!mounted) return;
+    if (w != null) setState(() {
+      _wifiEstado = 'lista';
+      _wifiRed = w.red;
+    });
     if (result == 'dispositivos_listos') setState(() => _dispositivosHechos = true);
   }
 
   bool _step5Completed = false;
+
+  /// Paso «Wi‑Fi de la casa» (Carlos, 2026-10-22): pendiente | lista | omitida. Va antes de
+  /// «Agregar dispositivos»; se puede omitir y volver a él hasta el cierre.
+  late String _wifiEstado = ((widget.ticket['wifiCasa'] as Map?)?['estado'] ?? 'pendiente').toString();
+  late String _wifiRed = ((widget.ticket['wifiCasa'] as Map?)?['red'] ?? '').toString();
+  bool get _wifiResuelto => _wifiEstado == 'lista' || _wifiEstado == 'omitida';
+
+  Future<void> _abrirWifiCasa(BuildContext context) async {
+    final ticket = {...widget.ticket, 'wifiCasa': {'estado': _wifiEstado, 'red': _wifiRed}};
+    final result = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => WifiCasaScreen(ticket: ticket)));
+    if (!mounted || result == null) return;
+    final w = await WifiCasaLocal.instancia.leer((widget.ticket['id'] ?? '').toString());
+    if (!mounted) return;
+    setState(() {
+      _wifiEstado = result == 'wifi_lista' ? 'lista' : 'omitida';
+      _wifiRed = result == 'wifi_lista' ? (w?.red ?? _wifiRed) : '';
+    });
+  }
 
   /// Abre el cierre (paso 5 en instalaciones, 4 en reparaciones) y marca el paso al terminar.
   Future<void> _abrirCierre(BuildContext context) async {
@@ -648,30 +676,46 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                               }
                             : null,
                       ),
-                      // Energizador opcional (Carlos, 2026-10-20): vincular el energizador y su prueba viven
-                      // dentro de «Agregar dispositivos», que se abre en cuanto termina la instalación.
+                      // «Wi‑Fi de la casa» (Carlos, 2026-10-22): antes de agregar dispositivos; se omite con un
+                      // toque y se puede volver a él hasta el cierre.
                       if (!_isReparacion)
                         _buildStepItem(
                           context,
                           number: "4",
+                          title: "Wi‑Fi de la casa",
+                          subtitle: _wifiEstado == 'lista'
+                              ? "Lista: «$_wifiRed» · toca para cambiarla"
+                              : _wifiEstado == 'omitida'
+                                  ? "Omitido · tócalo si la casa sí la necesita"
+                                  : "Opcional · para sensores, cámaras y el OhmBox",
+                          isActive: _step3Completed && !_wifiResuelto && !_step5Completed,
+                          isCompleted: _wifiResuelto,
+                          onTap: (_step3Completed && !_step5Completed) ? () => _abrirWifiCasa(context) : null,
+                        ),
+                      // Energizador opcional (Carlos, 2026-10-20): vincular el energizador y su prueba viven
+                      // dentro de «Agregar dispositivos», que se abre en cuanto se resuelve la Wi‑Fi de la casa.
+                      if (!_isReparacion)
+                        _buildStepItem(
+                          context,
+                          number: "5",
                           title: "Agregar dispositivos",
                           subtitle: _dispositivosHechos
                               ? "Listo. Puedes volver a entrar si el cliente compra algo más"
                               : "Energizador (si lleva), sensores, cámaras y sus pruebas",
-                          isActive: _step3Completed && !_dispositivosHechos && !_step5Completed,
+                          isActive: _step3Completed && _wifiResuelto && !_dispositivosHechos && !_step5Completed,
                           isCompleted: _dispositivosHechos,
-                          onTap: (_step3Completed && !_step5Completed) ? () => _abrirDispositivos(context) : null,
+                          onTap: (_step3Completed && _wifiResuelto && !_step5Completed) ? () => _abrirDispositivos(context) : null,
                         ),
-                      // Cierre: paso 4 en reparaciones o 5 en instalaciones; se habilita tras el paso 3
-                      // («Agregar dispositivos» es opcional).
+                      // Cierre: paso 4 en reparaciones o 6 en instalaciones; en instalaciones se habilita cuando
+                      // la Wi‑Fi de la casa quedó lista u omitida («Agregar dispositivos» es opcional).
                       _buildStepItem(
                         context,
-                        number: _isReparacion ? "4" : "5",
+                        number: _isReparacion ? "4" : "6",
                         title: _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
                         subtitle: _isReparacion ? "Fotos, entrega y firma del cliente" : "Fotos, entrega del equipo y firma del cliente",
-                        isActive: _step3Completed && !_step5Completed,
+                        isActive: _step3Completed && (_isReparacion || _wifiResuelto) && !_step5Completed,
                         isCompleted: _step5Completed,
-                        onTap: (_step3Completed && !_step5Completed) ? () => _abrirCierre(context) : null,
+                        onTap: (_step3Completed && (_isReparacion || _wifiResuelto) && !_step5Completed) ? () => _abrirCierre(context) : null,
                       ),
 
                       // Bottom Terminar button (active if step 5 is completed)
@@ -767,6 +811,8 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     setState(() {
       _isSubmitting = true;
     });
+    // La contraseña de la Wi‑Fi de la casa sólo vive durante la visita (opción A, 2026-10-22).
+    await WifiCasaLocal.instancia.borrar((widget.ticket['id'] ?? '').toString());
 
     // Simulated network delay (2.5 seconds)
     await Future.delayed(const Duration(milliseconds: 2500));

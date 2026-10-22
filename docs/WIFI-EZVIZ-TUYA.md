@@ -219,3 +219,18 @@ es sólo volver a enlazar. Para una build con EZVIZ hace falta además `MARCAS_C
 
 Para volver: fusionar `CarlosClaudDev-imou-sdk` sobre `dev`, compilar con `MARCAS_CAMARA` incluyendo
 `imou`, encender `IMOU_ENABLED` en el backend y repetir la prueba con una cámara real.
+
+## Paso «Wi‑Fi de la casa» (2026-10-22)
+
+Pedido de Carlos: un paso antes de «Agregar dispositivos» para capturar la Wi‑Fi de la casa una
+vez, que se puede omitir y al que se puede volver. Contraseña: **opción A, sólo en el teléfono**.
+
+- `WifiCasaScreen` (paso 4; «Agregar dispositivos» pasa a 5 y el cierre a 6). Guarda en el servidor
+  sólo el nombre (`PUT …/wifi-casa`, Back-#157) y la contraseña en `WifiCasaLocal` (llavero del
+  teléfono, por intervención, vence a las 24 h y se borra al «Terminar instalación»).
+- La lista de pasos habilita «Agregar dispositivos» y el cierre cuando el paso queda listo u omitido.
+- «Agregar dispositivos» muestra arriba la sección «WI‑FI DE LA CASA» (Agregar / Cambiar → vuelve al
+  paso) y, con OhmBox, la fila «Segunda conexión por Wi‑Fi» (`POST …/ohmbox/wifi`); al vincular un
+  OhmBox con Wi‑Fi ya capturada la app ofrece conectarlo.
+- `ConectarTuyaWifiScreen` precarga red y contraseña desde `WifiCasaLocal`.
+- Pruebas: `test/wifi_casa_test.dart`.

@@ -1,6 +1,6 @@
 # Vincular el energizador
 
-Este es el paso 4 de la instalación. Sirve para tres cosas:
+Se hace dentro del paso 5, «Agregar dispositivos» (desde la build 57; antes era el paso 4). Sirve para tres cosas:
 
 - revisar que el equipo que vas a instalar sea del inventario de OhmSafe y esté libre,
 - comprobar con datos reales del equipo que funciona,
@@ -8,7 +8,7 @@ Este es el paso 4 de la instalación. Sirve para tres cosas:
 
 ## Paso a paso (desde la build 43)
 
-1. En la lista de pasos toca **«Vincular el energizador»** (paso 4).
+1. En la lista de pasos toca **«Agregar dispositivos»** (paso 5) y, en la sección del energizador, **«Vincular»**.
 2. En **«Busca el energizador»**:
    - **Escanear (lo normal):** toca **«Escanear QR»** (o la tarjeta del código) y apunta al código de la etiqueta. Puedes prender la linterna. Al leerlo, la app busca el equipo sola.
    - **Escribir:** si no se puede escanear, escribe la serie en el campo de «O ESCRIBE LA SERIE» y toca la **flecha** del campo. Basta con el número final (`26`); los guiones se ponen solos. El ⓘ junto a la etiqueta dice dónde está la serie.

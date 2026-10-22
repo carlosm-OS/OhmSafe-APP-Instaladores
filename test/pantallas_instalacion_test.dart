@@ -165,13 +165,15 @@ void main() {
       await t.tap(infos.first);
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
-      // La primera ⓘ es la del energizador (build 54).
-      expect(find.text('Energizador'), findsOneWidget);
+      // La primera ⓘ es la de la Wi‑Fi de la casa (build 57); la sección de arriba se puede volver a abrir.
+      expect(find.text('Wi‑Fi de la casa'), findsWidgets);
+      expect(find.textContaining('La contraseña se queda sólo en este teléfono'), findsOneWidget);
       await t.tapAt(const Offset(200, 120)); // fuera de la hoja
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Energizador'), findsNothing);
+      expect(find.textContaining('La contraseña se queda sólo en este teléfono'), findsNothing);
+      expect(find.text('Sin Wi‑Fi de la casa'), findsOneWidget);
     });
   });
 

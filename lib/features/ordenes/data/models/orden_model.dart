@@ -32,6 +32,8 @@ class OrdenModel extends Orden {
     super.origen,
     super.ordenVenta,
     super.hojaTrabajo,
+    super.wifiCasaEstado,
+    super.wifiCasaRed,
   });
 
   factory OrdenModel.fromJson(Map<String, dynamic> json) {
@@ -71,6 +73,8 @@ class OrdenModel extends Orden {
               .map((e) => Map<String, dynamic>.from(e))
               .toList() ??
           const [],
+      wifiCasaEstado: s((json['wifiCasa'] as Map?)?['estado']).isEmpty ? 'pendiente' : s((json['wifiCasa'] as Map?)?['estado']),
+      wifiCasaRed: s((json['wifiCasa'] as Map?)?['red']),
     );
   }
 }

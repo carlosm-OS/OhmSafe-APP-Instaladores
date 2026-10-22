@@ -9,12 +9,14 @@ import '../core/error/failures.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../core/utils/serie_formato.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/wifi/wifi_casa_local.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/movimiento.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import 'conectar_camara_wifi_screen.dart';
 import 'conectar_imou_screen.dart';
+import 'wifi_casa_screen.dart';
 import 'conectar_tuya_wifi_screen.dart';
 import 'escanear_serie_screen.dart';
 import 'link_energizer_screen.dart';
@@ -46,6 +48,11 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
   String? _error;
   bool _cargando = true;
   bool _ocupado = false;
+
+  /// Wi‑Fi de la casa de esta visita (sólo en el teléfono, 2026-10-22) y si ya se le pasó al OhmBox.
+  WifiCasa? _wifi;
+  bool _ohmboxWifiOk = false;
+  bool _conectandoOhmboxWifi = false;
   Timer? _sondeo;
   Timer? _ventana;
   bool _saliendo = false;
@@ -75,8 +82,61 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     // pantalla está abierta y se cierra al salir; el instalador no se queda con control de la cerca.
     await _repo.pruebaAbrir(_id);
     _ventana = Timer.periodic(const Duration(minutes: 1), (_) => Actividad.enSilencio(_renovarVentana));
+    // La Wi‑Fi de la casa sale del llavero del teléfono: no detiene la carga de la pantalla.
+    unawaited(_cargarWifi());
     await Future.wait([_cargar(), _cargarOhmbox(), _cargarDisp()]);
     if (mounted) setState(() => _cargando = false);
+  }
+
+  Future<void> _cargarWifi() async {
+    final w = await WifiCasaLocal.instancia.leer(_id);
+    if (mounted) setState(() => _wifi = w);
+  }
+
+  /// Vuelve al paso «Wi‑Fi de la casa» para capturarla o cambiarla (Carlos, 2026-10-22).
+  Future<void> _irWifiCasa() async {
+    final antes = _wifi?.red;
+    final r = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => WifiCasaScreen(ticket: widget.ticket)));
+    if (!mounted) return;
+    await _cargarWifi();
+    if (!mounted) return;
+    if (r == 'wifi_lista' && _wifi != null && _wifi!.red != antes) _ohmboxWifiOk = false;
+    if (r == 'wifi_lista' && _hayEnergizador && !_ohmboxWifiOk) await _ofrecerOhmboxWifi();
+  }
+
+  /// Si hay OhmBox y Wi‑Fi de la casa, ofrece conectarlo como segunda conexión.
+  Future<void> _ofrecerOhmboxWifi() async {
+    final w = _wifi;
+    if (w == null || !mounted) return;
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('¿Conectar el OhmBox a «${w.red}»?'),
+        content: const Text('Será su segunda conexión, además de la red celular. Si la red celular falla, el OhmBox sigue reportando por la Wi‑Fi de la casa.'),
+        actions: [
+          BotonesDialogo(
+            secundario: 'Ahora no',
+            onSecundario: () => Navigator.pop(ctx, false),
+            primario: 'Conectar',
+            onPrimario: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+    if (si == true) await _conectarOhmboxWifi();
+  }
+
+  Future<void> _conectarOhmboxWifi() async {
+    final w = _wifi;
+    if (w == null || _conectandoOhmboxWifi) return;
+    setState(() => _conectandoOhmboxWifi = true);
+    final r = await _repo.ohmboxWifi(_id, red: w.red, contrasena: w.contrasena);
+    if (!mounted) return;
+    setState(() {
+      _conectandoOhmboxWifi = false;
+      if (r.isSuccess) _ohmboxWifiOk = true;
+    });
+    _aviso(r.isSuccess ? 'OhmBox conectado a «${w.red}»' : r.failureValue.message);
   }
 
   Future<void> _cargar() async {
@@ -107,6 +167,8 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (!mounted) return;
     if (result == 'device_linked') await _probarEnergizador();
     if (mounted) await _recargarTodo();
+    // Con la Wi‑Fi de la casa ya capturada, el OhmBox recién vinculado puede usarla de segunda conexión.
+    if (mounted && result == 'device_linked' && _wifi != null && !_ohmboxWifiOk) await _ofrecerOhmboxWifi();
   }
 
   /// La prueba del energizador (encender/apagar la cerca frente al cliente) vive aquí (2026-10-20).
@@ -725,6 +787,25 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                 ),
                               ),
 
+                              // ---------------- Wi‑Fi de la casa (2026-10-22): se puede volver al paso desde aquí.
+                              const EtiquetaSeccion(
+                                'WI‑FI DE LA CASA',
+                                tituloAyuda: 'Wi‑Fi de la casa',
+                                ayuda: [
+                                  'La red que capturaste en el paso «Wi‑Fi de la casa». La usan los sensores y cámaras Wi‑Fi y el OhmBox como segunda conexión.',
+                                  'La contraseña se queda sólo en este teléfono y se borra al terminar la instalación.',
+                                ],
+                              ),
+                              FilaFlujo(
+                                titulo: _wifi != null ? '«${_wifi!.red}»' : 'Sin Wi‑Fi de la casa',
+                                subtitulo: _wifi != null
+                                    ? 'La usan sensores, cámaras y el OhmBox'
+                                    : 'Opcional · agrégala si vas a instalar equipos Wi‑Fi o para el OhmBox',
+                                marcada: _wifi != null,
+                                trailing: BotonFila(etiqueta: _wifi != null ? 'Cambiar' : 'Agregar', icono: Icons.wifi_rounded, onPressed: _ocupado ? null : _irWifiCasa),
+                              ),
+                              const SizedBox(height: 12),
+
                               // ---------------- Energizador (OhmBox): opcional desde la build 54 (Carlos, 2026-10-20).
                               EtiquetaSeccion(
                                 'ENERGIZADOR (OHMBOX)',
@@ -748,6 +829,22 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   titulo: 'Prueba del energizador',
                                   subtitulo: 'Enciende y apaga la cerca frente al cliente',
                                   trailing: BotonFila(etiqueta: 'Probar', onPressed: _ocupado ? null : _probarEnergizador),
+                                ),
+                                FilaFlujo(
+                                  titulo: 'Segunda conexión por Wi‑Fi',
+                                  subtitulo: _ohmboxWifiOk
+                                      ? 'Conectado a «${_wifi?.red ?? ''}», además de la red celular'
+                                      : _wifi == null
+                                      ? 'Opcional · agrega la Wi‑Fi de la casa para conectarlo'
+                                      : 'Conéctalo a «${_wifi!.red}» además de la red celular',
+                                  marcada: _ohmboxWifiOk,
+                                  trailing: _ohmboxWifiOk
+                                      ? null
+                                      : BotonFila(
+                                          etiqueta: _wifi == null ? 'Agregar Wi‑Fi' : 'Conectar',
+                                          icono: Icons.wifi_rounded,
+                                          onPressed: _ocupado || _conectandoOhmboxWifi ? null : (_wifi == null ? _irWifiCasa : _conectarOhmboxWifi),
+                                        ),
                                 ),
                                 _agregar('Agregar otro OhmBox', 'Sólo si compró un segundo energizador para esta casa', _ocupado || _ohmbox == null ? null : _agregarOhmbox),
                               ],

@@ -92,4 +92,9 @@ abstract class OrdenesRepository {
 
   /// Guarda el cierre del servicio (evidencias, entrega de equipo, firma).
   Future<Result<bool>> guardarCierre(String id, Map<String, dynamic> cierre);
+  /// Paso «Wi‑Fi de la casa» (2026-10-22): `red` = sólo el nombre, u `omitir`.
+  Future<Result<Map<String, dynamic>>> wifiCasaGuardar(String id, {String? red, bool omitir = false});
+
+  /// Conecta el OhmBox a la Wi‑Fi de la casa como segunda conexión. La contraseña va al equipo.
+  Future<Result<Map<String, dynamic>>> ohmboxWifi(String id, {required String red, String? contrasena});
 }

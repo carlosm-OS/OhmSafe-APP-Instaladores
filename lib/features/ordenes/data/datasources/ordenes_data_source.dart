@@ -70,4 +70,6 @@ abstract class OrdenesDataSource {
   /// Sube UNA foto de evidencia y devuelve su fileKey en Odoo.
   Future<String> subirEvidencia(String id, String categoria, String imagenBase64);
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre);
+  Future<Map<String, dynamic>> wifiCasaGuardar(String id, {String? red, bool omitir = false});
+  Future<Map<String, dynamic>> ohmboxWifi(String id, {required String red, String? contrasena});
 }

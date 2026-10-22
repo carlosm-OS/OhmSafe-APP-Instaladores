@@ -66,7 +66,23 @@ El metraje real queda como «Metros a instalar» en el paso 3 y en la tarjeta de
 - Donde algo puede confundir hay un ícono **ⓘ**. Tócalo: se abre una hoja corta con el «cómo funciona». Se cierra con **«Entendido»**.
 - Si el botón final del cierre está apagado, la pantalla dice **qué falta** («Para terminar falta: …»).
 
-## Paso 4 — Agregar dispositivos (energizador opcional)
+## Paso 4 — Wi‑Fi de la casa (opcional, desde la build 57)
+
+Antes de agregar dispositivos captura la Wi‑Fi de la casa **una sola vez**. La usan los sensores y
+cámaras Wi‑Fi y, si la casa lleva OhmBox, será su **segunda conexión** además de la red celular.
+
+1. Pon tu teléfono en la Wi‑Fi de la casa, en la red de **2.4 GHz** (la que no dice «5G»).
+2. Revisa el **nombre de la red** (se llena solo con la red del teléfono; en Android el icono abre la lista de redes cercanas).
+3. Pide al cliente que **escriba su contraseña**. Se queda **sólo en tu teléfono** y se borra al terminar la instalación; al sistema sólo va el nombre de la red.
+4. Toca **«Guardar Wi‑Fi de la casa»**.
+
+Si la casa no la necesita (por ejemplo, sólo cerca y sin equipos Wi‑Fi), toca **«Omitir: esta casa no la necesita»**.
+Puedes volver a este paso cuando quieras hasta el cierre: tócalo en la lista de pasos, o usa
+**«Agregar» / «Cambiar»** en la sección **«Wi‑Fi de la casa»** de «Agregar dispositivos».
+
+«Agregar dispositivos» y el cierre se habilitan cuando este paso queda **listo u omitido**.
+
+## Paso 5 — Agregar dispositivos (energizador opcional)
 
 > **Desde la build 54 (20 de octubre):** «Vincular el energizador» y «Prueba del energizador» ya no son pasos aparte. Una casa puede llevar energizador o no: **sin energizador** se instalan sensores Wi‑Fi y cámaras; **con energizador** se pueden agregar además sensores cableados, sirena, salidas y sensores inalámbricos (433). Todo vive en este paso, que se abre en cuanto terminas la instalación de la cerca.
 
@@ -92,18 +108,19 @@ Las secciones, en este orden:
 - **Salidas auxiliares** (de 12 V: estrobo o sirena extra). Toca **«Probar»**: la salida se enciende 5 segundos. Contesta **«¿Se encendió?»** y, si sí, escribe el nombre, **qué es** (estrobo, sirena extra u otro equipo de 12 V) y **cómo funciona** (encendido/apagado, o pulso de un toque corto). Si no encendió, no se guarda y queda anotado en el reporte.
 - **Sensores inalámbricos y controles** (puerta, movimiento, humo, botón de pánico o control remoto, por radio). Toca **«Agregar»**, elige el tipo y haz lo que diga la pantalla (abrir la puerta, pasar frente al sensor, apretar su botón). Cuando diga **«Aprendido»**, ponle nombre y **«Guardar»**. El energizador debe tener señal.
   - **Control remoto:** la app pide mantener presionado cada botón (1, 2 y 3) un segundo. Queda así: **botón 1 enciende y apaga la cerca**, **botón 2 es pánico** y el 3 no hace nada; el cliente puede cambiarlos en su app. Si el control tiene menos botones, guárdalo en cuanto diga «Aprendido».
-- **Sensores Wi‑Fi.** Toca **«Conectar sensor Wi‑Fi»** (aparece cuando el servidor tiene el emparejamiento Wi‑Fi encendido). Antes: pon el sensor en modo de emparejamiento (mantén su botón 5–10 s hasta que la luz parpadee rápido), tu teléfono en la Wi‑Fi de la casa **de 2.4 GHz**, y el cliente a la mano. Elige qué es (puerta, movimiento, humo), ponle nombre, revisa el **nombre de la red** (en Android, el icono del campo abre la lista de redes cercanas: elige la de 2.4 GHz de la casa; en iPhone sale la red del teléfono y, si no es la de la casa, cámbiala en Ajustes › Wi‑Fi y vuelve) y que el cliente **escriba su contraseña** (no se guarda). Modo **Rápido** es el normal; si falla, **Punto de acceso** (el teléfono se conecta un momento a la red Wi‑Fi nueva, sin contraseña, que crea el sensor). Si puedes, captura el **«Número de serie (opcional)»**: toca el icono del campo y escanea el código de la etiqueta del equipo o de su caja, o escríbelo. Toca **«Conectar el sensor»**; tarda hasta 2 minutos. Al terminar sale **«Equipo conectado»** con qué es, el modelo, la serie, el ID del equipo y la red: revisa que sea el que tienes en la mano (su luz ya no parpadea rápido) y toca **«Listo»**. Si no es, toca **«No es este equipo»** y avisa a operaciones con el ID. El sensor queda en la cuenta del cliente y lo ve en OhmSafe GO.
+- **OhmBox: segunda conexión por Wi‑Fi.** Con la Wi‑Fi de la casa ya capturada, la fila **«Segunda conexión por Wi‑Fi»** del energizador dice **«Conectar»**: el OhmBox se conecta a esa red además de la red celular. Al vincular un OhmBox la app te lo ofrece sola.
+- **Sensores Wi‑Fi.** Toca **«Conectar sensor Wi‑Fi»** (aparece cuando el servidor tiene el emparejamiento Wi‑Fi encendido). Antes: pon el sensor en modo de emparejamiento (mantén su botón 5–10 s hasta que la luz parpadee rápido), tu teléfono en la Wi‑Fi de la casa **de 2.4 GHz**, y el cliente a la mano. Elige qué es (puerta, movimiento, humo), ponle nombre, revisa el **nombre de la red** (en Android, el icono del campo abre la lista de redes cercanas: elige la de 2.4 GHz de la casa; en iPhone sale la red del teléfono y, si no es la de la casa, cámbiala en Ajustes › Wi‑Fi y vuelve) y la contraseña (si ya capturaste la Wi‑Fi de la casa en el paso 4, ambos vienen llenos; si no, el cliente la escribe aquí). Modo **Rápido** es el normal; si falla, **Punto de acceso** (el teléfono se conecta un momento a la red Wi‑Fi nueva, sin contraseña, que crea el sensor). Si puedes, captura el **«Número de serie (opcional)»**: toca el icono del campo y escanea el código de la etiqueta del equipo o de su caja, o escríbelo. Toca **«Conectar el sensor»**; tarda hasta 2 minutos. Al terminar sale **«Equipo conectado»** con qué es, el modelo, la serie, el ID del equipo y la red: revisa que sea el que tienes en la mano (su luz ya no parpadea rápido) y toca **«Listo»**. Si no es, toca **«No es este equipo»** y avisa a operaciones con el ID. El sensor queda en la cuenta del cliente y lo ve en OhmSafe GO.
     - «La casa todavía no tiene su cuenta de equipos Wi‑Fi»: el cliente debe entrar una vez a OhmSafe GO en su teléfono; luego vuelves a intentar.
     - «El equipo no llegó a la nube»: casi siempre es la contraseña o una red de 5 GHz; revisa que la luz siga parpadeando rápido.
 - **Cámaras Wi‑Fi.** Toca **«Conectar cámara Wi‑Fi»** (aparece cuando el servidor tiene el emparejamiento Wi‑Fi encendido). Igual que el sensor Wi‑Fi: cámara en modo de emparejamiento (mantén RESET hasta que la luz parpadee), tu teléfono en la Wi‑Fi de la casa **de 2.4 GHz**, contraseña del cliente (no se guarda), ponle nombre, captura su **número de serie** si puedes (escanea la etiqueta) y toca **«Conectar la cámara»**; tarda hasta 2 minutos. Al terminar confirma en **«Equipo conectado»** que es la cámara que tienes en la mano. La cámara queda en la cuenta del cliente y la ve en OhmSafe GO. Las cámaras de otras marcas que ya estaban registradas se siguen viendo en la lista, pero la app ya no da de alta cámaras de otras plataformas.
 
 Las puertas con cable, la sirena y las salidas piden firmware **2.10 o superior**; si el equipo es más viejo verás «Este energizador necesita actualizarse» (lo demás sí se puede agregar). Todo lo guardado queda en el acta de la instalación (Odoo).
 
-## Paso 5 — Cierre de la instalación
+## Paso 6 — Cierre de la instalación
 
 Toca «Cierre de la instalación». Tiene 3 partes: **1 · Fotos**, **2 · Entrega** y **3 · Firma**.
 
-### 5.1 Fotos
+### 6.1 Fotos
 
 1. En **«FOTOS OBLIGATORIAS»** toma las 4: «Foto cerca 1», «Foto cerca 2», «Energizador», «Letrero OhmSafe». El ⓘ dice qué debe verse en cada una.
 2. Para cada una elige «Tomar foto» o «Elegir de la galería».
@@ -112,7 +129,7 @@ Toca «Cierre de la instalación». Tiene 3 partes: **1 · Fotos**, **2 · Entre
 5. Si quieres, escribe algo en **«COMENTARIOS (OPCIONAL)»**.
 6. Toca **«Siguiente»**. Si falta alguna: «Faltan fotos: toma las 4 para seguir.»
 
-### 5.2 Entrega
+### 6.2 Entrega
 
 1. Marca **«Le entregué el control remoto y funciona»**.
 2. Cámaras, sensores y sirena **ya no se contestan aquí** (desde la build 57): el reporte del cliente lista solo lo que diste de alta en «Agregar dispositivos», con los datos del servidor.
@@ -122,7 +139,7 @@ Toca «Cierre de la instalación». Tiene 3 partes: **1 · Fotos**, **2 · Entre
 
 Mensajes si falta algo: «Falta confirmar la entrega del control remoto.», «Responde cámaras, sensores y sirena (o marca «No aplica»).», «Marca qué pasó o descríbelo abajo.»
 
-### 5.3 Firma
+### 6.3 Firma
 
 1. Pide al cliente que firme con el dedo en el recuadro que dice **«Firma aquí con el dedo»**.
 2. «Limpiar» borra la firma; cuando esté bien, toca **«Confirmar firma»**. Verás «Firma guardada». Para corregirla toca **«Volver a firmar»**.
@@ -139,7 +156,7 @@ Otros mensajes:
 - «No se pudo capturar la firma. Pide al cliente que firme de nuevo.»
 - «No se pudo enviar el cierre: …» — el cierre no se guardó. Revisa señal y vuelve a tocar «Terminar instalación».
 
-### 5.4 Terminar
+### 6.4 Terminar
 
 Al cerrar regresas a la lista de pasos con todo en verde. Toca «Terminar instalación»: aparece «¡Instalación terminada!» y el botón «Volver a instalaciones».
 

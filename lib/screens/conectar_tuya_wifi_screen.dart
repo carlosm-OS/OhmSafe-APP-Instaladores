@@ -5,6 +5,7 @@ import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../core/tuya/emparejador_tuya.dart';
 import '../core/utils/serie_qr.dart';
+import '../core/wifi/wifi_casa_local.dart';
 import '../core/wifi/redes_wifi.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/ayuda.dart';
@@ -57,6 +58,14 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
   void initState() {
     super.initState();
     _emp.addListener(_cambio);
+    // Wi‑Fi de la casa de esta visita (2026-10-22): el cliente ya escribió la contraseña una vez.
+    WifiCasaLocal.instancia.leer(widget.ordenId).then((w) {
+      if (!mounted || w == null) return;
+      setState(() {
+        if (_red.text.trim().isEmpty) _red.text = w.red;
+        if (_contrasena.text.isEmpty) _contrasena.text = w.contrasena;
+      });
+    });
   }
 
   @override

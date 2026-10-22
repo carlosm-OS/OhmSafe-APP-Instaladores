@@ -234,4 +234,10 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre) async {
     await dioClient.post('/instalador/ordenes/$id/cierre', body: cierre);
   }
+  @override
+  Future<Map<String, dynamic>> wifiCasaGuardar(String id, {String? red, bool omitir = false}) async =>
+      _data(await dioClient.put('/instalador/ordenes/$id/wifi-casa', body: omitir ? {'omitir': true} : {'red': red ?? ''}));
+  @override
+  Future<Map<String, dynamic>> ohmboxWifi(String id, {required String red, String? contrasena}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/ohmbox/wifi', body: {'red': red, if (contrasena != null && contrasena.isNotEmpty) 'contrasena': contrasena}));
 }

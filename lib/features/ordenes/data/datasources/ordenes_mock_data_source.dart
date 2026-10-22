@@ -293,4 +293,14 @@ class OrdenesMockDataSource implements OrdenesDataSource {
 
   @override
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre) => _ok();
+  @override
+  Future<Map<String, dynamic>> wifiCasaGuardar(String id, {String? red, bool omitir = false}) async {
+    await _ok();
+    return omitir ? {'estado': 'omitida', 'red': null} : {'estado': 'lista', 'red': red};
+  }
+  @override
+  Future<Map<String, dynamic>> ohmboxWifi(String id, {required String red, String? contrasena}) async {
+    await _ok();
+    return {'ok': true, 'red': red, 'ip': '192.168.1.40'};
+  }
 }
