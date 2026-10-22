@@ -284,7 +284,14 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
                                   '2',
                                   'Conecta este teléfono a la Wi‑Fi de la casa, a la red de 2.4 GHz: si el módem tiene dos redes, es la que NO dice «5G» en el nombre.',
                                 ),
-                                const _Punto('3', 'Ten el Bluetooth del teléfono encendido y acércate al equipo.'),
+                                _Punto(
+                                  '3',
+                                  _modo == 'AP'
+                                      ? 'Al tocar «Conectar» vas a unir el teléfono a la red Wi‑Fi del equipo y regresar a la app.'
+                                      : _modo == 'EZ'
+                                      ? 'Este teléfono en la Wi‑Fi de la casa y cerca del equipo.'
+                                      : 'Ten el Bluetooth del teléfono encendido y acércate al equipo.',
+                                ),
                               ],
                             ),
                           ),
@@ -537,7 +544,7 @@ class _RedDelEquipo extends StatelessWidget {
           Text(
             '1. Toca «Abrir ajustes de Wi‑Fi» (en iPhone: Ajustes › Wi‑Fi).\n'
             '2. Elige $cual. No tiene contraseña.\n'
-            '3. Regresa a esta app: sigue sola. Tienes unos 4 minutos.',
+            '3. Regresa a esta app: sigue sola. El permiso dura 5 minutos en total, así que hazlo sin pausas.',
             style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
           if (todaviaNo) ...[
