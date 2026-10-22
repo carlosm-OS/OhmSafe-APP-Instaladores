@@ -372,9 +372,17 @@ class EmparejadorTuya extends ChangeNotifier {
 const copiaTiempo =
     'El equipo no llegó a la nube. Revisa que esté en modo de emparejamiento (luz parpadeando rápido), que la red sea de 2.4 GHz y la contraseña, y vuelve a intentar.';
 
-String copiaErrorToken(Failure f) => f is ServerFailure && f.code == 'TUYA_UID_DESCONOCIDO'
-    ? 'La casa todavía no tiene su cuenta de equipos Wi‑Fi: el cliente debe entrar una vez a OhmSafe GO en su teléfono y luego vuelves a intentar.'
-    : f.message;
+String copiaErrorToken(Failure f) {
+  if (f is ServerFailure && f.code == 'TUYA_UID_DESCONOCIDO') {
+    return 'La casa todavía no tiene su cuenta de equipos Wi‑Fi: el cliente debe entrar una vez a OhmSafe GO en su teléfono y luego vuelves a intentar.';
+  }
+  // 502 del backend cuando la nube de los equipos rechaza algo (2026-10-22, Back-#162): sin marcas.
+  if (f is ServerFailure && f.code == 'TUYA_CLOUD_ERROR') {
+    final c = f.details['providerCode'];
+    return 'La nube de los equipos Wi‑Fi no dio el permiso para emparejar${c != null ? ' (código $c)' : ''}. Espera un momento y vuelve a intentar; si sigue, avisa a soporte con ese código.';
+  }
+  return f.message;
+}
 
 String copiaPuente(TuyaError e) => switch (e.codigo) {
   TuyaCodigo.noEnlazado => 'Esta versión de la app no puede emparejar equipos Wi‑Fi. Actualízala.',

@@ -209,6 +209,12 @@ void main() {
     expect(puente.metodos, isNot(contains('pairStartBle')));
   });
 
+  test('error de la nube de los equipos: mensaje propio con el código, sin marca', () {
+    final m = copiaErrorToken(const ServerFailure('x', 'TUYA_CLOUD_ERROR', {'providerCode': 2403}));
+    expect(m, contains('código 2403'));
+    expect(m.toLowerCase(), isNot(contains('tuya')));
+  });
+
   test('Bluetooth sin permiso: va directo al modo rápido', () async {
     final sinPermiso = EmparejadorTuya(
       repo: repo,
