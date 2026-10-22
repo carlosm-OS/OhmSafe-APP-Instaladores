@@ -47,7 +47,9 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
   final _serie = TextEditingController();
   String _tipo = 'door';
   bool _conectado = false;
-  String _modo = 'EZ';
+
+  /// Bluetooth primero (2026-10-22, como la app del cliente): si no ve el equipo, sigue sola en modo rápido.
+  String _modo = 'BLE';
   bool _verContrasena = false;
 
   static const _tipos = {'door': 'Puerta', 'motion': 'Movimiento', 'smoke': 'Humo'};
@@ -224,7 +226,8 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                             ayuda: [
                               'Enciende $que y ponlo en modo de emparejamiento: mantén su botón (RESET) 5–10 s hasta que la luz parpadee rápido.',
                               'Este teléfono debe estar en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»); los equipos no se conectan a redes de 5 GHz.',
-                              'Modo rápido: el equipo escucha en la red; es el normal. Modo punto de acceso: el teléfono se conecta un momento a la red Wi‑Fi que crea el equipo (aparece nueva y sin contraseña); úsalo si el rápido falla.',
+                              'Bluetooth (el normal): el teléfono busca el equipo cerca y le pasa la red; ten el Bluetooth encendido. Si no lo ve en 20 segundos, la app sigue sola en modo rápido.',
+                              'Modo rápido: el equipo escucha en la red. Modo punto de acceso: el teléfono se conecta un momento a la red Wi‑Fi que crea el equipo (aparece nueva y sin contraseña); úsalo si los otros fallan.',
                               'Ten al cliente cerca: él escribe la contraseña de su Wi‑Fi en este teléfono.',
                             ],
                           ),
@@ -319,10 +322,12 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                           const EtiquetaSeccion('MODO'),
                           SegmentedButton<String>(
                             segments: const [
+                              ButtonSegment(value: 'BLE', label: Text('Bluetooth'), icon: Icon(Icons.bluetooth_rounded)),
                               ButtonSegment(value: 'EZ', label: Text('Rápido'), icon: Icon(Icons.wifi_rounded)),
                               ButtonSegment(value: 'AP', label: Text('Punto de acceso'), icon: Icon(Icons.router_outlined)),
                             ],
                             selected: {_modo},
+                            showSelectedIcon: false,
                             onSelectionChanged: ocupado ? null : (s) => setState(() => _modo = s.first),
                           ),
                           const SizedBox(height: 24),

@@ -27,7 +27,6 @@ class AlmacenLlavero implements AlmacenSeguro {
           s ??
           const FlutterSecureStorage(
             iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device),
-            aOptions: AndroidOptions(encryptedSharedPreferences: true),
           );
   final FlutterSecureStorage _s;
   @override

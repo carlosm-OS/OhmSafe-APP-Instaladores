@@ -38,6 +38,8 @@ void main() {
       cadaSondeo: const Duration(milliseconds: 10),
       topeEmparejar: const Duration(milliseconds: 200),
       margen: const Duration(milliseconds: 50),
+      busquedaBluetooth: const Duration(milliseconds: 80),
+      permisoBluetooth: () async => true,
     );
   });
 
@@ -79,7 +81,12 @@ void main() {
   test('si el SDK no avisa, el sondeo del backend confirma que el equipo entró', () async {
     repo.resultado = {'successDevices': [], 'errorDevices': []};
     await empezar(modo: 'AP');
-    repo.resultado = {'successDevices': [{'id': 'eb002', 'category': 'pir'}], 'errorDevices': []};
+    repo.resultado = {
+      'successDevices': [
+        {'id': 'eb002', 'category': 'pir'},
+      ],
+      'errorDevices': [],
+    };
     await _hasta(() => emp.etapa == EtapaTuya.listo);
     expect(repo.sondeos, contains('tok123'));
     expect(repo.altas.single['externalId'], 'eb002');
@@ -107,7 +114,12 @@ void main() {
     puente.emitir({'type': 'pairError', 'code': 'TUYA_PAIR_FAILED', 'message': 'sin sesión'});
     await Future<void>.delayed(const Duration(milliseconds: 30));
     expect(emp.etapa, EtapaTuya.emparejando);
-    repo.resultado = {'successDevices': [{'id': 'eb003'}], 'errorDevices': []};
+    repo.resultado = {
+      'successDevices': [
+        {'id': 'eb003'},
+      ],
+      'errorDevices': [],
+    };
     await _hasta(() => emp.etapa == EtapaTuya.listo);
   });
 
@@ -140,13 +152,15 @@ void main() {
     t.view.physicalSize = const Size(1206, 6000);
     t.view.devicePixelRatio = 3;
     addTearDown(t.view.reset);
-    await t.pumpWidget(AppStateProvider(
-      notifier: AppState(),
-      child: MaterialApp(
-        theme: AppTheme.light,
-        home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _SinLista()),
+    await t.pumpWidget(
+      AppStateProvider(
+        notifier: AppState(),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _SinLista()),
+        ),
       ),
-    ));
+    );
     await t.pump();
     expect(find.text('Número de serie (opcional)'), findsOneWidget);
     await t.runAsync(() async {
@@ -160,6 +174,57 @@ void main() {
     expect(find.text('vd77'), findsOneWidget);
     expect(find.text('Smart Camera'), findsOneWidget);
     expect(find.text('No es este equipo'), findsOneWidget);
+  });
+
+  test('Bluetooth: encuentra un equipo combo y le pasa la red con el token de la casa', () async {
+    // Con Bluetooth, `empezar` espera a que aparezca el equipo: no se espera aquí.
+    unawaited(emp.empezar(clase: 'sensor', tipo: 'door', nombre: 'Puerta', red: 'Casa Pérez', contrasena: 'secreta123', modo: 'BLE'));
+    await _hasta(() => puente.metodos.contains('bleScanStart'));
+    expect(repo.tokens.first.$1, 'BLE');
+    await Future<void>.delayed(const Duration(milliseconds: 20)); // el canal de eventos ya escucha
+    puente.emitir({'type': 'bleFound', 'uuid': 'u-solo-ble', 'productId': 'p0', 'combo': false});
+    puente.emitir({'type': 'bleFound', 'uuid': 'u-combo', 'productId': 'p1', 'combo': true});
+    await _hasta(() => puente.metodos.contains('pairStartBle'));
+    final a = puente.args('pairStartBle');
+    expect(a['uuid'], 'u-combo');
+    expect(a['token'], 'AZtok123sec');
+    expect(a['ssid'], 'Casa Pérez');
+    expect(a['homeId'], '1');
+    expect(emp.modoUsado, 'BLE');
+    puente.emitir({'type': 'pairDone', 'devId': 'eb777', 'name': 'Door', 'productId': 'p1', 'category': 'mcs'});
+    await _hasta(() => emp.etapa == EtapaTuya.listo);
+    expect(repo.altas.single['externalId'], 'eb777');
+  });
+
+  test('Bluetooth: si no ve un equipo combo, sigue solo en modo rápido con un token nuevo', () async {
+    // Con Bluetooth, `empezar` espera a que aparezca el equipo: no se espera aquí.
+    unawaited(emp.empezar(clase: 'sensor', tipo: 'door', nombre: 'Puerta', red: 'Casa Pérez', contrasena: 'secreta123', modo: 'BLE'));
+    await _hasta(() => puente.metodos.contains('bleScanStart'));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    puente.emitir({'type': 'bleScanEnd'});
+    await _hasta(() => puente.metodos.contains('pairStart'));
+    expect(repo.tokens.map((t) => t.$1), ['BLE', 'EZ']);
+    expect(puente.args('pairStart')['mode'], 'EZ');
+    expect(emp.modoUsado, 'EZ');
+    expect(puente.metodos, isNot(contains('pairStartBle')));
+  });
+
+  test('Bluetooth sin permiso: va directo al modo rápido', () async {
+    final sinPermiso = EmparejadorTuya(
+      repo: repo,
+      ordenId: 'i99',
+      puente: TuyaPuente(canal: _Puente.canal, eventos: _Puente.eventos, appKey: 'k', appSecret: 's'),
+      zonaHoraria: () async => null,
+      cadaSondeo: const Duration(milliseconds: 10),
+      topeEmparejar: const Duration(milliseconds: 200),
+      margen: const Duration(milliseconds: 50),
+      permisoBluetooth: () async => false,
+    );
+    addTearDown(sinPermiso.dispose);
+    await sinPermiso.empezar(clase: 'camara', nombre: 'Cochera', red: 'Casa', contrasena: 'x', modo: 'BLE');
+    await _hasta(() => puente.metodos.contains('pairStart'));
+    expect(puente.metodos, isNot(contains('bleScanStart')));
+    expect(sinPermiso.modoUsado, 'EZ');
   });
 
   test('cancelar para el SDK y vuelve al reposo', () async {
@@ -197,9 +262,11 @@ class _Puente {
     });
     m.setMockStreamHandler(
       eventos,
-      MockStreamHandler.inline(onListen: (_, sink) {
-        _ctrl.stream.listen(sink.success);
-      }),
+      MockStreamHandler.inline(
+        onListen: (_, sink) {
+          _ctrl.stream.listen(sink.success);
+        },
+      ),
     );
   }
 
@@ -232,9 +299,34 @@ class _Repo implements OrdenesRepository {
   }
 
   @override
-  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie}) async {
-    altas.add({'proveedor': proveedor, 'clase': clase, 'externalId': externalId, 'nombre': nombre, 'codigo': codigo, 'red': red, 'tipo': tipo, 'productId': productId, 'category': category, 'serie': serie});
-    return Success({'dispositivo': {'id': 's1', 'name': nombre}});
+  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(
+    String id, {
+    required String proveedor,
+    required String clase,
+    required String externalId,
+    required String nombre,
+    String? codigo,
+    String? red,
+    String? tipo,
+    String? productId,
+    String? category,
+    String? serie,
+  }) async {
+    altas.add({
+      'proveedor': proveedor,
+      'clase': clase,
+      'externalId': externalId,
+      'nombre': nombre,
+      'codigo': codigo,
+      'red': red,
+      'tipo': tipo,
+      'productId': productId,
+      'category': category,
+      'serie': serie,
+    });
+    return Success({
+      'dispositivo': {'id': 's1', 'name': nombre},
+    });
   }
 
   @override

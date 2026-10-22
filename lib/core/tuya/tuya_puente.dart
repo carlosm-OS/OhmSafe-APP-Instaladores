@@ -56,10 +56,46 @@ class TuyaPuente {
 
   /// Arranca el emparejamiento con el token de la casa. El desenlace llega por [eventos]
   /// (`pairProgress` → `pairDone` / `pairError`) y, de respaldo, por el sondeo del backend.
-  Future<void> emparejar({required String modo, required String red, required String contrasena, required String token, Duration tope = const Duration(seconds: 120)}) =>
-      _llamar<bool>('pairStart', {'mode': modo, 'ssid': red, 'password': contrasena, 'token': token, 'timeoutS': tope.inSeconds});
+  Future<void> emparejar({
+    required String modo,
+    required String red,
+    required String contrasena,
+    required String token,
+    Duration tope = const Duration(seconds: 120),
+  }) => _llamar<bool>('pairStart', {'mode': modo, 'ssid': red, 'password': contrasena, 'token': token, 'timeoutS': tope.inSeconds});
 
-  /// Idempotente.
+  /// Bluetooth (2026-10-22, igual que la app del cliente): busca equipos sin emparejar cerca durante
+  /// [tope]. Llegan por [eventos] como `bleFound {uuid, productId, mac, combo, rssi?}` y al final
+  /// `bleScanEnd`. Sólo los `combo` (Bluetooth + Wi‑Fi) reciben la red por Bluetooth.
+  Future<void> buscarBluetooth({Duration tope = const Duration(seconds: 20)}) => _llamar<bool>('bleScanStart', {'timeoutS': tope.inSeconds});
+
+  Future<void> detenerBusqueda() async {
+    try {
+      await _llamar<bool>('bleScanStop');
+    } catch (_) {}
+  }
+
+  /// Le pasa la red al equipo encontrado por Bluetooth con el token de la casa (sin sesión en Tuya).
+  /// El desenlace llega por [eventos] (`pairDone` / `pairError`) y, de respaldo, por el sondeo.
+  Future<void> emparejarBluetooth({
+    required String uuid,
+    required String productId,
+    required String red,
+    required String contrasena,
+    required String token,
+    required String homeId,
+    Duration tope = const Duration(seconds: 120),
+  }) => _llamar<bool>('pairStartBle', {
+    'uuid': uuid,
+    'productId': productId,
+    'ssid': red,
+    'password': contrasena,
+    'token': token,
+    'homeId': homeId,
+    'timeoutS': tope.inSeconds,
+  });
+
+  /// Idempotente. También detiene la búsqueda y la activación por Bluetooth.
   Future<void> cancelar() async {
     try {
       await _llamar<bool>('pairCancel');
@@ -110,7 +146,18 @@ class TuyaError implements Exception {
 /// `pairProgress {step}` · `pairDone {devId, name, productId, category}` · `pairError {code, message}`.
 @immutable
 class TuyaEvento {
-  const TuyaEvento({required this.tipo, this.paso, this.devId, this.nombre, this.productId, this.categoria, this.codigo, this.mensaje});
+  const TuyaEvento({
+    required this.tipo,
+    this.paso,
+    this.devId,
+    this.nombre,
+    this.productId,
+    this.categoria,
+    this.codigo,
+    this.mensaje,
+    this.uuid,
+    this.combo = false,
+  });
 
   factory TuyaEvento.desdeMapa(Map<Object?, Object?> m) => TuyaEvento(
     tipo: (m['type'] ?? '').toString(),
@@ -121,6 +168,8 @@ class TuyaEvento {
     categoria: m['category']?.toString(),
     codigo: m['code']?.toString(),
     mensaje: m['message']?.toString(),
+    uuid: m['uuid']?.toString(),
+    combo: m['combo'] == true,
   );
 
   final String tipo;
@@ -132,6 +181,12 @@ class TuyaEvento {
   final String? codigo;
   final String? mensaje;
 
+  /// Bluetooth: identificador del anuncio y si el equipo es Bluetooth + Wi‑Fi (el único que recibe la red así).
+  final String? uuid;
+  final bool combo;
+
+  bool get bleEncontrado => tipo == 'bleFound' && (uuid ?? '').isNotEmpty;
+  bool get finBusqueda => tipo == 'bleScanEnd';
   bool get listo => tipo == 'pairDone' && (devId ?? '').isNotEmpty;
   bool get fallo => tipo == 'pairError';
   bool get progreso => tipo == 'pairProgress';

@@ -234,3 +234,22 @@ vez, que se puede omitir y al que se puede volver. Contraseña: **opción A, só
   OhmBox con Wi‑Fi ya capturada la app ofrece conectarlo.
 - `ConectarTuyaWifiScreen` precarga red y contraseña desde `WifiCasaLocal`.
 - Pruebas: `test/wifi_casa_test.dart`.
+
+## Bluetooth (2026-10-22)
+
+Lo tenía Dan en GO (escaneo BLE → activación multimodo, luego EZ, luego AP). En Installer se adaptó
+al **token de la casa que da el backend** (sin sesión en Tuya):
+
+- Dart: `TuyaPuente.buscarBluetooth` (`bleScanStart`), `detenerBusqueda` (`bleScanStop`),
+  `emparejarBluetooth` (`pairStartBle {uuid, productId, ssid, password, token, homeId}`); eventos
+  `bleFound {uuid, combo…}` y `bleScanEnd`. `EmparejadorTuya` con modo `BLE`: pide el token con
+  `modo: BLE`, busca 20 s, empareja el primer equipo **combo** (Bluetooth + Wi‑Fi) y, si no hay permiso,
+  no aparece ninguno o el SDK no arranca, pide un token `EZ` y sigue en modo rápido (`modoUsado`).
+- Android (`src/tuyaOn`): `ThingHomeSdk.getBleOperator().startLeScan` + `newMultiModeActivator()` con
+  `MultiModeActivatorBean.token` = token de la casa. Manifiesto: BLUETOOTH (≤30), BLUETOOTH_SCAN
+  (`neverForLocation`), BLUETOOTH_CONNECT; permisos en tiempo de ejecución con `permission_handler`.
+- iOS: `ThingSmartBLEManager` para buscar y `ThingSmartBLEWifiActivator.pairDevice(withUUID:token:ssid:pwd:timeout:)`
+  (la variante con token; la de GO usa la sesión). `NSBluetoothAlwaysUsageDescription` ya estaba.
+- Sin probar con hardware: los equipos sólo Bluetooth (no combo) se ignoran; los Wi‑Fi sin Bluetooth
+  caen al modo rápido.
+- Pruebas: `test/tuya_wifi_test.dart` (combo encontrado, respaldo a rápido, sin permiso).

@@ -7,6 +7,13 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Cámara: escanear el QR del energizador y fotos de evidencia (mobile_scanner la declara; explícita para la ficha de Play). -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Bluetooth (2026-10-22): buscar sensores y cámaras cerca y pasarles la Wi‑Fi de la casa. Hasta
+         Android 11 valen los permisos viejos; desde Android 12 SCAN y CONNECT (SCAN con neverForLocation:
+         no deducimos ubicación de los anuncios). Los de tiempo de ejecución los pide el lado Dart. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Conectar cámaras EZVIZ a la Wi-Fi de la casa (2026-10-17): el SDK une el teléfono al punto de
          acceso de la cámara y le pasa la red; leer el nombre de la red pide ubicación (ya arriba).

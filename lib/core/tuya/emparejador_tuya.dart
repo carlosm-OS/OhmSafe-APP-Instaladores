@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../error/failures.dart';
@@ -15,6 +17,18 @@ Future<String?> zonaHorariaDelTelefono() async {
     return z.identifier.isEmpty ? null : z.identifier;
   } catch (_) {
     return null;
+  }
+}
+
+/// Permisos de Bluetooth (Android 12+: BLUETOOTH_SCAN y BLUETOOTH_CONNECT; en iPhone el sistema pregunta
+/// solo la primera vez). Nunca lanza: un «no» hace que se use el modo rápido.
+Future<bool> permisoBluetoothDelTelefono() async {
+  if (!Platform.isAndroid) return true;
+  try {
+    final r = await [Permission.bluetoothScan, Permission.bluetoothConnect].request();
+    return r.values.every((s) => s.isGranted || s.isLimited);
+  } catch (_) {
+    return false;
   }
 }
 
@@ -40,7 +54,16 @@ class EmparejadorTuya extends ChangeNotifier {
     this.cadaSondeo = const Duration(seconds: 5),
     this.topeEmparejar = const Duration(seconds: 120),
     this.margen = const Duration(seconds: 15),
+    this.busquedaBluetooth = const Duration(seconds: 20),
+    this.permisoBluetooth = permisoBluetoothDelTelefono,
   }) : puente = puente ?? TuyaPuente();
+
+  /// Cuánto se busca el equipo por Bluetooth antes de pasar al modo rápido (como la app del cliente).
+  final Duration busquedaBluetooth;
+  final Future<bool> Function() permisoBluetooth;
+
+  /// Modo con el que de verdad se emparejó ('BLE', 'EZ' o 'AP'): el Bluetooth cae al rápido si no ve el equipo.
+  String modoUsado = '';
 
   final Future<String?> Function() zonaHoraria;
 
@@ -113,13 +136,21 @@ class EmparejadorTuya extends ChangeNotifier {
     _serie = s.isEmpty ? null : s;
     error = null;
     registrado = null;
-    _ir(EtapaTuya.preparando, 'Pidiendo el permiso de la casa…');
+    await _conToken(intento, modo, contrasena);
+  }
+
+  /// Token de la casa para [modo] → SDK → Bluetooth o Wi‑Fi (rápido / punto de acceso).
+  Future<void> _conToken(int intento, String modo, String contrasena) async {
+    modoUsado = modo;
+    // Si viene del respaldo (Bluetooth → rápido) se conserva el aviso de por qué cambió.
+    _ir(EtapaTuya.preparando, etapa == EtapaTuya.preparando && texto.isNotEmpty ? texto : 'Pidiendo el permiso de la casa…');
 
     final t = await repo.tuyaToken(ordenId, modo: modo, zonaHoraria: await zonaHoraria());
     if (!_vigente(intento)) return;
     if (t.isFailure) return _fallar(copiaErrorToken(t.failureValue));
     _token = (t.successValue['token'] ?? '').toString();
     final authToken = (t.successValue['authToken'] ?? '').toString();
+    final homeId = (t.successValue['homeId'] ?? '').toString();
     if (_token.isEmpty || authToken.isEmpty) return _fallar('El servidor no entregó el permiso de emparejamiento. Avisa a soporte.');
 
     try {
@@ -129,24 +160,95 @@ class EmparejadorTuya extends ChangeNotifier {
       return _fallar(copiaPuente(e));
     }
     if (!_vigente(intento)) return;
+    if (modo == 'BLE') return _porBluetooth(intento, contrasena, authToken, homeId);
+    await _porWifi(intento, modo, contrasena, authToken);
+  }
 
-    _ir(EtapaTuya.emparejando, modo == 'AP' ? 'Si el teléfono lo pide, conéctate a la red Wi‑Fi nueva que crea el equipo (no tiene contraseña)…' : 'Pasándole la red de la casa al equipo…');
+  void _alEvento(int intento, TuyaEvento e) {
+    if (!_vigente(intento)) return;
+    if (e.listo) {
+      _devId = e.devId;
+      _productId = e.productId;
+      _categoria = e.categoria;
+      if ((e.nombre ?? '').isNotEmpty) _nombreNube = e.nombre;
+      if ((e.nombre ?? '').isNotEmpty && _nombre.isEmpty) _nombre = e.nombre!;
+      unawaited(_registrar(intento));
+    } else if (e.fallo) {
+      // El SDK sin sesión puede quejarse aunque el equipo sí haya entrado: el backend decide.
+      _ir(EtapaTuya.emparejando, 'Comprobando con la nube si el equipo entró…');
+    } else if (e.progreso && etapa == EtapaTuya.emparejando) {
+      _ir(EtapaTuya.emparejando, copiaPaso(e.paso));
+    }
+  }
+
+  /// Bluetooth primero (2026-10-22, como Dan en GO): busca el equipo cerca y le pasa la red por ahí.
+  /// Si no hay permiso, no aparece un equipo Bluetooth + Wi‑Fi o el SDK no arranca, sigue con el
+  /// modo rápido sin que el instalador tenga que hacer nada.
+  Future<void> _porBluetooth(int intento, String contrasena, String authToken, String homeId) async {
+    if (!await permisoBluetooth()) {
+      return _respaldoRapido(intento, contrasena, 'Sin permiso de Bluetooth: probando el modo rápido…');
+    }
+    if (!_vigente(intento)) return;
+    _ir(EtapaTuya.emparejando, 'Buscando el equipo por Bluetooth…');
+    final encontrado = Completer<TuyaEvento?>();
     _sub = puente.eventos.listen((e) {
       if (!_vigente(intento)) return;
-      if (e.listo) {
-        _devId = e.devId;
-        _productId = e.productId;
-        _categoria = e.categoria;
-        if ((e.nombre ?? '').isNotEmpty) _nombreNube = e.nombre;
-        if ((e.nombre ?? '').isNotEmpty && _nombre.isEmpty) _nombre = e.nombre!;
-        unawaited(_registrar(intento));
-      } else if (e.fallo) {
-        // El SDK sin sesión puede quejarse aunque el equipo sí haya entrado: el backend decide.
-        _ir(EtapaTuya.emparejando, 'Comprobando con la nube si el equipo entró…');
-      } else if (e.progreso && etapa == EtapaTuya.emparejando) {
-        _ir(EtapaTuya.emparejando, copiaPaso(e.paso));
+      if (e.bleEncontrado) {
+        if (e.combo && !encontrado.isCompleted) encontrado.complete(e);
+      } else if (e.finBusqueda) {
+        if (!encontrado.isCompleted) encontrado.complete(null);
+      } else {
+        _alEvento(intento, e);
       }
     });
+    _arrancado = true;
+    try {
+      await puente.buscarBluetooth(tope: busquedaBluetooth);
+    } on TuyaError {
+      if (!encontrado.isCompleted) encontrado.complete(null);
+    }
+    final eq = await encontrado.future.timeout(busquedaBluetooth + const Duration(seconds: 5), onTimeout: () => null);
+    if (!_vigente(intento)) return;
+    if (eq == null) {
+      await _detener();
+      return _respaldoRapido(intento, contrasena, 'No vimos el equipo por Bluetooth: probando el modo rápido…');
+    }
+    await puente.detenerBusqueda();
+    _ir(EtapaTuya.emparejando, 'Pasándole la red de la casa por Bluetooth…');
+    try {
+      await puente.emparejarBluetooth(
+        uuid: eq.uuid!,
+        productId: eq.productId ?? '',
+        red: _red,
+        contrasena: contrasena,
+        token: authToken,
+        homeId: homeId,
+        tope: topeEmparejar,
+      );
+    } on TuyaError {
+      if (!_vigente(intento)) return;
+      await _detener();
+      return _respaldoRapido(intento, contrasena, 'El Bluetooth no arrancó: probando el modo rápido…');
+    }
+    if (!_vigente(intento)) return;
+    _sondeo = Timer.periodic(cadaSondeo, (_) => unawaited(_sondear(intento)));
+    _limite = Timer(topeEmparejar + margen, () => unawaited(_rendirse(intento)));
+  }
+
+  Future<void> _respaldoRapido(int intento, String contrasena, String aviso) async {
+    if (!_vigente(intento)) return;
+    _ir(EtapaTuya.preparando, aviso);
+    await _conToken(intento, 'EZ', contrasena);
+  }
+
+  Future<void> _porWifi(int intento, String modo, String contrasena, String authToken) async {
+    _ir(
+      EtapaTuya.emparejando,
+      modo == 'AP'
+          ? 'Si el teléfono lo pide, conéctate a la red Wi‑Fi nueva que crea el equipo (no tiene contraseña)…'
+          : 'Pasándole la red de la casa al equipo…',
+    );
+    _sub = puente.eventos.listen((e) => _alEvento(intento, e));
     _arrancado = true;
     try {
       await puente.emparejar(modo: modo, red: _red, contrasena: contrasena, token: authToken, tope: topeEmparejar);
@@ -187,7 +289,9 @@ class EmparejadorTuya extends ChangeNotifier {
       final malos = ((r.successValue['errorDevices'] as List?) ?? const []).whereType<Map>().toList();
       if (malos.isNotEmpty) {
         await _detener();
-        _fallar('El equipo intentó entrar pero la nube lo rechazó${malos.first['error'] != null ? ' (${malos.first['error']})' : ''}. Reinícialo y vuelve a intentar.');
+        _fallar(
+          'El equipo intentó entrar pero la nube lo rechazó${malos.first['error'] != null ? ' (${malos.first['error']})' : ''}. Reinícialo y vuelve a intentar.',
+        );
       }
     } finally {
       _sondeando = false;
@@ -283,6 +387,7 @@ String copiaPuente(TuyaError e) => switch (e.codigo) {
 
 String copiaPaso(String? paso) => switch (paso) {
   'ez_waiting' => 'Pasándole la red de la casa al equipo… (puede tardar 1 minuto)',
+  'ble_connecting' => 'Pasándole la red de la casa por Bluetooth…',
   'ap_waiting' => 'Conectado al equipo; pasándole la red de la casa…',
   'found' => 'El equipo ya recibió la red; registrándolo en la nube…',
   'registered' || 'initialized' => 'El equipo ya está en la nube…',

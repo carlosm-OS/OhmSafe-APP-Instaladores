@@ -123,4 +123,13 @@ class TuyaEventSink : EventChannel.StreamHandler {
   fun pairDone(devId: String, name: String, productId: String, category: String) =
     send(mapOf("type" to "pairDone", "devId" to devId, "name" to name, "productId" to productId, "category" to category))
   fun pairError(code: String, message: String) = send(mapOf("type" to "pairError", "code" to code, "message" to message))
+
+  // Bluetooth (2026-10-22): `bleFound {uuid, productId, mac, combo, rssi?}` · `bleScanEnd` · `bleState {poweredOn}`.
+  fun bleFound(uuid: String, productId: String, mac: String, combo: Boolean, rssi: Int?) {
+    val payload = mutableMapOf<String, Any?>("type" to "bleFound", "uuid" to uuid, "productId" to productId, "mac" to mac, "combo" to combo)
+    if (rssi != null && rssi < 0) payload["rssi"] = rssi
+    send(payload)
+  }
+  fun bleScanEnd() = send(mapOf("type" to "bleScanEnd"))
+  fun bleState(poweredOn: Boolean) = send(mapOf("type" to "bleState", "poweredOn" to poweredOn))
 }
