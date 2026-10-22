@@ -12,6 +12,7 @@ import 'package:ohmsafe_app/core/theme/app_theme.dart';
 import 'package:ohmsafe_app/core/tuya/tuya_puente.dart';
 import 'package:ohmsafe_app/core/utils/serie_qr.dart';
 import 'package:ohmsafe_app/core/wifi/redes_wifi.dart';
+import 'package:ohmsafe_app/core/wifi/wifi_casa_local.dart';
 import 'package:ohmsafe_app/features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'package:ohmsafe_app/screens/conectar_tuya_wifi_screen.dart';
 
@@ -157,7 +158,7 @@ void main() {
         notifier: AppState(),
         child: MaterialApp(
           theme: AppTheme.light,
-          home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _SinLista()),
+          home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _SinLista(), local: WifiCasaLocal(almacen: _MemoriaWifi())),
         ),
       ),
     );
@@ -231,6 +232,39 @@ void main() {
     await _hasta(() => puente.metodos.contains('pairStart'));
     expect(puente.metodos, isNot(contains('bleScanStart')));
     expect(sinPermiso.modoUsado, 'EZ');
+  });
+
+  Future<void> montarPantalla(WidgetTester t, WifiCasaLocal local) async {
+    t.view.physicalSize = const Size(1206, 6000);
+    t.view.devicePixelRatio = 3;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(AppStateProvider(
+      notifier: AppState(),
+      child: MaterialApp(
+        theme: AppTheme.light,
+        home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _SinLista(), local: local),
+      ),
+    ));
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+    await t.pump();
+  }
+
+  testWidgets('con la Wi‑Fi del paso 4 no se vuelve a pedir: sólo la marca y «Cambiar»', (t) async {
+    final local = WifiCasaLocal(almacen: _MemoriaWifi());
+    await t.runAsync(() => local.guardar('i99', const WifiCasa(red: 'Casa Pérez', contrasena: 'secreta123')));
+    await montarPantalla(t, local);
+    expect(find.text('Conectado a la Wi‑Fi de la casa'), findsOneWidget);
+    expect(find.textContaining('«Casa Pérez»'), findsOneWidget);
+    expect(find.text('Cambiar'), findsOneWidget);
+    expect(find.text('Contraseña de la Wi‑Fi'), findsNothing);
+    expect(find.text('Nombre de la red (Wi‑Fi)'), findsNothing);
+  });
+
+  testWidgets('sin Wi‑Fi de la casa pide ir al paso y no deja conectar', (t) async {
+    await montarPantalla(t, WifiCasaLocal(almacen: _MemoriaWifi()));
+    expect(find.text('Falta la Wi‑Fi de la casa'), findsOneWidget);
+    expect(find.text('Ir a Wi‑Fi de la casa'), findsOneWidget);
+    expect(find.text('Contraseña de la Wi‑Fi'), findsNothing);
   });
 
   test('cancelar para el SDK y vuelve al reposo', () async {
@@ -344,4 +378,14 @@ class _SinLista implements ListadorRedes {
   bool get puedeListar => false;
   @override
   Future<ResultadoEscaneo> escanear() async => throw UnimplementedError();
+}
+
+class _MemoriaWifi implements AlmacenSeguro {
+  final datos = <String, String>{};
+  @override
+  Future<String?> leer(String llave) async => datos[llave];
+  @override
+  Future<void> escribir(String llave, String valor) async => datos[llave] = valor;
+  @override
+  Future<void> borrar(String llave) async => datos.remove(llave);
 }

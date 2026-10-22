@@ -2,7 +2,12 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
-## Build 57 (en preparación)
+## Build 58 (en preparación)
+
+- **La Wi‑Fi no se vuelve a pedir.** Al conectar una cámara o un sensor Wi‑Fi ya no aparecen los campos de red y contraseña: sale «Conectado a la Wi‑Fi de la casa» con la red del paso 4 y el botón «Cambiar». Si todavía no la capturaste, la pantalla te manda al paso con «Ir a Wi‑Fi de la casa».
+- **Mensaje claro si la nube de los equipos rechaza el permiso**, con su código para soporte.
+
+## Build 57 (TestFlight y APK, servidor de pruebas) — 22 de octubre de 2026
 
 - **Número de intervención en el historial.** Cada tarjeta del historial muestra su número (por ejemplo «i67»), igual que en la lista de instalaciones; también puedes buscarlo.
 - **El reporte dice lo que de verdad instalaste.** En el cierre ya no se contestan «Cámaras», «Sensores» y «Sirena»: el reporte del cliente lista lo que diste de alta en «Agregar dispositivos» (energizador, sensores cableados, salidas, sensores 433, controles, sensores Wi‑Fi, cámaras y la prueba de sirena).

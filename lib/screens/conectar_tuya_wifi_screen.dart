@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
@@ -10,9 +9,9 @@ import '../core/wifi/redes_wifi.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/ayuda.dart';
 import '../widgets/botones_dialogo.dart';
-import '../widgets/campo_red_wifi.dart';
 import '../widgets/ohm_gradient_button.dart';
 import 'escanear_serie_screen.dart';
+import 'wifi_casa_screen.dart';
 
 /// «Conectar sensor / cámara Tuya a la Wi‑Fi» (2026-10-17, fase 2 de docs/instalador-wifi.md).
 ///
@@ -25,7 +24,7 @@ import 'escanear_serie_screen.dart';
 /// «Equipo conectado» con lo que dijo la nube, para que el instalador confirme que es el que tiene
 /// en la mano antes de salir.
 class ConectarTuyaWifiScreen extends StatefulWidget {
-  const ConectarTuyaWifiScreen({super.key, required this.ordenId, required this.clase, this.emparejador, this.listador});
+  const ConectarTuyaWifiScreen({super.key, required this.ordenId, required this.clase, this.emparejador, this.listador, this.local});
   final String ordenId;
 
   /// `sensor` o `camara`.
@@ -35,11 +34,20 @@ class ConectarTuyaWifiScreen extends StatefulWidget {
   /// Las pruebas inyectan un listador de redes falso.
   final ListadorRedes? listador;
 
+  /// Wi‑Fi de la casa de la visita (las pruebas inyectan una en memoria).
+  final WifiCasaLocal? local;
+
   @override
   State<ConectarTuyaWifiScreen> createState() => _ConectarTuyaWifiScreenState();
 }
 
 class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
+  late final WifiCasaLocal _local = widget.local ?? WifiCasaLocal.instancia;
+
+  /// La Wi‑Fi del paso 4 (Carlos, 2026-10-22): aquí ya no se vuelve a pedir. Sin ella, se manda al paso.
+  WifiCasa? _wifiCasa;
+  bool _wifiLeida = false;
+
   late final EmparejadorTuya _emp = widget.emparejador ?? EmparejadorTuya(repo: sl.get<OrdenesRepository>(), ordenId: widget.ordenId);
   final _nombre = TextEditingController();
   final _red = TextEditingController();
@@ -50,7 +58,6 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
 
   /// Bluetooth primero (2026-10-22, como la app del cliente): si no ve el equipo, sigue sola en modo rápido.
   String _modo = 'BLE';
-  bool _verContrasena = false;
 
   static const _tipos = {'door': 'Puerta', 'motion': 'Movimiento', 'smoke': 'Humo'};
 
@@ -60,14 +67,25 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
   void initState() {
     super.initState();
     _emp.addListener(_cambio);
-    // Wi‑Fi de la casa de esta visita (2026-10-22): el cliente ya escribió la contraseña una vez.
-    WifiCasaLocal.instancia.leer(widget.ordenId).then((w) {
-      if (!mounted || w == null) return;
-      setState(() {
-        if (_red.text.trim().isEmpty) _red.text = w.red;
-        if (_contrasena.text.isEmpty) _contrasena.text = w.contrasena;
-      });
+    _cargarWifiCasa();
+  }
+
+  /// Wi‑Fi de la casa de esta visita (paso 4): red y contraseña que el cliente escribió una vez.
+  Future<void> _cargarWifiCasa() async {
+    final w = await _local.leer(widget.ordenId);
+    if (!mounted) return;
+    setState(() {
+      _wifiCasa = w;
+      _wifiLeida = true;
+      _red.text = w?.red ?? '';
+      _contrasena.text = w?.contrasena ?? '';
     });
+  }
+
+  /// Regresa al paso «Wi‑Fi de la casa» para capturarla o cambiarla.
+  Future<void> _irWifiCasa() async {
+    await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => WifiCasaScreen(ticket: {'id': widget.ordenId})));
+    if (mounted) await _cargarWifiCasa();
   }
 
   @override
@@ -90,21 +108,12 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
     setState(() {});
   }
 
-  /// La red actual del teléfono para prellenarla (hace falta ubicación en iOS y Android). La lee
-  /// [CampoRedWifi] al abrir y cada vez que la app vuelve al frente.
-  Future<String?> _leerRedActual() async {
-    try {
-      var permiso = await Geolocator.checkPermission();
-      if (permiso == LocationPermission.denied) permiso = await Geolocator.requestPermission();
-    } catch (_) {}
-    return _emp.puente.redActual();
-  }
-
-  bool get _completo => _nombre.text.trim().isNotEmpty && _red.text.trim().isNotEmpty;
+  bool get _completo => _nombre.text.trim().isNotEmpty && _wifiCasa != null;
 
   Future<void> _empezar() async {
     FocusScope.of(context).unfocus();
-    if (_contrasena.text.isEmpty) {
+    // Con la Wi‑Fi del paso 4 ya se confirmó ahí si la red no tiene contraseña.
+    if (_wifiCasa == null && _contrasena.text.isEmpty) {
       final sinClave = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -228,7 +237,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                               'Este teléfono debe estar en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»); los equipos no se conectan a redes de 5 GHz.',
                               'Bluetooth (el normal): el teléfono busca el equipo cerca y le pasa la red; ten el Bluetooth encendido. Si no lo ve en 20 segundos, la app sigue sola en modo rápido.',
                               'Modo rápido: el equipo escucha en la red. Modo punto de acceso: el teléfono se conecta un momento a la red Wi‑Fi que crea el equipo (aparece nueva y sin contraseña); úsalo si los otros fallan.',
-                              'Ten al cliente cerca: él escribe la contraseña de su Wi‑Fi en este teléfono.',
+                              'La red y la contraseña son las del paso «Wi‑Fi de la casa»: aquí no se vuelven a escribir.',
                             ],
                           ),
                           TarjetaFlujo(
@@ -240,7 +249,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                                   '2',
                                   'Conecta este teléfono a la Wi‑Fi de la casa, a la red de 2.4 GHz: si el módem tiene dos redes, es la que NO dice «5G» en el nombre.',
                                 ),
-                                const _Punto('3', 'Ten al cliente cerca: él escribe la contraseña de su Wi‑Fi en este teléfono.'),
+                                const _Punto('3', 'Ten el Bluetooth del teléfono encendido y acércate al equipo.'),
                               ],
                             ),
                           ),
@@ -287,37 +296,30 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                           const SizedBox(height: 20),
                           const EtiquetaSeccion(
                             'LA WI‑FI DE LA CASA',
-                            tituloAyuda: 'Red y contraseña',
+                            tituloAyuda: 'Wi‑Fi de la casa',
                             ayuda: [
-                              'El nombre de la red se guarda en la ficha de la casa: si el cliente cambia de módem, soporte sabrá a qué red estaba el equipo.',
-                              'La contraseña la escribe el cliente, sólo sirve para pasársela al equipo y no se guarda.',
+                              'Se usa la red que capturaste en el paso «Wi‑Fi de la casa»: el cliente escribió la contraseña una sola vez.',
+                              'Si hay que cambiarla, toca «Cambiar»: vuelves al paso y al regresar se usa la nueva.',
                             ],
                           ),
-                          // Selector de redes (2026-10-20): Android lista las cercanas; iOS relee la conectada.
-                          CampoRedWifi(
-                            controller: _red,
-                            enabled: !ocupado,
-                            leerRedActual: _leerRedActual,
-                            listador: widget.listador,
-                            onChanged: () => setState(() {}),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _contrasena,
-                            enabled: !ocupado,
-                            obscureText: !_verContrasena,
-                            autocorrect: false,
-                            enableSuggestions: false,
-                            decoration: InputDecoration(
-                              labelText: 'Contraseña de la Wi‑Fi',
-                              helperText: 'La escribe el cliente. No se guarda.',
-                              suffixIcon: IconButton(
-                                tooltip: _verContrasena ? 'Ocultar' : 'Mostrar',
-                                icon: Icon(_verContrasena ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                                onPressed: () => setState(() => _verContrasena = !_verContrasena),
-                              ),
+                          if (!_wifiLeida)
+                            const SizedBox(height: 56)
+                          else if (_wifiCasa != null)
+                            FilaFlujo(
+                              titulo: 'Conectado a la Wi‑Fi de la casa',
+                              subtitulo: '«${_wifiCasa!.red}» · la contraseña es la del paso 4',
+                              marcada: true,
+                              trailing: BotonFila(etiqueta: 'Cambiar', icono: Icons.wifi_rounded, onPressed: ocupado ? null : _irWifiCasa),
+                            )
+                          else ...[
+                            MensajeFlujo(
+                              icono: Icons.wifi_off_rounded,
+                              color: cs.primary,
+                              titulo: 'Falta la Wi‑Fi de la casa',
+                              texto: 'Captúrala una vez en el paso «Wi‑Fi de la casa» y aquí se usa sola, sin volver a escribirla.',
                             ),
-                          ),
+                            BotonSecundario(etiqueta: 'Ir a Wi‑Fi de la casa', onPressed: ocupado ? null : _irWifiCasa),
+                          ],
                           const SizedBox(height: 16),
                           const EtiquetaSeccion('MODO'),
                           SegmentedButton<String>(
