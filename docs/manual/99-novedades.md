@@ -8,6 +8,8 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 - **El reporte dice lo que de verdad instalaste.** En el cierre ya no se contestan «Cámaras», «Sensores» y «Sirena»: el reporte del cliente lista lo que diste de alta en «Agregar dispositivos» (energizador, sensores cableados, salidas, sensores 433, controles, sensores Wi‑Fi, cámaras y la prueba de sirena).
 - **Salidas auxiliares de 12 V.** Al registrar una salida, las opciones ahora son «Estrobo», «Sirena extra» u «Otro equipo de 12 V» (ya no luz, bomba ni portón).
 - **Control remoto desde la app.** En «Agregar dispositivos › Sensores inalámbricos» vuelve la opción «Control remoto»: la app pide cada botón y lo deja con botón 1 = encender y apagar la cerca, botón 2 = pánico.
+- **Serie de los equipos Wi‑Fi.** Al conectar un sensor o una cámara Wi‑Fi puedes escanear o escribir su número de serie (opcional). Queda en la ficha del equipo, en el dashboard y en el reporte de servicio: sirve para inventario y garantía.
+- **«Equipo conectado».** Al terminar de conectar un sensor o cámara Wi‑Fi ya no sólo sale un aviso: aparece una tarjeta con qué es, el modelo, la serie, el ID del equipo y la red, para confirmar que es el que tienes en la mano. Si no es, «No es este equipo» te dice qué avisar a operaciones.
 - **Sin nombres de marca.** La ayuda para conectar sensores y cámaras Wi‑Fi ya no menciona marcas: en el modo «Punto de acceso» dice que te conectes a la red nueva que crea el equipo.
 - **Sirena de demostración.** En «Agregar dispositivos › Sirena» hay «Encender» y «Apagar»: puedes hacerla sonar las veces que quieras frente al cliente (se apaga sola a los 15 segundos). La primera vez la app pregunta si sonó, como antes.
 

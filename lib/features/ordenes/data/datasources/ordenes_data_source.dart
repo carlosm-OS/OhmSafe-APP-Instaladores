@@ -58,7 +58,7 @@ abstract class OrdenesDataSource {
   /// Tuya (2026-10-17): token de emparejamiento de la casa (`modo` EZ|AP|BLE) y qué equipos entraron con él.
   Future<Map<String, dynamic>> tuyaToken(String id, {required String modo, String? zonaHoraria});
   Future<Map<String, dynamic>> tuyaTokenResultado(String id, String token);
-  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category});
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie});
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Historial del instalador: intervenciones completadas y canceladas en sitio

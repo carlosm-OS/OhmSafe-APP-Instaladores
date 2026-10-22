@@ -66,6 +66,18 @@ class EmparejadorTuya extends ChangeNotifier {
   String? _devId;
   String? _productId;
   String? _categoria;
+  String? _serie;
+  String? _nombreNube;
+
+  /// Lo que la nube dijo del equipo que entró (2026-10-22): para la tarjeta «Equipo conectado».
+  String? get devId => _devId;
+  String? get categoria => _categoria;
+  String? get serie => _serie;
+
+  /// Nombre que trae el equipo de fábrica (p. ej. el modelo); vacío si la nube no lo dio.
+  String get nombreDeFabrica => _nombreNube ?? '';
+  String get red => _red;
+  String get nombre => _nombre;
 
   int _intento = 0;
   StreamSubscription<TuyaEvento>? _sub;
@@ -84,6 +96,7 @@ class EmparejadorTuya extends ChangeNotifier {
     required String red,
     required String contrasena,
     String modo = 'EZ',
+    String? serie,
   }) async {
     if (ocupado) return;
     final intento = ++_intento;
@@ -95,6 +108,9 @@ class EmparejadorTuya extends ChangeNotifier {
     _devId = null;
     _productId = null;
     _categoria = null;
+    _nombreNube = null;
+    final s = (serie ?? '').trim();
+    _serie = s.isEmpty ? null : s;
     error = null;
     registrado = null;
     _ir(EtapaTuya.preparando, 'Pidiendo el permiso de la casa…');
@@ -121,6 +137,7 @@ class EmparejadorTuya extends ChangeNotifier {
         _devId = e.devId;
         _productId = e.productId;
         _categoria = e.categoria;
+        if ((e.nombre ?? '').isNotEmpty) _nombreNube = e.nombre;
         if ((e.nombre ?? '').isNotEmpty && _nombre.isEmpty) _nombre = e.nombre!;
         unawaited(_registrar(intento));
       } else if (e.fallo) {
@@ -162,6 +179,8 @@ class EmparejadorTuya extends ChangeNotifier {
         _devId = (d['id'] ?? '').toString();
         _productId = d['productId']?.toString();
         _categoria = d['category']?.toString();
+        final n = (d['name'] ?? '').toString();
+        if (n.isNotEmpty) _nombreNube = n;
         await _registrar(intento);
         return;
       }
@@ -198,6 +217,7 @@ class EmparejadorTuya extends ChangeNotifier {
       tipo: _tipo,
       productId: _productId,
       category: _categoria,
+      serie: _serie,
     );
     if (!_vigente(intento)) return;
     if (r.isFailure) return _fallar(r.failureValue.message);

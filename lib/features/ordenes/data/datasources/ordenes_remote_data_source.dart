@@ -179,7 +179,7 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> tuyaTokenResultado(String id, String token) async =>
       _data(await dioClient.get('/instalador/ordenes/$id/wifi/tuya/token/${Uri.encodeComponent(token)}', sinReintento: true));
   @override
-  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category}) async =>
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie}) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/dispositivos-wifi', body: {
         'proveedor': proveedor,
         'clase': clase,
@@ -190,6 +190,8 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
         if (tipo != null && tipo.isNotEmpty) 'tipo': tipo,
         if (productId != null && productId.isNotEmpty) 'productId': productId,
         if (category != null && category.isNotEmpty) 'category': category,
+        // Serie de la etiqueta (opcional, 2026-10-22). Sólo si la hay: un backend viejo rechaza campos que no conoce.
+        if (serie != null && serie.isNotEmpty) 'serie': serie,
       }));
   @override
   Future<Map<String, dynamic>> ohmboxEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/ohmbox'));

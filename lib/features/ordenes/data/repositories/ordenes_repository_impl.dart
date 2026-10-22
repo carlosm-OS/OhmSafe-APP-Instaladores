@@ -381,9 +381,9 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
   }
 
   @override
-  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category}) async {
+  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie}) async {
     try {
-      return Success(await dataSource.dispositivoWifiAgregar(id, proveedor: proveedor, clase: clase, externalId: externalId, nombre: nombre, codigo: codigo, red: red, tipo: tipo, productId: productId, category: category));
+      return Success(await dataSource.dispositivoWifiAgregar(id, proveedor: proveedor, clase: clase, externalId: externalId, nombre: nombre, codigo: codigo, red: red, tipo: tipo, productId: productId, category: category, serie: serie));
     } on UnauthorizedException {
       return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
     } on ServerException catch (e) {

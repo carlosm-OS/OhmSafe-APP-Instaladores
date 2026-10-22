@@ -73,7 +73,7 @@ abstract class OrdenesRepository {
   Future<Result<Map<String, dynamic>>> ezvizSondeo(String id, String serie);
   Future<Result<Map<String, dynamic>>> tuyaToken(String id, {required String modo, String? zonaHoraria});
   Future<Result<Map<String, dynamic>>> tuyaTokenResultado(String id, String token);
-  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category});
+  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie});
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 

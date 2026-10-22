@@ -209,7 +209,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   @override
   Future<Map<String, dynamic>> tuyaTokenResultado(String id, String token) async { await _ok(); return {'successDevices': [{'id': 'ebmock1', 'name': 'Sensor', 'category': 'mcs'}], 'errorDevices': []}; }
   @override
-  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category}) async { await _ok(); _mockCams.add({'id': externalId, 'proveedor': proveedor, 'nombre': nombre, 'serie': externalId, 'estado': 'online', 'red': red}); return {'dispositivo': {'name': nombre}}; }
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie}) async { await _ok(); _mockCams.add({'id': externalId, 'proveedor': proveedor, 'nombre': nombre, 'serie': serie ?? externalId, 'estado': 'online', 'red': red}); return {'dispositivo': {'name': nombre, 'pairing': {'ssid': red, 'serial': serie}}}; }
   final List<Map<String, dynamic>> _mockOhmbox = [
     {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'nombre': 'Cerca', 'enLinea': true, 'principal': true},
   ];

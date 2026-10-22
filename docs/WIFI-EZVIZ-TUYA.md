@@ -108,6 +108,25 @@ el proyecto de nube. La contraseña Tuya de la casa nunca sale del servidor.
 | Android | `TuyaPlugin.kt` (común) + `src/tuyaOn|tuyaOff/…/TuyaBridgeFactory.kt` (`ActivatorBuilder().setToken(token)`), `thingsmart:7.8.0` + `security-algorithm*.aar` fuera del repo |
 | Pruebas | `test/tuya_wifi_test.dart` |
 
+## Serie de etiqueta y «Equipo conectado» (2026-10-22)
+
+Pedido de Carlos: identificar qué unidad física quedó en la casa. El emparejamiento no necesita la
+serie (la nube devuelve el `devId`), pero sin ella no hay rastro para inventario ni garantía, y en
+modo rápido podría entrar otro equipo cercano que estuviera en emparejamiento.
+
+- `ConectarTuyaWifiScreen`: campo **«Número de serie (opcional)»** con escáner
+  (`EscanearSerieScreen(leer: serieDeEtiqueta)`). `serieDeEtiqueta` (core/utils/serie_qr.dart) acepta
+  la serie sola o un enlace con `?sn=` / `serial=` / `serie=` / `uuid=` / `id=` o con la serie al final.
+- `EmparejadorTuya.empezar(serie:)` la manda en `POST …/dispositivos-wifi` como `serie` **sólo si hay**:
+  el esquema del backend es estricto y uno sin Back-#156 rechazaría el campo. **Desplegar el backend antes
+  que la app.**
+- Al terminar, en vez de un aviso y salir, la pantalla muestra la tarjeta **«Equipo conectado»**: qué es,
+  modelo (nombre de fábrica que da la nube), serie, ID del equipo (`devId`) y red. «Listo» sale;
+  «No es este equipo» explica que hay que avisar a operaciones con el ID.
+- Backend: columna `serial_number` en `wifi_sensors` y `cameras`, `pairing.serial` en los DTO, acta y
+  reporte de servicio. Dashboard: «· serie …» en la línea del equipo (Dashboard-#16).
+- Pruebas: `test/tuya_wifi_test.dart`.
+
 ## Selector de redes Wi‑Fi (2026-10-20)
 
 `lib/widgets/campo_red_wifi.dart` (`CampoRedWifi`) + `lib/core/wifi/redes_wifi.dart`, recorte del

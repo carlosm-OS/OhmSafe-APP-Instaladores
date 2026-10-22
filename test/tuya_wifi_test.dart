@@ -1,12 +1,19 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ohmsafe_app/controllers/app_state.dart';
+import 'package:ohmsafe_app/controllers/app_state_provider.dart';
 import 'package:ohmsafe_app/core/error/failures.dart';
 import 'package:ohmsafe_app/core/network/result.dart';
 import 'package:ohmsafe_app/core/tuya/emparejador_tuya.dart';
+import 'package:ohmsafe_app/core/theme/app_theme.dart';
 import 'package:ohmsafe_app/core/tuya/tuya_puente.dart';
+import 'package:ohmsafe_app/core/utils/serie_qr.dart';
+import 'package:ohmsafe_app/core/wifi/redes_wifi.dart';
 import 'package:ohmsafe_app/features/ordenes/domain/repositories/ordenes_repository.dart';
+import 'package:ohmsafe_app/screens/conectar_tuya_wifi_screen.dart';
 
 /// Emparejar equipos Tuya desde la app de instaladores con el token de nube de la casa (2026-10-17).
 ///
@@ -104,6 +111,57 @@ void main() {
     await _hasta(() => emp.etapa == EtapaTuya.listo);
   });
 
+  test('la serie de la etiqueta viaja al registrar y la tarjeta tiene lo que dijo la nube', () async {
+    await emp.empezar(clase: 'camara', nombre: 'Cochera', red: 'Casa Pérez', contrasena: 'x', serie: ' AB12CD ');
+    puente.emitir({'type': 'pairDone', 'devId': 'vd77', 'name': 'Smart Camera', 'productId': 'p9', 'category': 'sp'});
+    await _hasta(() => emp.etapa == EtapaTuya.listo);
+    expect(repo.altas.single['serie'], 'AB12CD');
+    expect(emp.devId, 'vd77');
+    expect(emp.serie, 'AB12CD');
+    expect(emp.nombreDeFabrica, 'Smart Camera');
+    expect(emp.nombre, 'Cochera');
+  });
+
+  test('sin serie no se manda nada', () async {
+    await empezar();
+    puente.emitir({'type': 'pairDone', 'devId': 'eb009'});
+    await _hasta(() => emp.etapa == EtapaTuya.listo);
+    expect(repo.altas.single['serie'], isNull);
+  });
+
+  test('serieDeEtiqueta: serie sola, enlace con ?sn=, enlace con la serie al final', () {
+    expect(serieDeEtiqueta(' ab 12 cd '), 'AB12CD');
+    expect(serieDeEtiqueta('https://fabricante.example/q?sn=xy99&x=1'), 'XY99');
+    expect(serieDeEtiqueta('https://fabricante.example/d/K7Q2'), 'K7Q2');
+    expect(serieDeEtiqueta('   '), '');
+  });
+
+  testWidgets('al conectar, la pantalla muestra «Equipo conectado» con serie e ID', (t) async {
+    t.view.physicalSize = const Size(1206, 6000);
+    t.view.devicePixelRatio = 3;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(AppStateProvider(
+      notifier: AppState(),
+      child: MaterialApp(
+        theme: AppTheme.light,
+        home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _SinLista()),
+      ),
+    ));
+    await t.pump();
+    expect(find.text('Número de serie (opcional)'), findsOneWidget);
+    await t.runAsync(() async {
+      await emp.empezar(clase: 'camara', nombre: 'Cochera', red: 'Casa Pérez', contrasena: 'x', serie: 'AB12CD');
+      puente.emitir({'type': 'pairDone', 'devId': 'vd77', 'name': 'Smart Camera'});
+      await _hasta(() => emp.etapa == EtapaTuya.listo);
+    });
+    await t.pump();
+    expect(find.text('Equipo conectado'), findsOneWidget);
+    expect(find.text('AB12CD'), findsOneWidget);
+    expect(find.text('vd77'), findsOneWidget);
+    expect(find.text('Smart Camera'), findsOneWidget);
+    expect(find.text('No es este equipo'), findsOneWidget);
+  });
+
   test('cancelar para el SDK y vuelve al reposo', () async {
     await empezar();
     await emp.cancelar();
@@ -137,7 +195,12 @@ class _Puente {
       if (call.arguments is Map) _args[call.method] = (call.arguments as Map).cast<Object?, Object?>();
       return call.method == 'currentSsid' ? 'Casa Pérez' : true;
     });
-    m.setMockStreamHandler(eventos, MockStreamHandler.inline(onListen: (_, sink) => _ctrl.stream.listen(sink.success)));
+    m.setMockStreamHandler(
+      eventos,
+      MockStreamHandler.inline(onListen: (_, sink) {
+        _ctrl.stream.listen(sink.success);
+      }),
+    );
   }
 
   void quitar() {
@@ -169,11 +232,18 @@ class _Repo implements OrdenesRepository {
   }
 
   @override
-  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category}) async {
-    altas.add({'proveedor': proveedor, 'clase': clase, 'externalId': externalId, 'nombre': nombre, 'codigo': codigo, 'red': red, 'tipo': tipo, 'productId': productId, 'category': category});
+  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie}) async {
+    altas.add({'proveedor': proveedor, 'clase': clase, 'externalId': externalId, 'nombre': nombre, 'codigo': codigo, 'red': red, 'tipo': tipo, 'productId': productId, 'category': category, 'serie': serie});
     return Success({'dispositivo': {'id': 's1', 'name': nombre}});
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _SinLista implements ListadorRedes {
+  @override
+  bool get puedeListar => false;
+  @override
+  Future<ResultadoEscaneo> escanear() async => throw UnimplementedError();
 }
