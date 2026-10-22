@@ -2,7 +2,12 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
-## Build 58 (en preparación)
+## Build 59 (TestFlight servidor de pruebas; APK de producción) — 22 de octubre de 2026
+
+- **«Conectar cámara o sensor Wi‑Fi» en 4 pasos** (Datos → Prepara el equipo → Conectando → Listo): cada botón dice qué está pasando, una línea de etapas marca lo hecho y lo que falta, y el contador muestra cuánto llevas de los 5 minutos. Si algo falla, dice en qué etapa y ofrece «Volver a intentar» o «Cambiar el modo o los datos».
+- «Antes de empezar» según el modo y tiempos alineados a 5 minutos.
+
+## Build 58 (TestFlight y APK, servidor de pruebas) — 22 de octubre de 2026
 
 - **La Wi‑Fi no se vuelve a pedir.** Al conectar una cámara o un sensor Wi‑Fi ya no aparecen los campos de red y contraseña: sale «Conectado a la Wi‑Fi de la casa» con la red del paso 4 y el botón «Cambiar». Si todavía no la capturaste, la pantalla te manda al paso con «Ir a Wi‑Fi de la casa».
 - **Modo punto de acceso, paso a paso.** Si eliges «Punto de acceso», la app pide el permiso de la casa y luego te pide conectar el teléfono a la red del equipo: «Abrir ajustes de Wi‑Fi», eliges la red nueva y abierta del equipo y regresas; la app sigue sola. Si el teléfono ve esa red desde el principio, elige «Punto de acceso» por ti.
