@@ -32,7 +32,14 @@ Future<bool> permisoBluetoothDelTelefono() async {
   }
 }
 
-enum EtapaTuya { inactivo, preparando, emparejando, registrando, listo, error }
+/// `esperandoRedEquipo` (2026-10-22, caso de Nahum en i77): en modo punto de acceso el teléfono tiene
+/// que unirse a la red Wi‑Fi que crea el equipo ANTES de arrancar el SDK.
+enum EtapaTuya { inactivo, preparando, esperandoRedEquipo, emparejando, registrando, listo, error }
+
+/// Los equipos en modo punto de acceso crean una red abierta con este prefijo (dato técnico; no se
+/// muestra como texto propio en la app).
+const prefijoRedEquipo = 'smartlife';
+bool esRedDeEquipo(String? ssid) => (ssid ?? '').trim().toLowerCase().startsWith(prefijoRedEquipo);
 
 /// Empareja un sensor o una cámara Tuya a la Wi‑Fi de la casa y lo registra en la cuenta del cliente
 /// (2026-10-17), con el **token de nube** de la casa (docs/instalador-wifi.md):
@@ -110,7 +117,19 @@ class EmparejadorTuya extends ChangeNotifier {
   bool _arrancado = false;
   bool _cerrado = false;
 
-  bool get ocupado => etapa == EtapaTuya.preparando || etapa == EtapaTuya.emparejando || etapa == EtapaTuya.registrando;
+  bool get ocupado =>
+      etapa == EtapaTuya.preparando || etapa == EtapaTuya.esperandoRedEquipo || etapa == EtapaTuya.emparejando || etapa == EtapaTuya.registrando;
+
+  /// Cuándo vence el token de la casa (el backend lo da; vive ~5 min). El sondeo dura hasta ahí.
+  DateTime? venceToken;
+
+  /// Modo punto de acceso: lo pendiente para arrancar cuando el teléfono ya esté en la red del equipo.
+  String _authAP = '';
+  String _contrasenaAP = '';
+  int _intentoAP = -1;
+
+  /// Red a la que estaba el teléfono la última vez que se revisó (para decirle al instalador).
+  String? redDelTelefono;
 
   Future<void> empezar({
     required String clase,
@@ -151,6 +170,7 @@ class EmparejadorTuya extends ChangeNotifier {
     _token = (t.successValue['token'] ?? '').toString();
     final authToken = (t.successValue['authToken'] ?? '').toString();
     final homeId = (t.successValue['homeId'] ?? '').toString();
+    venceToken = DateTime.tryParse((t.successValue['expiresAt'] ?? '').toString());
     if (_token.isEmpty || authToken.isEmpty) return _fallar('El servidor no entregó el permiso de emparejamiento. Avisa a soporte.');
 
     try {
@@ -232,7 +252,17 @@ class EmparejadorTuya extends ChangeNotifier {
     }
     if (!_vigente(intento)) return;
     _sondeo = Timer.periodic(cadaSondeo, (_) => unawaited(_sondear(intento)));
-    _limite = Timer(topeEmparejar + margen, () => unawaited(_rendirse(intento)));
+    _limite = Timer(_plazoSondeo(), () => unawaited(_rendirse(intento)));
+  }
+
+  /// El sondeo dura lo que vive el token (en modo punto de acceso el instalador tarda en cambiar de
+  /// red; antes se rendía a los 50–85 s, caso de Nahum en i77), nunca menos que el tope del SDK.
+  Duration _plazoSondeo() {
+    final minimo = topeEmparejar + margen;
+    final vence = venceToken;
+    if (vence == null) return minimo;
+    final queda = vence.difference(DateTime.now());
+    return queda > minimo ? queda : minimo;
   }
 
   Future<void> _respaldoRapido(int intento, String contrasena, String aviso) async {
@@ -242,11 +272,43 @@ class EmparejadorTuya extends ChangeNotifier {
   }
 
   Future<void> _porWifi(int intento, String modo, String contrasena, String authToken) async {
+    if (modo == 'AP') {
+      // El token ya se pidió con internet de la casa; ahora el instalador cambia el teléfono a la red
+      // del equipo y vuelve. El SDK arranca en [continuarAP].
+      _authAP = authToken;
+      _contrasenaAP = contrasena;
+      _intentoAP = intento;
+      _ir(EtapaTuya.esperandoRedEquipo, 'Conecta el teléfono a la red Wi‑Fi del equipo y vuelve a la app.');
+      return;
+    }
+    await _iniciarWifi(intento, modo, contrasena, authToken);
+  }
+
+  /// Modo punto de acceso: revisa que el teléfono ya esté en la red del equipo y arranca el SDK.
+  /// Devuelve `false` (y deja [redDelTelefono]) si todavía no está; con [forzar] arranca igual.
+  Future<bool> continuarAP({bool forzar = false}) async {
+    if (etapa != EtapaTuya.esperandoRedEquipo) return false;
+    final intento = _intentoAP;
+    final ssid = await puente.redActual();
+    if (!_vigente(intento) || etapa != EtapaTuya.esperandoRedEquipo) return false;
+    redDelTelefono = ssid;
+    if (!forzar && !esRedDeEquipo(ssid)) {
+      notifyListeners();
+      return false;
+    }
+    final vence = venceToken;
+    if (vence != null && vence.difference(DateTime.now()) < const Duration(seconds: 45)) {
+      _fallar('Pasó mucho tiempo y el permiso de la casa venció. Vuelve a intentar: pide un permiso nuevo antes de cambiar de red.');
+      return false;
+    }
+    await _iniciarWifi(intento, 'AP', _contrasenaAP, _authAP);
+    return true;
+  }
+
+  Future<void> _iniciarWifi(int intento, String modo, String contrasena, String authToken) async {
     _ir(
       EtapaTuya.emparejando,
-      modo == 'AP'
-          ? 'Si el teléfono lo pide, conéctate a la red Wi‑Fi nueva que crea el equipo (no tiene contraseña)…'
-          : 'Pasándole la red de la casa al equipo…',
+      modo == 'AP' ? 'Pasándole la red de la casa al equipo… luego el teléfono vuelve solo a tu red.' : 'Pasándole la red de la casa al equipo…',
     );
     _sub = puente.eventos.listen((e) => _alEvento(intento, e));
     _arrancado = true;
@@ -259,7 +321,7 @@ class EmparejadorTuya extends ChangeNotifier {
     }
     if (!_vigente(intento)) return;
     _sondeo = Timer.periodic(cadaSondeo, (_) => unawaited(_sondear(intento)));
-    _limite = Timer(topeEmparejar + margen, () => unawaited(_rendirse(intento)));
+    _limite = Timer(_plazoSondeo(), () => unawaited(_rendirse(intento)));
   }
 
   Future<void> cancelar() async {

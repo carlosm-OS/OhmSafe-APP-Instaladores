@@ -5,6 +5,8 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 ## Build 58 (en preparación)
 
 - **La Wi‑Fi no se vuelve a pedir.** Al conectar una cámara o un sensor Wi‑Fi ya no aparecen los campos de red y contraseña: sale «Conectado a la Wi‑Fi de la casa» con la red del paso 4 y el botón «Cambiar». Si todavía no la capturaste, la pantalla te manda al paso con «Ir a Wi‑Fi de la casa».
+- **Modo punto de acceso, paso a paso.** Si eliges «Punto de acceso», la app pide el permiso de la casa y luego te pide conectar el teléfono a la red del equipo: «Abrir ajustes de Wi‑Fi», eliges la red nueva y abierta del equipo y regresas; la app sigue sola. Si el teléfono ve esa red desde el principio, elige «Punto de acceso» por ti.
+- **Más tiempo para que el equipo llegue.** La app espera lo que dura el permiso (unos 5 minutos), no sólo 1 minuto.
 - **Mensaje claro si la nube de los equipos rechaza el permiso**, con su código para soporte.
 
 ## Build 57 (TestFlight y APK, servidor de pruebas) — 22 de octubre de 2026

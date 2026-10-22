@@ -41,6 +41,16 @@ public class TuyaPlugin: NSObject, FlutterPlugin {
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    // Modo punto de acceso (2026-10-22): iOS no deja abrir Ajustes › Wi‑Fi directo; se abren los ajustes
+    // de la app y la pantalla le dice al instalador que vaya a Wi‑Fi.
+    if call.method == "openWifiSettings" {
+      if let url = URL(string: UIApplication.openSettingsURLString) {
+        UIApplication.shared.open(url, options: [:]) { ok in result(ok) }
+      } else {
+        result(false)
+      }
+      return
+    }
     let args = call.arguments as? [String: Any] ?? [:]
     let safe = TuyaSafeResult(method: call.method, inner: result)
     bridge.handle(method: call.method, args: args, result: safe.callback)

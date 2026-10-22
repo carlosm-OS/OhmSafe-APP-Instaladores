@@ -253,3 +253,20 @@ al **token de la casa que da el backend** (sin sesión en Tuya):
 - Sin probar con hardware: los equipos sólo Bluetooth (no combo) se ignoran; los Wi‑Fi sin Bluetooth
   caen al modo rápido.
 - Pruebas: `test/tuya_wifi_test.dart` (combo encontrado, respaldo a rápido, sin permiso).
+
+## Modo punto de acceso con pausa y sondeo largo (2026-10-22, caso de Nahum en i77)
+
+Evidencia: cámara GN-PT307-W600 en modo AP; tokens EZ (imposible) y AP que sondearon 50–85 s y nunca
+llegó el alta. Cambios en la app (build 58):
+
+1. **Pausa AP:** `EmparejadorTuya` pide el token AP con internet de la casa y queda en
+   `EtapaTuya.esperandoRedEquipo`; la pantalla muestra «Conecta el teléfono a la red del equipo» con
+   «Abrir ajustes de Wi‑Fi» (`openWifiSettings`: Android `ACTION_WIFI_SETTINGS`; iOS ajustes de la app).
+   `continuarAP()` revisa `currentSsid` (`esRedDeEquipo`: prefijo `smartlife`) y entonces arranca el SDK;
+   al volver a la app (`AppLifecycleState.resumed`) se llama sola; «Seguir de todos modos» la fuerza.
+   Si el token está por vencer (< 45 s) pide empezar de nuevo.
+2. **Sondeo:** `_plazoSondeo()` dura hasta `expiresAt` del token (≈5 min), nunca menos que el tope del SDK.
+3. **Sugerir modo:** en Android, si el escaneo ve una red del equipo, la pantalla elige «Punto de acceso»
+   (salvo que el instalador ya haya tocado el selector) y lo explica con el nombre de esa red.
+
+Pendiente: conectar desde la app con `WifiNetworkSpecifier` (Android 10+) y el modo QR.

@@ -82,6 +82,9 @@ void main() {
   test('si el SDK no avisa, el sondeo del backend confirma que el equipo entró', () async {
     repo.resultado = {'successDevices': [], 'errorDevices': []};
     await empezar(modo: 'AP');
+    expect(emp.etapa, EtapaTuya.esperandoRedEquipo);
+    puente.ssid = 'SmartLife-9997';
+    expect(await emp.continuarAP(), isTrue);
     repo.resultado = {
       'successDevices': [
         {'id': 'eb002', 'category': 'pir'},
@@ -267,6 +270,58 @@ void main() {
     expect(find.text('Contraseña de la Wi‑Fi'), findsNothing);
   });
 
+  test('punto de acceso: espera a que el teléfono esté en la red del equipo antes de arrancar el SDK', () async {
+    await empezar(modo: 'AP');
+    expect(emp.etapa, EtapaTuya.esperandoRedEquipo);
+    expect(emp.ocupado, isTrue);
+    expect(puente.metodos, isNot(contains('pairStart')));
+    expect(await emp.continuarAP(), isFalse);
+    expect(emp.redDelTelefono, 'Casa Pérez');
+    expect(puente.metodos, isNot(contains('pairStart')));
+    puente.ssid = 'SmartLife-9997';
+    expect(await emp.continuarAP(), isTrue);
+    expect(puente.args('pairStart')['mode'], 'AP');
+    expect(puente.args('pairStart')['ssid'], 'Casa Pérez');
+  });
+
+  test('punto de acceso: «seguir de todos modos» arranca aunque la red no se reconozca', () async {
+    await empezar(modo: 'AP');
+    expect(await emp.continuarAP(forzar: true), isTrue);
+    expect(puente.metodos, contains('pairStart'));
+  });
+
+  test('el sondeo dura lo que vive el token, no sólo el tope del SDK', () async {
+    repo.vence = DateTime.now().add(const Duration(milliseconds: 700));
+    await empezar();
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    expect(emp.etapa, EtapaTuya.emparejando, reason: 'antes se rendía a los 250 ms (tope + margen)');
+    await _hasta(() => emp.etapa == EtapaTuya.error, const Duration(seconds: 2));
+  });
+
+  test('esRedDeEquipo reconoce la red que crea el equipo', () {
+    expect(esRedDeEquipo('SmartLife-9997'), isTrue);
+    expect(esRedDeEquipo('smartlife-ABCD'), isTrue);
+    expect(esRedDeEquipo('Casa Pérez'), isFalse);
+    expect(esRedDeEquipo(null), isFalse);
+  });
+
+  testWidgets('si el teléfono ve la red del equipo, sugiere «Punto de acceso»', (t) async {
+    t.view.physicalSize = const Size(1206, 6000);
+    t.view.devicePixelRatio = 3;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(AppStateProvider(
+      notifier: AppState(),
+      child: MaterialApp(
+        theme: AppTheme.light,
+        home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _ConRedEquipo(), local: WifiCasaLocal(almacen: _MemoriaWifi())),
+      ),
+    ));
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+    await t.pump();
+    expect(find.text('El equipo está en modo punto de acceso'), findsOneWidget);
+    expect(find.textContaining('«SmartLife-9997»'), findsOneWidget);
+  });
+
   test('cancelar para el SDK y vuelve al reposo', () async {
     await empezar();
     await emp.cancelar();
@@ -285,6 +340,7 @@ Future<void> _hasta(bool Function() cond, [Duration tope = const Duration(second
 
 class _Puente {
   static const canal = MethodChannel('ohmsafe/tuya');
+  String ssid = 'Casa Pérez';
   static const eventos = EventChannel('ohmsafe/tuya/events');
   final metodos = <String>[];
   final _args = <String, Map<Object?, Object?>>{};
@@ -298,7 +354,7 @@ class _Puente {
     m.setMockMethodCallHandler(canal, (call) async {
       metodos.add(call.method);
       if (call.arguments is Map) _args[call.method] = (call.arguments as Map).cast<Object?, Object?>();
-      return call.method == 'currentSsid' ? 'Casa Pérez' : true;
+      return call.method == 'currentSsid' ? ssid : true;
     });
     m.setMockStreamHandler(
       eventos,
@@ -323,13 +379,14 @@ class _Repo implements OrdenesRepository {
   final sondeos = <String>[];
   final altas = <Map<String, dynamic>>[];
   Map<String, dynamic> resultado = {'successDevices': [], 'errorDevices': []};
+  DateTime? vence;
   bool sinUid = false;
 
   @override
   Future<Result<Map<String, dynamic>>> tuyaToken(String id, {required String modo, String? zonaHoraria}) async {
     tokens.add((modo, zonaHoraria));
     if (sinUid) return const FailureResult(ServerFailure('La casa todavía no tiene cuenta Tuya', 'TUYA_UID_DESCONOCIDO'));
-    return Success({'provider': 'tuya', 'authToken': 'AZtok123sec', 'region': 'AZ', 'token': 'tok123', 'secret': 'sec', 'homeId': '1'});
+    return Success({'provider': 'tuya', 'authToken': 'AZtok123sec', 'region': 'AZ', 'token': 'tok123', 'secret': 'sec', 'homeId': '1', if (vence != null) 'expiresAt': vence!.toIso8601String()});
   }
 
   @override
@@ -388,4 +445,14 @@ class _MemoriaWifi implements AlmacenSeguro {
   Future<void> escribir(String llave, String valor) async => datos[llave] = valor;
   @override
   Future<void> borrar(String llave) async => datos.remove(llave);
+}
+
+class _ConRedEquipo implements ListadorRedes {
+  @override
+  bool get puedeListar => true;
+  @override
+  Future<ResultadoEscaneo> escanear() async => ResultadoEscaneo(EstadoEscaneo.ok, [
+    RedWifi.deEscaneo(ssid: 'Casa Pérez', frecuenciaMhz: 2437, nivel: -50),
+    RedWifi.deEscaneo(ssid: 'SmartLife-9997', frecuenciaMhz: 2412, nivel: -40),
+  ]);
 }

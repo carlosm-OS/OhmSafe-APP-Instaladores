@@ -41,7 +41,7 @@ class ConectarTuyaWifiScreen extends StatefulWidget {
   State<ConectarTuyaWifiScreen> createState() => _ConectarTuyaWifiScreenState();
 }
 
-class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
+class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with WidgetsBindingObserver {
   late final WifiCasaLocal _local = widget.local ?? WifiCasaLocal.instancia;
 
   /// La Wi‑Fi del paso 4 (Carlos, 2026-10-22): aquí ya no se vuelve a pedir. Sin ella, se manda al paso.
@@ -67,7 +67,37 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
   void initState() {
     super.initState();
     _emp.addListener(_cambio);
+    WidgetsBinding.instance.addObserver(this);
     _cargarWifiCasa();
+    _buscarRedDelEquipo();
+  }
+
+  /// Red que crea el equipo en modo punto de acceso, si el teléfono la ve (Android). Con ella se
+  /// sugiere ese modo (caso de Nahum en i77: la cámara estaba en punto de acceso y se probó rápido).
+  String? _redEquipoVista;
+  bool _modoTocado = false;
+
+  Future<void> _buscarRedDelEquipo() async {
+    final listador = widget.listador ?? ListadorRedesPlataforma();
+    if (!listador.puedeListar) return;
+    try {
+      final r = await listador.escanear();
+      if (!mounted || r.estado != EstadoEscaneo.ok) return;
+      final vista = r.redes.map((x) => x.ssid).where(esRedDeEquipo).firstOrNull;
+      if (vista == null) return;
+      setState(() {
+        _redEquipoVista = vista;
+        if (!_modoTocado && !_emp.ocupado) _modo = 'AP';
+      });
+    } catch (_) {}
+  }
+
+  /// Al volver de los ajustes de Wi‑Fi, si ya está en la red del equipo, sigue solo.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _emp.etapa == EtapaTuya.esperandoRedEquipo) {
+      _emp.continuarAP();
+    }
   }
 
   /// Wi‑Fi de la casa de esta visita (paso 4): red y contraseña que el cliente escribió una vez.
@@ -91,6 +121,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
   @override
   void dispose() {
     _emp.removeListener(_cambio);
+    WidgetsBinding.instance.removeObserver(this);
     if (widget.emparejador == null) _emp.dispose();
     _nombre.dispose();
     _red.dispose();
@@ -228,7 +259,10 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                             ),
                           if (_emp.etapa == EtapaTuya.error)
                             MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo conectar $que', texto: _emp.error),
-                          if (ocupado) EsperandoSenal(titulo: _emp.texto, texto: 'No cierres la app ni te alejes del equipo. Puede tardar hasta 2 minutos.'),
+                          if (_emp.etapa == EtapaTuya.esperandoRedEquipo)
+                            _RedDelEquipo(emp: _emp, redVista: _redEquipoVista)
+                          else if (ocupado)
+                            EsperandoSenal(titulo: _emp.texto, texto: 'No cierres la app ni te alejes del equipo. Puede tardar hasta 5 minutos.'),
                           EtiquetaSeccion(
                             'ANTES DE EMPEZAR',
                             tituloAyuda: 'Cómo preparar $que',
@@ -236,7 +270,8 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                               'Enciende $que y ponlo en modo de emparejamiento: mantén su botón (RESET) 5–10 s hasta que la luz parpadee rápido.',
                               'Este teléfono debe estar en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»); los equipos no se conectan a redes de 5 GHz.',
                               'Bluetooth (el normal): el teléfono busca el equipo cerca y le pasa la red; ten el Bluetooth encendido. Si no lo ve en 20 segundos, la app sigue sola en modo rápido.',
-                              'Modo rápido: el equipo escucha en la red. Modo punto de acceso: el teléfono se conecta un momento a la red Wi‑Fi que crea el equipo (aparece nueva y sin contraseña); úsalo si los otros fallan.',
+                              'Modo rápido: el equipo escucha en la red. Modo punto de acceso: el teléfono se conecta un momento a la red Wi‑Fi que crea el equipo (aparece nueva y sin contraseña).',
+                              'Si en la lista de Wi‑Fi del teléfono aparece una red nueva y abierta del equipo, está en modo punto de acceso: elige «Punto de acceso».',
                               'La red y la contraseña son las del paso «Wi‑Fi de la casa»: aquí no se vuelven a escribir.',
                             ],
                           ),
@@ -322,6 +357,13 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                           ],
                           const SizedBox(height: 16),
                           const EtiquetaSeccion('MODO'),
+                          if (_redEquipoVista != null && _modo == 'AP')
+                            MensajeFlujo(
+                              icono: Icons.router_outlined,
+                              color: cs.primary,
+                              titulo: 'El equipo está en modo punto de acceso',
+                              texto: 'El teléfono ve su red «$_redEquipoVista». Por eso elegimos «Punto de acceso».',
+                            ),
                           SegmentedButton<String>(
                             segments: const [
                               ButtonSegment(value: 'BLE', label: Text('Bluetooth'), icon: Icon(Icons.bluetooth_rounded)),
@@ -330,7 +372,12 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> {
                             ],
                             selected: {_modo},
                             showSelectedIcon: false,
-                            onSelectionChanged: ocupado ? null : (s) => setState(() => _modo = s.first),
+                            onSelectionChanged: ocupado
+                                ? null
+                                : (s) => setState(() {
+                                    _modo = s.first;
+                                    _modoTocado = true;
+                                  }),
                           ),
                           const SizedBox(height: 24),
                           OhmGradientButton(
@@ -456,6 +503,57 @@ class _Conectado extends StatelessWidget {
         const SizedBox(height: 12),
         BotonSecundario(etiqueta: 'No es este equipo', onPressed: alNoEsEste),
       ],
+    );
+  }
+}
+
+/// Modo punto de acceso: el teléfono tiene que unirse a la red del equipo antes de seguir (2026-10-22).
+class _RedDelEquipo extends StatelessWidget {
+  const _RedDelEquipo({required this.emp, this.redVista});
+  final EmparejadorTuya emp;
+  final String? redVista;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final actual = emp.redDelTelefono;
+    final todaviaNo = actual != null && !esRedDeEquipo(actual);
+    final cual = redVista != null ? '«$redVista»' : 'la red nueva y abierta que crea el equipo';
+    return TarjetaFlujo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.router_outlined, color: cs.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Conecta el teléfono a la red del equipo', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '1. Toca «Abrir ajustes de Wi‑Fi» (en iPhone: Ajustes › Wi‑Fi).\n'
+            '2. Elige $cual. No tiene contraseña.\n'
+            '3. Regresa a esta app: sigue sola. Tienes unos 4 minutos.',
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+          ),
+          if (todaviaNo) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Todavía estás en «$actual».',
+              style: theme.textTheme.bodyMedium?.copyWith(color: cs.error, fontWeight: FontWeight.w600),
+            ),
+          ],
+          const SizedBox(height: 16),
+          OhmGradientButton(label: 'Abrir ajustes de Wi‑Fi', icon: Icons.settings_rounded, onPressed: emp.puente.abrirAjustesWifi),
+          const SizedBox(height: 12),
+          BotonSecundario(etiqueta: 'Ya me conecté', onPressed: () => emp.continuarAP()),
+          if (todaviaNo) TextButton(onPressed: () => emp.continuarAP(forzar: true), child: const Text('Seguir de todos modos')),
+        ],
+      ),
     );
   }
 }

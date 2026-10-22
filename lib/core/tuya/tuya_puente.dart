@@ -102,6 +102,14 @@ class TuyaPuente {
     } catch (_) {}
   }
 
+  /// Abre los ajustes de Wi‑Fi del teléfono (Android: Wi‑Fi; iPhone: los ajustes de la app, el sistema
+  /// no deja abrir Wi‑Fi directo). No falla si no se puede.
+  Future<void> abrirAjustesWifi() async {
+    try {
+      await _llamar<bool>('openWifiSettings');
+    } catch (_) {}
+  }
+
   /// Nombre de la red Wi‑Fi actual del teléfono (necesita ubicación). `null` si no se puede leer.
   Future<String?> redActual() async {
     try {
