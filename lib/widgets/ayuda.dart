@@ -250,7 +250,7 @@ Future<void> mostrarAyuda(BuildContext context, {required String titulo, require
 /// grupo blanco; dentro de [GrupoFilas] comparte el grupo y se separa con una línea fina.
 /// [marcada] = elegida o lista: fondo naranja claro y texto naranja oscuro (7:1).
 class FilaFlujo extends StatelessWidget {
-  const FilaFlujo({super.key, required this.titulo, this.subtitulo, this.trailing, this.marcada = false, this.colorSubtitulo, this.leading, this.onTap});
+  const FilaFlujo({super.key, required this.titulo, this.subtitulo, this.trailing, this.marcada = false, this.colorSubtitulo, this.leading, this.onTap, this.detalle});
 
   final String titulo;
   final String? subtitulo;
@@ -259,6 +259,9 @@ class FilaFlujo extends StatelessWidget {
   final bool marcada;
   final Color? colorSubtitulo;
   final VoidCallback? onTap;
+
+  /// Debajo del título en lugar de [subtitulo]: p. ej. un [EstadoPunto].
+  final Widget? detalle;
 
   @override
   Widget build(BuildContext context) {
@@ -279,7 +282,10 @@ class FilaFlujo extends StatelessWidget {
                   color: marcada ? cs.onPrimaryContainer : cs.onSurface,
                 ),
               ),
-              if (subtitulo != null && subtitulo!.isNotEmpty) ...[
+              if (detalle != null) ...[
+                const SizedBox(height: 2),
+                detalle!,
+              ] else if (subtitulo != null && subtitulo!.isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(subtitulo!, style: theme.textTheme.bodyMedium?.copyWith(color: colorSubtitulo ?? cs.onSurfaceVariant)),
               ],
@@ -322,16 +328,15 @@ class CirculoCheck extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: 20,
       height: 20,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: marcado ? cs.primary : (isDark ? Colors.white30 : Colors.black12), width: 2),
+        border: Border.all(color: marcado ? cs.primary : cs.outline, width: 2),
         color: marcado ? cs.primary : Colors.transparent,
       ),
-      child: marcado ? const Icon(Icons.check, size: 12, color: Colors.white) : null,
+      child: marcado ? Icon(Icons.check_rounded, size: 13, color: cs.onPrimary) : null,
     );
   }
 }
@@ -451,11 +456,11 @@ class MensajeFlujo extends StatelessWidget {
                 children: [
                   Text(
                     titulo,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+                    style: theme.textTheme.titleSmall,
                   ),
                   if (texto != null) ...[
                     const SizedBox(height: 2),
-                    Text(texto!, style: TextStyle(fontSize: 13, height: 1.35, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
+                    Text(texto!, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   ],
                   if (accion != null) ...[const SizedBox(height: 10), accion!],
                 ],
@@ -485,9 +490,9 @@ class MensajeFlujo extends StatelessWidget {
                 children: [
                   Text(
                     titulo,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: blanco),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: blanco),
                   ),
-                  if (texto != null) ...[const SizedBox(height: 2), Text(texto!, style: const TextStyle(fontSize: 13, height: 1.35, color: blanco))],
+                  if (texto != null) ...[const SizedBox(height: 2), Text(texto!, style: const TextStyle(fontSize: 15, height: 1.4, color: blanco))],
                   if (accion != null) ...[
                     const SizedBox(height: 10),
                     // La acción (p. ej. «Intentar de nuevo») va en blanco sobre el rojo.
@@ -836,7 +841,7 @@ class ZonaEstado extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text(detalle, style: TextStyle(fontSize: 13.5, height: 1.45, color: c.texto)),
+                          Text(detalle, style: TextStyle(fontSize: 15, height: 1.4, color: c.texto)),
                         ],
                       ),
                     ),
