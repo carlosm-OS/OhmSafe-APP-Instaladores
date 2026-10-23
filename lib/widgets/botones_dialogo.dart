@@ -29,18 +29,18 @@ class BotonContornoSecundario extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    return OutlinedButton(
+    // v2 (2026-10-23): gris relleno con tinta, sin borde, igual que BotonSecundario.
+    return FilledButton(
       onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
+      style: FilledButton.styleFrom(
+        backgroundColor: cs.surfaceContainerHighest,
         foregroundColor: peligro ? cs.error : cs.onSurface,
+        disabledBackgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.6),
         minimumSize: const Size.fromHeight(AppTouch.primary),
-        side: BorderSide(color: cs.outlineVariant.withValues(alpha: onPressed == null ? 0.5 : 1), width: 1.5),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
-        // Sin `textStyle` propio: hereda el del tema de botones, igual que el primario. Tomarlo de
-        // `theme.textTheme` le ponía la familia Inter (variable), que en el teléfono no engrosa y se
-        // veía delgado junto al primario.
+        textStyle: theme.textTheme.labelLarge,
       ),
-      child: Text(etiqueta, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+      child: Text(etiqueta),
     );
   }
 }

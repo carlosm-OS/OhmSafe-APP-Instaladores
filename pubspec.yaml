@@ -85,16 +85,26 @@ flutter:
     - assets/assets/logo_light.png
     - assets/assets/logo_white.png
 
-  # Par tipográfico "Faena" (fuentes variables OFL, bundle offline-safe).
-  # Lexend = títulos (legibilidad/baja visión, ideal exterior); Inter = cuerpo.
-  # Son variables: Flutter mapea fontWeight (400–800) al eje wght.
+  # Sistema v2 (2026-10-23): Inter 4.0 oficial (rsms/inter, OFL) en archivos ESTÁTICOS por peso.
+  # La Inter variable anterior venía cortada (tabla gvar truncada) y por eso en iPhone no engrosaba.
+  # InterDisplay = títulos grandes (corte óptico para ≥ 20 px).
   fonts:
-    - family: Lexend
-      fonts:
-        - asset: assets/fonts/Lexend.ttf
     - family: Inter
       fonts:
-        - asset: assets/fonts/Inter.ttf
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+    - family: InterDisplay
+      fonts:
+        - asset: assets/fonts/InterDisplay-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/InterDisplay-Bold.ttf
+          weight: 700
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

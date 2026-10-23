@@ -270,9 +270,10 @@ void main() {
             final campos = find.descendant(of: find.byType(Dialog), matching: find.byType(TextField));
             await t.ensureVisible(campos.last);
             await t.pump(const Duration(milliseconds: 300));
+            // v2: el secundario también es FilledButton (gris relleno); basta con que estén.
             expect(
               find.descendant(of: find.byType(Dialog), matching: find.byType(FilledButton)),
-              findsOneWidget,
+              findsWidgets,
               reason: cual,
             );
             t.view.viewInsets = FakeViewPadding.zero;

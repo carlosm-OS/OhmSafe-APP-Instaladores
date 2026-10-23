@@ -8,11 +8,8 @@
 //       themeMode: _themeMode,
 //     )
 //
-// Tipografía: por defecto usa la fuente del sistema (SF Pro en iOS/macOS,
-// Roboto en Android) — legible y sin dependencias de red (crítico para uso en
-// campo/offline). Para activar el par recomendado Lexend (títulos) + Inter
-// (cuerpo), agregar los .ttf a assets/fonts, declararlos en pubspec y cambiar
-// las dos constantes de AppTypography. Ver README del tema.
+// Tipografía (sistema v2, 2026-10-23): Inter 4.0 estática por peso + InterDisplay para títulos,
+// empaquetadas en assets/fonts (sin red). Ver README del tema.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -24,12 +21,11 @@ import 'app_dimens.dart';
 import 'app_palette.dart';
 import 'app_theme_extension.dart';
 
-/// Familias tipográficas. `null` => fuente del sistema (default seguro/offline).
-/// Para el par premium: displayFamily = 'Lexend', bodyFamily = 'Inter'.
+/// Familias tipográficas (sistema v2, 2026-10-23): Inter estática por peso; InterDisplay para
+/// títulos grandes. Espaciado por tamaño: lo grande se aprieta, lo chico se abre.
 abstract final class AppTypography {
-  // Nullable a propósito: poner null vuelve a la fuente del sistema (offline).
   // ignore: unnecessary_nullable_for_final_variable_declarations
-  static const String? displayFamily = 'Lexend';
+  static const String? displayFamily = 'InterDisplay';
   // ignore: unnecessary_nullable_for_final_variable_declarations
   static const String? bodyFamily = 'Inter';
 }
@@ -132,7 +128,7 @@ abstract final class AppTheme {
 
       // --- AppBar: superficie plana, borde inferior en scroll -----------------
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface,
+        backgroundColor: scaffold,
         foregroundColor: scheme.onSurface,
         elevation: AppElevation.none,
         scrolledUnderElevation: AppElevation.raised,
@@ -169,11 +165,13 @@ abstract final class AppTheme {
       ),
 
       // --- Botón secundario: contorno 2px, área táctil grande -----------------
+      // v2: el secundario es gris relleno con tinta, sin borde (lienzo «Sistema v2», opción C).
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: scheme.primary,
+          foregroundColor: scheme.onSurface,
+          backgroundColor: ohm.surfaceContainer,
           minimumSize: const Size.fromHeight(AppTouch.primary),
-          side: BorderSide(color: scheme.primary, width: AppBorders.strong),
+          side: BorderSide.none,
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
           textStyle: textTheme.labelLarge,
         ),
@@ -190,7 +188,7 @@ abstract final class AppTheme {
       // --- Inputs: relleno, borde 1.5px, foco 2px naranja ---------------------
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: ohm.surfaceContainer,
+        fillColor: scheme.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.lg,
@@ -199,38 +197,36 @@ abstract final class AppTheme {
         labelStyle: textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
         floatingLabelStyle: textTheme.labelLarge?.copyWith(color: scheme.primary),
         border: OutlineInputBorder(
-          borderRadius: AppRadius.brSm,
-          borderSide: BorderSide(color: scheme.outline, width: AppBorders.regular),
+          borderRadius: AppRadius.brMd,
+          borderSide: BorderSide(color: scheme.outlineVariant, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: AppRadius.brSm,
-          borderSide: BorderSide(color: scheme.outline, width: AppBorders.regular),
+          borderRadius: AppRadius.brMd,
+          borderSide: BorderSide(color: scheme.outlineVariant, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: AppRadius.brSm,
+          borderRadius: AppRadius.brMd,
           borderSide: BorderSide(color: scheme.primary, width: AppBorders.strong),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: AppRadius.brSm,
+          borderRadius: AppRadius.brMd,
           borderSide: BorderSide(color: scheme.error, width: AppBorders.regular),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: AppRadius.brSm,
+          borderRadius: AppRadius.brMd,
           borderSide: BorderSide(color: scheme.error, width: AppBorders.strong),
         ),
       ),
 
       // --- Tarjetas: SIN sombra, borde 1px (sobrevive al sol). En oscuro se
       //     usa un tier de superficie más alto para dar profundidad sutil.
+      // v2: grupos blancos sobre gris, sin borde ni sombra.
       cardTheme: CardThemeData(
-        color: brightness == Brightness.dark ? ohm.surfaceContainer : scheme.surface,
+        color: scheme.surface,
         elevation: AppElevation.none,
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.brMd,
-          side: BorderSide(color: scheme.outlineVariant, width: AppBorders.hairline),
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
       ),
 
       // --- Navegación inferior (≤5 destinos) ----------------------------------
@@ -271,9 +267,10 @@ abstract final class AppTheme {
       // --- Snackbar / toast ---------------------------------------------------
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: scheme.onSurface,
-        contentTextStyle: textTheme.bodyMedium?.copyWith(color: scheme.surface),
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brSm),
+        backgroundColor: scheme.inverseSurface,
+        contentTextStyle: textTheme.bodyMedium?.copyWith(color: scheme.onInverseSurface),
+        actionTextColor: OhmBrand.orangeSoft,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
         insetPadding: const EdgeInsets.all(AppSpacing.lg),
       ),
 
@@ -284,7 +281,7 @@ abstract final class AppTheme {
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brXl),
         // Lienzo de Carlos (2026-10-15): títulos de diálogo en 16 bold, sin Lexend (como el resto de
         // la pantalla). Estilo propio, no de `textTheme`: la Inter variable no engrosa en iOS desde ahí.
-        titleTextStyle: TextStyle(fontSize: 16, height: 1.35, fontWeight: FontWeight.w700, color: scheme.onSurface),
+        titleTextStyle: textTheme.headlineSmall,
         contentTextStyle: textTheme.bodyMedium,
       ),
       bottomSheetTheme: BottomSheetThemeData(
@@ -340,22 +337,23 @@ abstract final class AppTheme {
   // ---------------------------------------------------------------------------
   static TextTheme _textTheme(Color ink, Color muted) {
     const display = AppTypography.displayFamily;
+    // Escala v2 (lienzo «Sistema v2»): 34/28/22 títulos, 17 cuerpo y filas, 15 apoyo, 13 notas.
     return TextTheme(
-      displayLarge: TextStyle(fontFamily: display, fontSize: 40, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: ink),
-      displayMedium: TextStyle(fontFamily: display, fontSize: 32, height: 1.15, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: ink),
-      displaySmall: TextStyle(fontFamily: display, fontSize: 28, height: 1.2, fontWeight: FontWeight.w700, letterSpacing: -0.25, color: ink),
-      headlineLarge: TextStyle(fontFamily: display, fontSize: 26, height: 1.25, fontWeight: FontWeight.w700, color: ink),
-      headlineMedium: TextStyle(fontFamily: display, fontSize: 22, height: 1.3, fontWeight: FontWeight.w700, color: ink),
-      headlineSmall: TextStyle(fontFamily: display, fontSize: 20, height: 1.3, fontWeight: FontWeight.w600, color: ink),
-      titleLarge: TextStyle(fontFamily: display, fontSize: 18, height: 1.35, fontWeight: FontWeight.w700, color: ink),
-      titleMedium: TextStyle(fontSize: 16, height: 1.4, fontWeight: FontWeight.w600, color: ink),
-      titleSmall: TextStyle(fontSize: 14, height: 1.4, fontWeight: FontWeight.w600, color: ink),
-      bodyLarge: TextStyle(fontSize: 16, height: 1.5, fontWeight: FontWeight.w400, color: ink),
-      bodyMedium: TextStyle(fontSize: 14, height: 1.5, fontWeight: FontWeight.w400, color: ink),
-      bodySmall: TextStyle(fontSize: 13, height: 1.45, fontWeight: FontWeight.w400, color: muted),
-      labelLarge: TextStyle(fontSize: 16, height: 1.2, fontWeight: FontWeight.w700, letterSpacing: 0.1, color: ink),
-      labelMedium: TextStyle(fontSize: 13, height: 1.2, fontWeight: FontWeight.w600, letterSpacing: 0.2, color: ink),
-      labelSmall: TextStyle(fontSize: 11, height: 1.2, fontWeight: FontWeight.w600, letterSpacing: 0.4, color: muted),
+      displayLarge: TextStyle(fontFamily: display, fontSize: 34, height: 1.1, fontWeight: FontWeight.w700, letterSpacing: -0.85, color: ink),
+      displayMedium: TextStyle(fontFamily: display, fontSize: 30, height: 1.12, fontWeight: FontWeight.w700, letterSpacing: -0.75, color: ink),
+      displaySmall: TextStyle(fontFamily: display, fontSize: 28, height: 1.15, fontWeight: FontWeight.w700, letterSpacing: -0.6, color: ink),
+      headlineLarge: TextStyle(fontFamily: display, fontSize: 26, height: 1.2, fontWeight: FontWeight.w700, letterSpacing: -0.5, color: ink),
+      headlineMedium: TextStyle(fontFamily: display, fontSize: 22, height: 1.25, fontWeight: FontWeight.w700, letterSpacing: -0.4, color: ink),
+      headlineSmall: TextStyle(fontFamily: display, fontSize: 20, height: 1.3, fontWeight: FontWeight.w600, letterSpacing: -0.3, color: ink),
+      titleLarge: TextStyle(fontSize: 17, height: 1.3, fontWeight: FontWeight.w600, letterSpacing: -0.25, color: ink),
+      titleMedium: TextStyle(fontSize: 17, height: 1.3, fontWeight: FontWeight.w500, letterSpacing: -0.25, color: ink),
+      titleSmall: TextStyle(fontSize: 15, height: 1.35, fontWeight: FontWeight.w600, letterSpacing: -0.1, color: ink),
+      bodyLarge: TextStyle(fontSize: 17, height: 1.4, fontWeight: FontWeight.w400, letterSpacing: -0.2, color: ink),
+      bodyMedium: TextStyle(fontSize: 15, height: 1.4, fontWeight: FontWeight.w400, letterSpacing: -0.1, color: ink),
+      bodySmall: TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w400, color: muted),
+      labelLarge: TextStyle(fontSize: 17, height: 1.2, fontWeight: FontWeight.w600, letterSpacing: -0.2, color: ink),
+      labelMedium: TextStyle(fontSize: 15, height: 1.2, fontWeight: FontWeight.w600, letterSpacing: -0.1, color: ink),
+      labelSmall: TextStyle(fontSize: 12, height: 1.2, fontWeight: FontWeight.w500, color: muted),
     );
   }
 }
