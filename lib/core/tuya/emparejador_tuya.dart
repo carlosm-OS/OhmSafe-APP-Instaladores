@@ -102,6 +102,14 @@ class EmparejadorTuya extends ChangeNotifier {
   /// Lo que la nube dijo del equipo que entró (2026-10-22): para la tarjeta «Equipo conectado».
   String? get devId => _devId;
   String? get categoria => _categoria;
+
+  /// Tipo de sensor que quedó registrado (`door`, `motion`, `smoke`), sacado de la categoría del equipo.
+  String? get tipo => _tipo;
+
+  /// Categoría de la nube → tipo de sensor. El tipo lo dice el equipo, no el instalador (2026-10-23: la
+  /// «Sala» de la i77 era una alarma multifunción registrada como movimiento y nunca iba a avisar).
+  static const tiposPorCategoria = {'mcs': 'door', 'pir': 'motion', 'ywbj': 'smoke'};
+  static String? tipoDeCategoria(String? categoria) => tiposPorCategoria[(categoria ?? '').trim().toLowerCase()];
   String? get serie => _serie;
 
   /// Nombre que trae el equipo de fábrica (p. ej. el modelo); vacío si la nube no lo dio.
@@ -372,6 +380,17 @@ class EmparejadorTuya extends ChangeNotifier {
     await _detener();
     if (!_vigente(intento)) return;
     if (devId.isEmpty) return _fallar('El equipo entró pero no se pudo registrar: falta su identificador. Vuelve a intentarlo.');
+    if (_clase == 'sensor') {
+      final tipo = tipoDeCategoria(_categoria);
+      if (tipo == null) {
+        return _fallar(
+          (_categoria ?? '').isEmpty
+              ? 'El sensor entró pero no dijo qué tipo es, así que no se registró. Vuelve a intentarlo; si sigue, avisa a soporte.'
+              : 'Este equipo no es un sensor de puerta, movimiento ni humo, así que no se registró. Revisa que sea el que vendimos; si sí lo es, avisa a soporte.',
+        );
+      }
+      _tipo = tipo;
+    }
     _ir(EtapaTuya.registrando, 'Guardando el equipo en la casa del cliente…');
     final r = await repo.dispositivoWifiAgregar(
       ordenId,

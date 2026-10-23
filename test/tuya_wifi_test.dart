@@ -95,6 +95,8 @@ void main() {
     expect(repo.sondeos, contains('tok123'));
     expect(repo.altas.single['externalId'], 'eb002');
     expect(repo.altas.single['category'], 'pir');
+    // El tipo sale de la categoría (pir = movimiento), aunque se haya pedido puerta.
+    expect(repo.altas.single['tipo'], 'motion');
   });
 
   test('si nadie ve el equipo se rinde con el texto de 2.4 GHz y deja reintentar', () async {
@@ -120,7 +122,7 @@ void main() {
     expect(emp.etapa, EtapaTuya.emparejando);
     repo.resultado = {
       'successDevices': [
-        {'id': 'eb003'},
+        {'id': 'eb003', 'category': 'mcs'},
       ],
       'errorDevices': [],
     };
@@ -138,9 +140,25 @@ void main() {
     expect(emp.nombre, 'Cochera');
   });
 
+  test('un equipo que no es sensor (alarma multifunción, «mal») no se registra como sensor', () async {
+    await empezar();
+    puente.emitir({'type': 'pairDone', 'devId': 'sala77', 'name': 'Multifunction alarm', 'category': 'mal'});
+    await _hasta(() => emp.etapa == EtapaTuya.error);
+    expect(repo.altas, isEmpty);
+    expect(emp.error, contains('no es un sensor de puerta, movimiento ni humo'));
+  });
+
+  test('categoría → tipo: mcs puerta, pir movimiento, ywbj humo', () {
+    expect(EmparejadorTuya.tipoDeCategoria('mcs'), 'door');
+    expect(EmparejadorTuya.tipoDeCategoria('PIR'), 'motion');
+    expect(EmparejadorTuya.tipoDeCategoria('ywbj'), 'smoke');
+    expect(EmparejadorTuya.tipoDeCategoria('mal'), isNull);
+    expect(EmparejadorTuya.tipoDeCategoria(null), isNull);
+  });
+
   test('sin serie no se manda nada', () async {
     await empezar();
-    puente.emitir({'type': 'pairDone', 'devId': 'eb009'});
+    puente.emitir({'type': 'pairDone', 'devId': 'eb009', 'category': 'mcs'});
     await _hasta(() => emp.etapa == EtapaTuya.listo);
     expect(repo.altas.single['serie'], isNull);
   });
@@ -161,7 +179,13 @@ void main() {
         notifier: AppState(),
         child: MaterialApp(
           theme: AppTheme.light,
-          home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _SinLista(), local: WifiCasaLocal(almacen: _MemoriaWifi())),
+          home: ConectarTuyaWifiScreen(
+            ordenId: 'i99',
+            clase: 'camara',
+            emparejador: emp,
+            listador: _SinLista(),
+            local: WifiCasaLocal(almacen: _MemoriaWifi()),
+          ),
         ),
       ),
     );
@@ -241,13 +265,15 @@ void main() {
     t.view.physicalSize = const Size(1206, 6000);
     t.view.devicePixelRatio = 3;
     addTearDown(t.view.reset);
-    await t.pumpWidget(AppStateProvider(
-      notifier: AppState(),
-      child: MaterialApp(
-        theme: AppTheme.light,
-        home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _SinLista(), local: local),
+    await t.pumpWidget(
+      AppStateProvider(
+        notifier: AppState(),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: _SinLista(), local: local),
+        ),
       ),
-    ));
+    );
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
     await t.pump();
   }
@@ -313,13 +339,15 @@ void main() {
     addTearDown(t.view.reset);
     final local = WifiCasaLocal(almacen: _MemoriaWifi());
     if (conWifi) await t.runAsync(() => local.guardar('i99', const WifiCasa(red: 'Casa Pérez', contrasena: 'secreta123')));
-    await t.pumpWidget(AppStateProvider(
-      notifier: AppState(),
-      child: MaterialApp(
-        theme: AppTheme.light,
-        home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: listador ?? _SinLista(), local: local),
+    await t.pumpWidget(
+      AppStateProvider(
+        notifier: AppState(),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: ConectarTuyaWifiScreen(ordenId: 'i99', clase: 'camara', emparejador: emp, listador: listador ?? _SinLista(), local: local),
+        ),
       ),
-    ));
+    );
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
     await t.pump(const Duration(milliseconds: 400));
   }
@@ -471,7 +499,15 @@ class _Repo implements OrdenesRepository {
   Future<Result<Map<String, dynamic>>> tuyaToken(String id, {required String modo, String? zonaHoraria}) async {
     tokens.add((modo, zonaHoraria));
     if (sinUid) return const FailureResult(ServerFailure('La casa todavía no tiene cuenta Tuya', 'TUYA_UID_DESCONOCIDO'));
-    return Success({'provider': 'tuya', 'authToken': 'AZtok123sec', 'region': 'AZ', 'token': 'tok123', 'secret': 'sec', 'homeId': '1', if (vence != null) 'expiresAt': vence!.toIso8601String()});
+    return Success({
+      'provider': 'tuya',
+      'authToken': 'AZtok123sec',
+      'region': 'AZ',
+      'token': 'tok123',
+      'secret': 'sec',
+      'homeId': '1',
+      if (vence != null) 'expiresAt': vence!.toIso8601String(),
+    });
   }
 
   @override

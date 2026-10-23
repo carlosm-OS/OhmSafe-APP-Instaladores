@@ -75,7 +75,6 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
   final _red = TextEditingController();
   final _contrasena = TextEditingController();
   final _serie = TextEditingController();
-  String _tipo = 'door';
   bool _conectado = false;
 
   /// Bluetooth primero (2026-10-22, como la app del cliente): si no ve el equipo, sigue sola en modo rápido.
@@ -242,7 +241,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
     });
     await _emp.empezar(
       clase: widget.clase,
-      tipo: _esSensor ? _tipo : null,
+      tipo: null, // lo pone el emparejador según la categoría del equipo
       nombre: _nombre.text,
       red: _red.text,
       contrasena: _contrasena.text,
@@ -347,7 +346,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
                       _Paso.listo => _Conectado(
                         emp: _emp,
                         esSensor: _esSensor,
-                        tipo: _tipos[_tipo] ?? '',
+                        tipo: _tipos[_emp.tipo] ?? '',
                         alListo: () => Navigator.pop(context, true),
                         alNoEsEste: _noEsEste,
                       ),
@@ -383,15 +382,15 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
           texto: 'Le falta una configuración a la app. Actualízala; si sigue, avisa a soporte.',
         ),
       EtiquetaSeccion(_esSensor ? 'El sensor' : 'La cámara'),
+      // El tipo ya no se elige: lo dice el sensor al conectarse (2026-10-23, «Sala» de la i77).
       if (_esSensor) ...[
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          initialValue: _tipo,
-          decoration: const InputDecoration(labelText: '¿Qué es?'),
-          items: [for (final e in _tipos.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
-          onChanged: (v) => setState(() => _tipo = v ?? 'door'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Text(
+            'Si es de puerta, movimiento o humo lo dice el sensor al conectarse; no hay que elegirlo.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+          ),
         ),
-        const SizedBox(height: 12),
       ],
       TextField(
         controller: _nombre,
@@ -470,7 +469,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
       GrupoFilas(
         children: [
           FilaFlujo(
-            titulo: '«${_nombre.text.trim()}»${_esSensor ? ' · ${_tipos[_tipo]}' : ''}',
+            titulo: '«${_nombre.text.trim()}»',
             subtitulo: [if (serie.isNotEmpty) 'Serie $serie', if (_wifiCasa != null) 'Wi‑Fi «${_wifiCasa!.red}»'].join(' · '),
             trailing: BotonFila(etiqueta: 'Editar', icono: Icons.edit_rounded, onPressed: () => setState(() => _elegido = _Paso.datos)),
           ),

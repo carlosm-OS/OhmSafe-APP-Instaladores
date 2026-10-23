@@ -4,6 +4,14 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 
 ## Próxima build (en preparación) — 23 de octubre de 2026
 
+- **Nuevo diseño (sistema v2).** Toda la app adopta un estilo más sobrio y fino, como las listas de iPhone. Así se ve ahora:
+  - Fondo gris claro con grupos blancos y título grande arriba.
+  - Estados como un punto de color y una palabra, y acciones de fila como botones grises.
+  - Un solo botón naranja por pantalla.
+  - Las decisiones aparecen en una hoja desde abajo.
+  - Letra más legible: Inter en sus grosores reales, que antes no se veían en iPhone.
+- **La sirena y las salidas de 12 V preguntan dentro de su fila** («¿La escuchaste?», «¿Prendió?»), en vez de ventanas que salían solas.
+- **El tipo de sensor Wi‑Fi lo dice el equipo.** Ya no eliges puerta, movimiento o humo: la app lo toma del sensor al conectarlo. Si el equipo no es un sensor (por ejemplo, una alarma multifunción), no se registra y te lo dice.
 - **No se pierde ni se duplica trabajo.**
   - Durante la instalación ya no aparece la barra de abajo: tocar «Home» a media prueba o firma te sacaba sin preguntar.
   - El atrás del teléfono hace lo mismo que la flecha en el cierre, en vincular energizador y en agregar dispositivos. Regresar de agregar dispositivos ya no marca el paso como listo.
