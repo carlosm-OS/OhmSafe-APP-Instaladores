@@ -353,6 +353,7 @@ void main() {
       expect(find.text('¿Estás instalando en esta dirección?'), findsOneWidget);
       expect(find.text('Nueva'), findsOneWidget);
       expect(find.text('Sí, vincular aquí'), findsOneWidget);
+      await t.pump(const Duration(milliseconds: 600)); // la hoja termina de subir antes de tocar
       await t.tap(find.text('No es esta dirección'));
       await t.pump(const Duration(seconds: 1));
     });
@@ -380,7 +381,7 @@ void main() {
       }
       await t.pump(const Duration(seconds: 1)); // el mock avanza la sesión hasta «Aprendido»
       expect(find.text('Aprendido'), findsOneWidget);
-      expect(find.text('Guardar'), findsOneWidget);
+      expect(find.text('Guardar sensor'), findsOneWidget); // v2: botón con verbo y objeto
       await t.tap(find.text('Cerrar'));
       await t.pump(const Duration(seconds: 1));
     });
