@@ -381,7 +381,9 @@ class BotonFila extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (icono != null) ...[Icon(icono, size: 16, color: fg), const SizedBox(width: 6)],
-                    Text(etiqueta, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: fg)),
+                    Flexible(
+                      child: Text(etiqueta, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: fg)),
+                    ),
                   ],
                 ),
               ),
