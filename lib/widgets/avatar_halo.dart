@@ -2,17 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../core/theme/app_motion.dart';
 import '../core/theme/app_theme_extension.dart';
 
 /// Iniciales a partir de un nombre: primeras letras de las dos primeras
 /// palabras, en mayúsculas. Devuelve [fallback] (por defecto "IN") si el
 /// nombre viene vacío.
 String initialsFromName(String? name, {String fallback = 'IN'}) {
-  final parts = (name ?? '')
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((w) => w.isNotEmpty)
-      .toList();
+  final parts = (name ?? '').trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
   if (parts.isEmpty) return fallback;
   if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
   return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
@@ -31,14 +28,7 @@ class AvatarHalo extends StatefulWidget {
   /// instalador) en vez de la foto por defecto. Útil para usuarios sin foto.
   final IconData? placeholderIcon;
 
-  const AvatarHalo({
-    super.key,
-    this.size = 110,
-    required this.initials,
-    this.imagePath,
-    this.imageBase64,
-    this.placeholderIcon,
-  });
+  const AvatarHalo({super.key, this.size = 110, required this.initials, this.imagePath, this.imageBase64, this.placeholderIcon});
 
   @override
   State<AvatarHalo> createState() => _AvatarHaloState();
@@ -55,10 +45,20 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _decodeBase64();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
+    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 2000));
+  }
+
+  /// El halo respira sin fin; con «Reducir movimiento» se queda quieto a media luz (v2, 2026-10-23).
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (AppMotion.reducido(context)) {
+      _pulseController
+        ..stop()
+        ..value = 0.5;
+    } else if (!_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    }
   }
 
   @override
@@ -114,7 +114,7 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
                       color: orangeAccent.withValues(alpha: opacity),
                       blurRadius: blurRadius,
                       spreadRadius: spreadRadius,
-                    )
+                    ),
                   ],
                 ),
               );
@@ -127,21 +127,9 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
             height: widget.size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white,
-                width: 3.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                )
-              ],
+              border: Border.all(color: Colors.white, width: 3.5),
             ),
-            child: ClipOval(
-              child: _buildAvatarImage(),
-            ),
+            child: ClipOval(child: _buildAvatarImage()),
           ),
         ],
       ),
@@ -151,34 +139,19 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
   Widget _buildAvatarImage() {
     if (widget.imagePath != null && widget.imagePath!.isNotEmpty) {
       if (widget.imagePath!.startsWith('assets/')) {
-        return Image.asset(
-          widget.imagePath!,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildFallback(),
-        );
+        return Image.asset(widget.imagePath!, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _buildFallback());
       } else {
-        return Image.file(
-          File(widget.imagePath!),
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildFallback(),
-        );
+        return Image.file(File(widget.imagePath!), fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _buildFallback());
       }
     }
     // Foto persistida (ej. Odoo) en base64: gana cuando no hay preview local.
     if (_decodedBytes != null) {
-      return Image.memory(
-        _decodedBytes!,
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-      );
+      return Image.memory(_decodedBytes!, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (context, error, stackTrace) => _buildFallback());
     }
     // Sin foto: icono de instalador (si se pidió) en vez de la foto por defecto.
     if (widget.placeholderIcon != null) {
       return Container(
-        decoration: BoxDecoration(
-          gradient: context.ohm.brandGradient,
-        ),
+        decoration: BoxDecoration(gradient: context.ohm.brandGradient),
         alignment: Alignment.center,
         child: Icon(widget.placeholderIcon, color: Colors.white, size: widget.size * 0.5),
       );
@@ -188,29 +161,16 @@ class _AvatarHaloState extends State<AvatarHalo> with SingleTickerProviderStateM
       'assets/assets/avatar.png',
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
-        return Image.asset(
-          'assets/avatar.png',
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildFallback(),
-        );
+        return Image.asset('assets/avatar.png', fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _buildFallback());
       },
     );
   }
 
   Widget _buildFallback() {
     return Container(
-      decoration: BoxDecoration(
-        gradient: context.ohm.brandGradient,
-      ),
+      decoration: BoxDecoration(gradient: context.ohm.brandGradient),
       alignment: Alignment.center,
-      child: Text(
-        widget.initials,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      child: Text(widget.initials, style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.white)),
     );
   }
 }
