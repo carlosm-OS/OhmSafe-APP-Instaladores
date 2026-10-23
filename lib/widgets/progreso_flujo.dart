@@ -13,11 +13,15 @@ import 'ayuda.dart';
 // consecutivos. Estas dos piezas lo hacen reutilizable en cualquier flujo:
 //
 //  - [IndicadorPasos]: «Paso 2 de 4 · Prepara la cámara» con barra segmentada.
+//
+// v2 (2026-10-23): «Paso N de M» en tipo oración y gris (antes MAYÚSCULAS naranjas de 11.5),
+// letra de la escala del tema y sin texto chico en naranja.
 //  - [LineaProgreso]: etapas hechas / en curso / pendientes / con error; la etapa
 //    en curso rota frases cada pocos segundos y cuenta el tiempo transcurrido.
 // =============================================================================
 
-/// «Paso N de M · título» con una barra segmentada (los pasos hechos y el actual en naranja).
+/// «Paso N de M · título» con una barra segmentada (los pasos hechos y el actual en naranja; el texto
+/// en gris de apoyo).
 class IndicadorPasos extends StatelessWidget {
   const IndicadorPasos({super.key, required this.actual, required this.total, required this.titulo});
 
@@ -35,23 +39,21 @@ class IndicadorPasos extends StatelessWidget {
       label: 'Paso $actual de $total: $titulo',
       excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text.rich(
               TextSpan(
                 children: [
+                  TextSpan(text: 'Paso $actual de $total'),
                   TextSpan(
-                    text: 'PASO $actual DE $total',
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: cs.primary),
-                  ),
-                  TextSpan(
-                    text: '  ·  $titulo',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
+                    text: ' · $titulo',
+                    style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
+              style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             Row(
@@ -63,10 +65,7 @@ class IndicadorPasos extends StatelessWidget {
                       duration: dur,
                       curve: AppCurves.standard,
                       height: 4,
-                      decoration: BoxDecoration(
-                        color: i <= actual ? cs.primary : cs.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
+                      decoration: BoxDecoration(color: i <= actual ? cs.primary : cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(2)),
                     ),
                   ),
                 ],
@@ -214,7 +213,7 @@ class _FilaEtapa extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
-    final apagado = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.55);
+    final apagado = cs.onSurfaceVariant;
     final enCurso = etapa.estado == EstadoEtapa.enCurso;
     final color = switch (etapa.estado) {
       EstadoEtapa.hecha => ohm.success,
@@ -261,10 +260,9 @@ class _FilaEtapa extends StatelessWidget {
                   children: [
                     Text(
                       etapa.titulo,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: enCurso || etapa.estado == EstadoEtapa.error ? FontWeight.w800 : FontWeight.w600,
-                        color: etapa.estado == EstadoEtapa.pendiente ? apagado : (etapa.estado == EstadoEtapa.error ? cs.error : theme.textTheme.bodyLarge?.color),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: enCurso || etapa.estado == EstadoEtapa.error ? FontWeight.w600 : FontWeight.w500,
+                        color: etapa.estado == EstadoEtapa.pendiente ? apagado : (etapa.estado == EstadoEtapa.error ? cs.error : cs.onSurface),
                       ),
                     ),
                     if (frase != null) ...[
@@ -274,38 +272,22 @@ class _FilaEtapa extends StatelessWidget {
                         switchInCurve: AppCurves.standard,
                         transitionBuilder: (hijo, a) => FadeTransition(opacity: a, child: hijo),
                         layoutBuilder: (actual, anteriores) => Stack(alignment: Alignment.topLeft, children: [...anteriores, ?actual]),
-                        child: Text(
-                          frase!,
-                          key: ValueKey(frase),
-                          style: TextStyle(fontSize: 13.5, height: 1.35, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8)),
-                        ),
+                        child: Text(frase!, key: ValueKey(frase), style: theme.textTheme.bodySmall),
                       ),
                     ],
                     if (etapa.detalle != null) ...[
                       const SizedBox(height: 4),
-                      Text(
-                        etapa.detalle!,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          height: 1.35,
-                          color: etapa.estado == EstadoEtapa.error ? cs.error : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-                        ),
-                      ),
+                      Text(etapa.detalle!, style: theme.textTheme.bodySmall?.copyWith(color: etapa.estado == EstadoEtapa.error ? cs.error : null)),
                     ],
                     if (enCurso && (tiempo != null || avance != null)) ...[
                       const SizedBox(height: 10),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          minHeight: 5,
-                          value: avance,
-                          color: cs.primary,
-                          backgroundColor: cs.primary.withValues(alpha: 0.15),
-                        ),
+                        child: LinearProgressIndicator(minHeight: 5, value: avance, color: cs.primary, backgroundColor: cs.surfaceContainerHighest),
                       ),
                       if (tiempo != null) ...[
                         const SizedBox(height: 6),
-                        Text(tiempo!, style: TextStyle(fontSize: 12, fontFeatures: const [FontFeature.tabularFigures()], color: apagado)),
+                        Text(tiempo!, style: theme.textTheme.bodySmall?.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
                       ],
                     ],
                     if (etapa.accion != null) ...[const SizedBox(height: 12), etapa.accion!],
@@ -343,7 +325,10 @@ class _Marca extends StatelessWidget {
           ),
           EstadoEtapa.pendiente => Container(
             margin: const EdgeInsets.all(4),
-            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: cs.outlineVariant, width: 2)),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: cs.outlineVariant, width: 2),
+            ),
           ),
         },
       ),
@@ -363,14 +348,14 @@ class TarjetaProceso extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return TarjetaFlujo(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(titulo, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(titulo, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
           if (subtitulo != null) ...[
-            const SizedBox(height: 4),
-            Text(subtitulo!, style: theme.textTheme.bodySmall?.copyWith(height: 1.35, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
+            const SizedBox(height: 2),
+            Text(subtitulo!, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ],
           const SizedBox(height: 16),
           linea,

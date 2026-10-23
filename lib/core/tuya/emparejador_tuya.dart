@@ -171,7 +171,7 @@ class EmparejadorTuya extends ChangeNotifier {
     final authToken = (t.successValue['authToken'] ?? '').toString();
     final homeId = (t.successValue['homeId'] ?? '').toString();
     venceToken = DateTime.tryParse((t.successValue['expiresAt'] ?? '').toString());
-    if (_token.isEmpty || authToken.isEmpty) return _fallar('El servidor no entregó el permiso de emparejamiento. Avisa a soporte.');
+    if (_token.isEmpty || authToken.isEmpty) return _fallar('El servidor no entregó el permiso para conectar el equipo. Avisa a soporte.');
 
     try {
       await puente.configurar();
@@ -195,7 +195,7 @@ class EmparejadorTuya extends ChangeNotifier {
       unawaited(_registrar(intento));
     } else if (e.fallo) {
       // El SDK sin sesión puede quejarse aunque el equipo sí haya entrado: el backend decide.
-      _ir(EtapaTuya.emparejando, 'Comprobando con la nube si el equipo entró…');
+      _ir(EtapaTuya.emparejando, 'Comprobando si el equipo ya se registró…');
     } else if (e.progreso && etapa == EtapaTuya.emparejando) {
       _ir(EtapaTuya.emparejando, copiaPaso(e.paso));
     }
@@ -352,7 +352,7 @@ class EmparejadorTuya extends ChangeNotifier {
       if (malos.isNotEmpty) {
         await _detener();
         _fallar(
-          'El equipo intentó entrar pero la nube lo rechazó${malos.first['error'] != null ? ' (${malos.first['error']})' : ''}. Reinícialo y vuelve a intentar.',
+          'El equipo intentó entrar pero no se pudo registrar${malos.first['error'] != null ? ' (${malos.first['error']})' : ''}. Reinícialo y vuelve a intentar.',
         );
       }
     } finally {
@@ -371,7 +371,7 @@ class EmparejadorTuya extends ChangeNotifier {
     final devId = _devId ?? '';
     await _detener();
     if (!_vigente(intento)) return;
-    if (devId.isEmpty) return _fallar('El equipo entró pero la nube no dio su identificador. Vuelve a intentarlo.');
+    if (devId.isEmpty) return _fallar('El equipo entró pero no se pudo registrar: falta su identificador. Vuelve a intentarlo.');
     _ir(EtapaTuya.registrando, 'Guardando el equipo en la casa del cliente…');
     final r = await repo.dispositivoWifiAgregar(
       ordenId,
@@ -431,8 +431,9 @@ class EmparejadorTuya extends ChangeNotifier {
   }
 }
 
+// v2 (2026-10-23): sin «nube» ni «emparejar» en texto visible («se registre», «conectar»).
 const copiaTiempo =
-    'El equipo no llegó a la nube. Revisa que esté en modo de emparejamiento (luz parpadeando rápido), que la red sea de 2.4 GHz y la contraseña, y vuelve a intentar.';
+    'El equipo no se registró. Revisa que esté listo para conectar (luz parpadeando rápido), que la red sea de 2.4 GHz y la contraseña, y vuelve a intentar.';
 
 String copiaErrorToken(Failure f) {
   if (f is ServerFailure && f.code == 'TUYA_UID_DESCONOCIDO') {
@@ -441,15 +442,15 @@ String copiaErrorToken(Failure f) {
   // 502 del backend cuando la nube de los equipos rechaza algo (2026-10-22, Back-#162): sin marcas.
   if (f is ServerFailure && f.code == 'TUYA_CLOUD_ERROR') {
     final c = f.details['providerCode'];
-    return 'La nube de los equipos Wi‑Fi no dio el permiso para emparejar${c != null ? ' (código $c)' : ''}. Espera un momento y vuelve a intentar; si sigue, avisa a soporte con ese código.';
+    return 'No se obtuvo el permiso para conectar equipos Wi‑Fi${c != null ? ' (código $c)' : ''}. Espera un momento y vuelve a intentar; si sigue, avisa a soporte con ese código.';
   }
   return f.message;
 }
 
 String copiaPuente(TuyaError e) => switch (e.codigo) {
-  TuyaCodigo.noEnlazado => 'Esta versión de la app no puede emparejar equipos Wi‑Fi. Actualízala.',
+  TuyaCodigo.noEnlazado => 'Esta versión de la app no puede conectar equipos Wi‑Fi. Actualízala.',
   TuyaCodigo.sinLlaves => e.mensaje,
-  TuyaCodigo.noConfigurado => 'No se pudo iniciar el emparejamiento en este teléfono. Avisa a soporte.',
+  TuyaCodigo.noConfigurado => 'No se pudo empezar a conectar el equipo en este teléfono. Avisa a soporte.',
   TuyaCodigo.argumentos => 'Falta el nombre de la red o el permiso de la casa.',
   TuyaCodigo.tiempo => copiaTiempo,
   _ => e.mensaje,
@@ -459,7 +460,7 @@ String copiaPaso(String? paso) => switch (paso) {
   'ez_waiting' => 'Pasándole la red de la casa al equipo… (puede tardar 1 minuto)',
   'ble_connecting' => 'Pasándole la red de la casa por Bluetooth…',
   'ap_waiting' => 'Conectado al equipo; pasándole la red de la casa…',
-  'found' => 'El equipo ya recibió la red; registrándolo en la nube…',
-  'registered' || 'initialized' => 'El equipo ya está en la nube…',
-  _ => 'Emparejando el equipo…',
+  'found' => 'El equipo ya recibió la red; registrándolo…',
+  'registered' || 'initialized' => 'El equipo ya se registró…',
+  _ => 'Conectando el equipo…',
 };
