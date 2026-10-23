@@ -119,7 +119,7 @@ void main() {
 
     await pasos('pendiente');
     expect(find.text('Wi‑Fi de la casa'), findsOneWidget);
-    expect(find.text('Opcional · para sensores, cámaras y el OhmBox'), findsOneWidget);
+    expect(find.text('Opcional · para sensores, cámaras y el energizador'), findsOneWidget);
     expect(find.text('6'), findsOneWidget, reason: 'el cierre ahora es el paso 6');
 
     await pasos('lista');

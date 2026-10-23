@@ -1,26 +1,27 @@
 # Instalación paso a paso
 
-Una instalación tiene 5 pasos. La app guarda cada paso en cuanto lo terminas: si cierras la app o se va la señal, al volver retomas donde te quedaste.
+Una instalación tiene 6 pasos. La app guarda cada paso en cuanto lo terminas: si cierras la app o se va la señal, al volver retomas donde te quedaste.
 
 | Paso | Nombre en la app |
 |---|---|
-| 1 | «Técnico en ruta» |
+| 1 | «Ruta» |
 | 2 | «Inspección del perímetro» |
-| 3 | «Instalación de cerca eléctrica» |
-| 4 | «Vincular el energizador» |
-| 5 | «Prueba del energizador» |
-| 6 | «Agregar dispositivos» (opcional) |
-| 7 | «Cierre de la instalación» |
+| 3 | «Cerca eléctrica» |
+| 4 | «Wi‑Fi de la casa» (opcional) |
+| 5 | «Agregar dispositivos» (energizador, sensores y cámaras; opcional) |
+| 6 | «Cierre» |
+
+Arriba de la lista una barra de 6 segmentos dice cómo vas: verde lo listo, naranja lo que puedes hacer ahora y gris lo pendiente. Cada paso tiene un círculo: verde con ✓ (listo), naranja con su número (se puede hacer ahora) o gris con su número (pendiente). Si tocas un paso que todavía no se puede abrir, el teléfono vibra y debajo dice qué falta, por ejemplo «Primero termina la cerca eléctrica.».
 
 ## Antes de salir: revisa la orden
 
-1. En **Instalaciones**, toca el día y abre la tarjeta del servicio.
+1. En **Instalaciones**, toca el día. Cada tarjeta trae arriba el número y la fecha («i76 · Creada el 14 de octubre, 9:00»); tócala para ver todos los datos («Ver más datos»).
 2. Revisa dirección, teléfono, «Metraje» y «Condiciones del terreno».
 3. Lleva el material y el energizador. El metraje que ves es el que el cliente le dio a operaciones por teléfono; el real lo mides tú en el paso 2.
 
 ## Cómo llegar
 
-El botón «Cómo llegar» está en la tarjeta y dentro del servicio.
+El botón «Cómo llegar» (píldora gris) está en la tarjeta y dentro del servicio.
 
 1. Toca «Cómo llegar».
 2. Elige «Google Maps», «Waze» o «Apple Maps» (solo iPhone), o «Copiar dirección».
@@ -30,36 +31,36 @@ Si no abre: «No se pudo abrir el mapa. Copia la dirección y pégala en tu app 
 
 ## Paso 1 — En ruta y llegada
 
-1. En la tarjeta toca «Iniciar ruta de servicio».
-2. Confirma en «¿Estás seguro de iniciar la ruta?» con «Iniciar ruta de servicio».
+1. En la tarjeta toca «Iniciar ruta».
+2. Se abre la hoja «¿Salir hacia el domicilio?». Toca «Iniciar ruta»; mientras avisa, el botón dice «Avisando al cliente…».
    - Al confirmar, el cliente recibe un correo de que vas en camino.
-3. Ves la animación «Iniciando Ruta de servicio» y luego la lista «PASOS DE LA ORDEN».
-4. Toca el paso «Técnico en ruta». Se abre «Detalles de Ruta».
+3. Ves un momento la animación «Iniciando la ruta…» (tócala para saltarla) y luego la pantalla «Instalación i76» con la lista «Pasos» y el aviso «Vas en camino al domicilio».
+4. Toca el paso «Ruta». Se abre la pantalla «Ruta».
 5. Al llegar al domicilio toca «Marcar llegada».
    - La app toma tu ubicación. Esa ubicación es la referencia para el cierre: debes cerrar a menos de 300 m de donde marcaste la llegada.
    - Si el teléfono pide permiso de ubicación, acéptalo.
 
-Si falla verás «No se pudo marcar la llegada: …» y el paso no avanza. Inténtalo de nuevo con señal.
+Si falla verás, junto al botón, «No pudimos marcar tu llegada» con lo que pasó, y el paso no avanza. Inténtalo de nuevo con señal.
 
-Si la orden aún no tiene fecha, al iniciar ruta verás: «No se pudo iniciar la ruta: Esta intervención aún no está programada. Operaciones debe confirmar día y hora con el cliente antes de iniciar la ruta.»
+Si no se pudo avisar al cliente, la hoja dice «No pudimos avisar al cliente. Revisa tu señal y vuelve a intentar.»
 
 ## Paso 2 — Inspección del perímetro
 
 1. Toca «Inspección del perímetro».
 2. Revisa «Metraje agendado» y corrige «Metraje real» con lo que mediste en sitio (en metros).
-3. En «OBSTÁCULOS EN EL TERRENO» marca todos los que haya: «Malla ciclónica», «Vegetación», «Concertina», «Árboles», «Herrería», «Desniveles», «Arcos», «Cableado», «Altura superior».
+3. En «Obstáculos en el terreno» marca todos los que haya: «Malla ciclónica», «Vegetación», «Concertina», «Árboles», «Herrería», «Desniveles», «Arcos», «Cableado», «Altura superior».
    - Si no hay ninguno, marca «Perímetro sin obstáculos».
-4. Toca «Completar perímetro».
+4. Toca «Guardar inspección». Si no has marcado nada, abajo dice qué falta.
 
 El metraje real queda como «Metros a instalar» en el paso 3 y en la tarjeta del servicio.
 
-## Paso 3 — Instalación de cerca eléctrica
+## Paso 3 — Cerca eléctrica
 
-1. Toca «Instalación de cerca eléctrica».
+1. Toca «Cerca eléctrica».
 2. Verás «Metros a instalar» (el real del paso 2).
-3. En «CONTEO DE MATERIALES» ajusta con «−» y «+» lo que realmente instalaste: «Postes esquina», «Postes de paso», «Líneas», «Abanicos», «Letrero Ohmsafe», «Letrero Precaución».
+3. En «Conteo de materiales» ajusta con «−» y «+» lo que realmente instalaste: «Postes esquina», «Postes de paso», «Líneas», «Abanicos», «Letrero OhmSafe», «Letrero Precaución».
    - Los contadores ya traen números de inicio. Corrígelos siempre con lo real.
-4. Toca «Completar instalación».
+4. Toca «Guardar medidas de la cerca». Si no se pudo guardar, junto al botón dice qué pasó.
 
 ## Ayuda en pantalla (desde la build 43)
 
@@ -116,9 +117,9 @@ Las secciones, en este orden:
 
 Las puertas con cable, la sirena y las salidas piden firmware **2.10 o superior**; si el equipo es más viejo verás «Este energizador necesita actualizarse» (lo demás sí se puede agregar). Todo lo guardado queda en el acta de la instalación (Odoo).
 
-## Paso 6 — Cierre de la instalación
+## Paso 6 — Cierre
 
-Toca «Cierre de la instalación». Tiene 3 partes: **1 · Fotos**, **2 · Entrega** y **3 · Firma**.
+Toca «Cierre». Tiene 3 partes: **1 · Fotos**, **2 · Entrega** y **3 · Firma**.
 
 ### 6.1 Fotos
 

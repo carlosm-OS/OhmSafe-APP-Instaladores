@@ -20,7 +20,6 @@ import 'package:ohmsafe_app/core/network/result.dart';
 import 'package:ohmsafe_app/core/theme/app_theme.dart';
 import 'package:ohmsafe_app/features/notificaciones/data/notificaciones_repository.dart';
 import 'package:ohmsafe_app/features/ordenes/domain/entities/orden.dart';
-import 'package:ohmsafe_app/features/ordenes/domain/entities/tarifas.dart';
 import 'package:ohmsafe_app/features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'package:ohmsafe_app/screens/instalaciones_screen.dart';
 
@@ -94,7 +93,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Instalación A'), findsNothing,
         reason: 'lo terminado pertenece al historial, no a la lista de trabajo');
-    expect(find.text('Iniciar ruta de servicio'), findsNothing,
+    expect(find.text('Iniciar ruta'), findsNothing,
         reason: 'jamás debe ofrecer reiniciar un servicio cerrado');
   });
 
@@ -112,7 +111,7 @@ void main() {
     expect(find.text('Instalación C'), findsOneWidget);
     await tester.tap(find.text('Instalación C'));
     await tester.pumpAndSettle();
-    expect(find.text('Iniciar ruta de servicio'), findsOneWidget);
+    expect(find.text('Iniciar ruta'), findsOneWidget);
   });
 
   testWidgets('regla 2: una orden a medias ofrece continuar, no reiniciar',
@@ -123,7 +122,7 @@ void main() {
     await tester.tap(find.text('Instalación D'));
     await tester.pumpAndSettle();
     expect(find.text('Continuar · Cierre y firma'), findsOneWidget);
-    expect(find.text('Iniciar ruta de servicio'), findsNothing);
+    expect(find.text('Iniciar ruta'), findsNothing);
   });
 
   testWidgets('regla 3: sin fecha agendada la orden no se muestra (opción A de Carlos, 2026-10-20)',
