@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../core/wifi/redes_wifi.dart';
 
-/// Campo «Nombre de la red (Wi‑Fi)» de las pantallas de emparejamiento (2026-10-20, pedido de
+/// Campo «Nombre de la red (Wi‑Fi)» de las pantallas para conectar equipos a la Wi‑Fi (2026-10-20, pedido de
 /// Carlos: «un buscador de redes para que la encuentre y seleccione»).
 ///
 /// - Se prellena con la red del teléfono ([leerRedActual]) y se vuelve a leer sola cuando la app
@@ -16,15 +16,7 @@ import '../core/wifi/redes_wifi.dart';
 ///   que la Wi‑Fi se cambia en Ajustes.
 /// - Si el nombre elegido o tecleado huele a 5 GHz («…5G»), avisa debajo sin impedir nada.
 class CampoRedWifi extends StatefulWidget {
-  const CampoRedWifi({
-    super.key,
-    required this.controller,
-    required this.leerRedActual,
-    this.listador,
-    this.enabled = true,
-    this.onChanged,
-    this.esIos,
-  });
+  const CampoRedWifi({super.key, required this.controller, required this.leerRedActual, this.listador, this.enabled = true, this.onChanged, this.esIos});
 
   final TextEditingController controller;
 
@@ -208,22 +200,40 @@ class _HojaRedesState extends State<_HojaRedes> {
               padding: const EdgeInsets.fromLTRB(20, 4, 8, 4),
               child: Row(
                 children: [
-                  Expanded(child: Text('Redes Wi‑Fi cercanas', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
-                  IconButton(tooltip: 'Buscar de nuevo', icon: const Icon(Icons.refresh_rounded), onPressed: _buscando ? null : _buscar),
+                  Expanded(child: Text('Redes Wi‑Fi cercanas', style: theme.textTheme.headlineSmall)),
+                  IconButton(
+                    tooltip: 'Buscar de nuevo',
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                    icon: Icon(Icons.refresh_rounded, color: cs.primary),
+                    onPressed: _buscando ? null : _buscar,
+                  ),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('El equipo sólo entra a redes de 2.4 GHz; las de 5 GHz se ven apagadas.', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+              child: Text('El equipo sólo entra a redes de 2.4 GHz; las de 5 GHz se ven apagadas.', style: theme.textTheme.bodySmall),
             ),
             if (_buscando)
-              const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                child: Row(
+                  children: [
+                    SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: cs.onSurfaceVariant)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text('Buscando redes cercanas…', style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                    ),
+                  ],
+                ),
+              )
             else if (r == null || r.estado != EstadoEscaneo.ok || redes.isEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                 child: Text(
-                  r != null && r.estado != EstadoEscaneo.ok ? copiaEscaneo(r.estado) : 'No se vio ninguna red. Acércate al módem y busca de nuevo.',
+                  r != null && r.estado != EstadoEscaneo.ok
+                      ? copiaEscaneo(r.estado)
+                      : 'No se vio ninguna red. Acércate al módem y toca «Buscar de nuevo» arriba.',
                   style: theme.textTheme.bodyMedium,
                 ),
               )
@@ -238,11 +248,14 @@ class _HojaRedesState extends State<_HojaRedes> {
                     return ListTile(
                       enabled: red.sirve,
                       leading: Icon(_iconoSenal(red.barras), color: red.sirve ? cs.primary : cs.outline),
-                      title: Text(red.ssid, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      title: Text(red.ssid, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleMedium),
                       subtitle: Text(
-                        red.sirve ? (esActual ? 'Conectado ahora · ${red.banda.etiqueta}'.trim() : red.banda.etiqueta) : '${red.banda.etiqueta}: el equipo no la ve',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                        red.sirve
+                            ? (esActual ? 'Conectado ahora · ${red.banda.etiqueta}'.trim() : red.banda.etiqueta)
+                            : '${red.banda.etiqueta}: el equipo no la ve',
                       ),
-                      trailing: esActual ? Icon(Icons.check_circle_rounded, color: cs.primary) : null,
+                      trailing: esActual ? Icon(Icons.check_rounded, color: cs.primary) : null,
                       onTap: red.sirve ? () => Navigator.pop(context, red) : null,
                     );
                   },

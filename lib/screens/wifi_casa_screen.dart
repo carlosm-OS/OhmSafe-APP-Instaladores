@@ -6,15 +6,16 @@ import '../core/tuya/tuya_puente.dart';
 import '../core/wifi/redes_wifi.dart';
 import '../core/wifi/wifi_casa_local.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../widgets/ayuda.dart';
-import '../widgets/botones_dialogo.dart';
 import '../widgets/campo_red_wifi.dart';
+import '../widgets/hoja_decision.dart';
 import '../widgets/ohm_gradient_button.dart';
 
 /// Paso «Wi‑Fi de la casa» (Carlos, 2026-10-22), antes de «Agregar dispositivos».
 ///
 /// El cliente escribe la contraseña UNA vez y la usan los sensores y cámaras Wi‑Fi y, si la casa
-/// lleva OhmBox, el OhmBox como segunda conexión además de la red celular. No todas las casas la
+/// lleva energizador (OhmBox), el energizador como segunda conexión además de la red celular. No todas las casas la
 /// necesitan: se puede omitir y volver aquí cuando haga falta. Al servidor sólo va el nombre de la
 /// red; la contraseña se queda en este teléfono ([WifiCasaLocal]) y se borra al terminar.
 ///
@@ -87,20 +88,13 @@ class _WifiCasaScreenState extends State<WifiCasaScreen> {
     final red = _red.text.trim();
     if (red.isEmpty) return;
     if (_contrasena.text.isEmpty) {
-      final sinClave = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('¿La red no tiene contraseña?'),
-          content: const Text('Si la Wi‑Fi de la casa tiene contraseña, pídesela al cliente y que la escriba aquí.'),
-          actions: [
-            BotonesDialogo(
-              secundario: 'Volver',
-              onSecundario: () => Navigator.pop(ctx, false),
-              primario: 'Sí, sin contraseña',
-              onPrimario: () => Navigator.pop(ctx, true),
-            ),
-          ],
-        ),
+      // v2 (2026-10-23): decisión en hoja desde abajo, con verbos.
+      final sinClave = await mostrarHojaDecision(
+        context,
+        titulo: '¿La red no tiene contraseña?',
+        texto: 'Si la Wi‑Fi de la casa tiene contraseña, pídesela al cliente y que la escriba aquí.',
+        seguir: 'Guardar sin contraseña',
+        salir: 'Escribir la contraseña',
       );
       if (sinClave != true || !mounted) return;
     }
@@ -147,39 +141,46 @@ class _WifiCasaScreenState extends State<WifiCasaScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final ohm = context.ohm;
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            EncabezadoFlujo(titulo: 'Wi‑Fi de la casa', alVolver: () => Navigator.pop(context)),
+            EncabezadoFlujo(
+              titulo: 'Wi‑Fi de la casa',
+              subtitulo: 'Opcional · para sensores, cámaras y el energizador',
+              alVolver: () => Navigator.pop(context),
+            ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 physics: const BouncingScrollPhysics(),
                 children: [
-                  Text(
-                    'Captúrala una sola vez: la usan los sensores y cámaras Wi‑Fi y, si la casa lleva OhmBox, '
-                    'será su segunda conexión además de la red celular. Si esta casa no la necesita, omite el paso; '
-                    'puedes volver aquí cuando quieras.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.7), height: 1.4),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      'Captúrala una sola vez: la usan los sensores y cámaras Wi‑Fi y, si la casa lleva energizador, '
+                      'será su segunda conexión además de la red celular. Si esta casa no la necesita, omite el paso; '
+                      'puedes volver aquí cuando quieras.',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  if (_error != null) MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo guardar', texto: _error!),
+                  const SizedBox(height: 20),
                   if (_estado == 'omitida')
                     MensajeFlujo(
-                      icono: Icons.info_outline,
-                      color: cs.primary,
+                      icono: Icons.info_outline_rounded,
+                      color: ohm.info,
                       titulo: 'Este paso estaba omitido',
                       texto: 'Si la casa sí la necesita, captúrala ahora y toca «Guardar Wi‑Fi de la casa».',
                     ),
                   const EtiquetaSeccion(
-                    'LA RED',
+                    'La red',
                     tituloAyuda: 'Red y contraseña',
                     ayuda: [
                       'Pon este teléfono en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»): los equipos no se conectan a redes de 5 GHz.',
-                      'El nombre de la red se guarda en la orden para soporte.',
+                      'El nombre de la red se guarda en la instalación para soporte.',
                       'La contraseña la escribe el cliente. Se queda sólo en este teléfono y se borra al terminar la instalación.',
                     ],
                   ),
@@ -201,13 +202,21 @@ class _WifiCasaScreenState extends State<WifiCasaScreen> {
                       labelText: 'Contraseña de la Wi‑Fi',
                       helperText: 'La escribe el cliente. Se queda sólo en este teléfono.',
                       suffixIcon: IconButton(
-                        tooltip: _verContrasena ? 'Ocultar' : 'Mostrar',
-                        icon: Icon(_verContrasena ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                        tooltip: _verContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña',
+                        icon: Icon(_verContrasena ? Icons.visibility_off_rounded : Icons.visibility_rounded),
                         onPressed: () => setState(() => _verContrasena = !_verContrasena),
                       ),
                     ),
                   ),
                   const SizedBox(height: 28),
+                  // El error va junto al botón: qué pasó y cómo seguir.
+                  if (_error != null)
+                    MensajeFlujo(
+                      icono: Icons.error_outline_rounded,
+                      color: cs.error,
+                      titulo: 'No se guardó la Wi‑Fi de la casa',
+                      texto: '${_error!} Vuelve a intentar; si no hay señal, puedes omitir el paso y volver después.',
+                    ),
                   OhmGradientButton(
                     label: 'Guardar Wi‑Fi de la casa',
                     icon: Icons.wifi_rounded,
@@ -216,7 +225,10 @@ class _WifiCasaScreenState extends State<WifiCasaScreen> {
                     onPressed: (_omitiendo || _red.text.trim().isEmpty) ? null : _guardar,
                   ),
                   const SizedBox(height: 12),
-                  BotonSecundario(etiqueta: _omitiendo ? 'Omitiendo la Wi‑Fi de la casa…' : 'Omitir: esta casa no la necesita', onPressed: _guardando ? null : _omitir),
+                  BotonSecundario(
+                    etiqueta: _omitiendo ? 'Omitiendo la Wi‑Fi de la casa…' : 'Omitir: esta casa no la necesita',
+                    onPressed: _guardando ? null : _omitir,
+                  ),
                 ],
               ),
             ),
