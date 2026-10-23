@@ -96,7 +96,7 @@ void main() {
         await t.pump(const Duration(seconds: 1));
         expect(find.textContaining('TIEMPO DE PRUEBA'), findsNothing, reason: 'sin reloj visible');
         await _ver(t, find.text('Encender la cerca'));
-        await _ver(t, find.textContaining('MUÉSTRALE AL CLIENTE'));
+        await _ver(t, find.text('Muéstrale al cliente'));
         await _ver(t, find.text('Terminar prueba'));
       });
     });

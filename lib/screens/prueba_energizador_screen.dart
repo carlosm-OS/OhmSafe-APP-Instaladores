@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import '../core/di/injection_container.dart';
 import '../core/network/actividad.dart';
 import '../core/error/failures.dart';
+import '../core/theme/app_theme_extension.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
-import '../widgets/botones_dialogo.dart';
+import '../widgets/hoja_decision.dart';
 
 /// Prueba del energizador (build 39, Carlos 2026-10-13): después de vincular, el instalador tiene
 /// una ventana de tiempo para ENCENDER y APAGAR la cerca y enseñarle al cliente que el equipo
@@ -33,6 +34,9 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
   bool _cargando = true;
   bool _enviando = false;
   Timer? _refresco;
+
+  /// Error al encender o apagar, junto al botón (v2: antes en un SnackBar).
+  String? _errorAccion;
 
   /// Lo que el instalador ya le enseñó al cliente en esta prueba (guía la pantalla: al tener las
   /// dos, «Terminar prueba» pasa a ser la acción principal).
@@ -110,7 +114,10 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
 
   Future<void> _accion(String accion) async {
     if (_enviando) return;
-    setState(() => _enviando = true);
+    setState(() {
+      _enviando = true;
+      _errorAccion = null;
+    });
     var r = await _repo.pruebaAccion(_id, accion);
     // Si la ventana venció (p. ej. el teléfono estuvo bloqueado), se reabre en silencio y se reintenta una vez.
     final f0 = r.isFailure ? r.failureValue : null;
@@ -123,29 +130,20 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
       _aplicar(e);
       if (accion == 'cerca_on') _vioEncendida = true;
       if (accion == 'cerca_off') _vioApagada = true;
-    }, (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_msg(f)))));
+    }, (f) => _errorAccion = _msg(f));
     setState(() => _enviando = false);
   }
 
   Future<void> _terminar({required bool omitir}) async {
     if (_enviando) return;
     if (!omitir && _cercaEncendida) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
-          scrollable: true,
-          title: const Text('¿Dejas la cerca encendida?'),
-          content: const Text('Al terminar ya no podrás encenderla ni apagarla desde tu app. Se queda encendida y el control lo tiene sólo el cliente.'),
-          actions: [
-            BotonesDialogo(
-              secundario: 'Volver',
-              onSecundario: () => Navigator.pop(ctx, false),
-              primario: 'Sí, dejarla así',
-              onPrimario: () => Navigator.pop(ctx, true),
-            ),
-          ],
-        ),
+      // v2 (2026-10-23): la decisión es una hoja desde abajo, con verbos.
+      final ok = await mostrarHojaDecision(
+        context,
+        titulo: '¿Dejas la cerca encendida?',
+        texto: 'Al terminar ya no podrás encenderla ni apagarla desde tu app. Se queda encendida y el control lo tiene sólo el cliente.',
+        seguir: 'Dejarla encendida y terminar',
+        salir: 'Volver a la prueba',
       );
       if (ok != true || !mounted) return;
     }
@@ -167,7 +165,8 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final muted = TextStyle(fontSize: 14, height: 1.4, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6));
+    final ohm = context.ohm;
+    final apoyo = theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant);
     final serie = (_equipo['serie'] ?? '').toString();
     final puedeMandar = _estado != null && _enLinea && !_enviando;
     // Mientras envía, el botón sigue con color y spinner (loading ya ignora los toques).
@@ -188,21 +187,38 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  EncabezadoFlujo(titulo: 'Prueba del energizador', alVolver: () => _terminar(omitir: true)),
+                  EncabezadoFlujo(
+                    titulo: 'Prueba del energizador',
+                    subtitulo: serie.isEmpty ? null : 'Energizador $serie',
+                    alVolver: () => _terminar(omitir: true),
+                  ),
                   Expanded(
                     child: _cargando
-                        ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(cs.primary)))
+                        ? Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                            child: Semantics(
+                              liveRegion: true,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: cs.onSurfaceVariant)),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: Text('Abriendo la prueba del energizador…', style: apoyo)),
+                                ],
+                              ),
+                            ),
+                          )
                         : ListView(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                             physics: const BouncingScrollPhysics(),
                             children: [
                               if (_error != null)
                                 MensajeFlujo(
-                                  icono: Icons.error_outline,
+                                  icono: Icons.error_outline_rounded,
                                   color: cs.error,
                                   titulo: 'No pudimos conectar con el equipo',
                                   texto: _error!,
-                                  accion: BotonFila(etiqueta: 'Intentar de nuevo', icono: Icons.refresh, onPressed: _abrir),
+                                  accion: BotonFila(etiqueta: 'Volver a intentar', icono: Icons.refresh_rounded, onPressed: _abrir),
                                 ),
                               if (!_enLinea && _estado != null && _esperandoSenal) const EsperandoSenal(),
                               if (!_enLinea && _estado != null && !_esperandoSenal)
@@ -212,26 +228,44 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                                   titulo: 'El energizador no tiene señal',
                                   texto: 'Revisa que esté conectado a la corriente y con señal. Esta pantalla se actualiza sola.',
                                 ),
-                              // Ficha oscura con la serie en píldora blanca (lienzo de Carlos, 2026-10-15).
-                              FichaEquipo(
-                                serieDestacada: serie.isEmpty ? '—' : serie,
-                                centrado: false,
-                                datos: [
-                                  (etiqueta: 'Conexión', valor: _enLinea ? 'En línea' : 'Sin señal', color: _enLinea ? FichaEquipo.enLinea : FichaEquipo.sinSenal, key: null),
-                                  (
-                                    etiqueta: 'Cerca',
-                                    valor: _cercaEncendida ? 'Encendida' : 'Apagada',
-                                    color: _cercaEncendida ? FichaEquipo.encendida : null,
+                              // v2 (2026-10-23): la ficha oscura pasa a un grupo blanco con estados de punto.
+                              GrupoFilas(
+                                children: [
+                                  FilaFlujo(
+                                    leading: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(9)),
+                                      child: Icon(Icons.bolt_rounded, size: 18, color: cs.primary),
+                                    ),
+                                    titulo: serie.isEmpty ? '—' : serie,
+                                    subtitulo: 'Energizador',
+                                  ),
+                                  FilaFlujo(
+                                    titulo: 'Conexión',
+                                    trailing: EstadoPunto(_enLinea ? 'En línea' : 'Sin señal', color: _enLinea ? ohm.success : cs.error),
+                                  ),
+                                  FilaFlujo(
                                     key: const Key('prueba-estado-cerca'),
+                                    titulo: 'Cerca',
+                                    trailing: EstadoPunto(
+                                      _cercaEncendida ? 'Encendida' : 'Apagada',
+                                      color: _cercaEncendida ? ohm.success : cs.onSurfaceVariant,
+                                    ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Enciende y apaga la cerca frente al cliente para que vea que funciona.',
-                                style: muted.copyWith(color: theme.textTheme.bodyLarge?.color),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
+                                child: Text('Enciende y apaga la cerca frente al cliente para que vea que funciona.', style: theme.textTheme.bodyLarge),
                               ),
-                              const SizedBox(height: 16),
+                              if (_errorAccion != null)
+                                MensajeFlujo(
+                                  icono: Icons.error_outline_rounded,
+                                  color: cs.error,
+                                  titulo: _cercaEncendida ? 'No se apagó la cerca' : 'No se encendió la cerca',
+                                  texto: _errorAccion!,
+                                ),
                               if (!_demostrada)
                                 OhmGradientButton(
                                   key: const Key('prueba-alternar'),
@@ -250,22 +284,38 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                                 ),
                               const SizedBox(height: 24),
 
-                              EtiquetaSeccion(
-                                'MUÉSTRALE AL CLIENTE',
+                              const EtiquetaSeccion(
+                                'Muéstrale al cliente',
                                 tituloAyuda: 'Control temporal de la cerca',
-                                ayuda: const [
+                                ayuda: [
                                   'Sólo puedes encender o apagar la cerca del cliente mientras esta pantalla está abierta.',
                                   'Al terminar o salir, ese control se retira y queda sólo en manos del cliente.',
                                   'La cerca se queda como esté en ese momento.',
                                   'La sirena y los sensores se prueban en el siguiente paso.',
                                 ],
                               ),
-                              FilaFlujo(titulo: 'Encendiste la cerca', marcada: _vioEncendida, trailing: CirculoCheck(marcado: _vioEncendida)),
-                              FilaFlujo(titulo: 'La apagaste', marcada: _vioApagada, trailing: CirculoCheck(marcado: _vioApagada)),
-                              const SizedBox(height: 20),
+                              GrupoFilas(
+                                children: [
+                                  FilaFlujo(
+                                    titulo: 'Encendiste la cerca',
+                                    marcada: _vioEncendida,
+                                    trailing: CirculoCheck(marcado: _vioEncendida),
+                                  ),
+                                  FilaFlujo(
+                                    titulo: 'La apagaste',
+                                    marcada: _vioApagada,
+                                    trailing: CirculoCheck(marcado: _vioApagada),
+                                  ),
+                                ],
+                              ),
 
                               if (_demostrada)
-                                OhmGradientButton(label: 'Terminar prueba', loading: _enviando, loadingLabel: 'Guardando la prueba…', onPressed: () => _terminar(omitir: false))
+                                OhmGradientButton(
+                                  label: 'Terminar prueba',
+                                  loading: _enviando,
+                                  loadingLabel: 'Guardando la prueba…',
+                                  onPressed: () => _terminar(omitir: false),
+                                )
                               else
                                 BotonSecundario(etiqueta: 'Terminar prueba', onPressed: _enviando ? null : () => _terminar(omitir: false)),
                             ],
