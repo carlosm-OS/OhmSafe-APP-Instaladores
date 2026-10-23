@@ -449,7 +449,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
-    final details = widget.ticket["details"] as Map<String, String>;
+    final details = (widget.ticket["details"] as Map?)?.cast<String, String>() ?? const <String, String>{};
     final isUrgent = widget.ticket["isUrgent"] as bool? ?? false;
     final cliente = (widget.ticket["user"] ?? '').toString();
     final direccion = details["direccion"] ?? '';
@@ -627,11 +627,12 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
             ),
           ),
 
-          // Aviso momentáneo arriba («Vas en camino al domicilio»); se va solo a los 4 s.
+          // Aviso momentáneo arriba («Vas en camino al domicilio»); se va solo a los 4 s. v2: flota sobre
+          // el encabezado como los avisos de iPhone (blanco translúcido con sombra suave), no un bloque verde encima.
           AnimatedPositioned(
             duration: AppMotion.of(context, AppDurations.slow),
             curve: AppCurves.standard,
-            top: _showToast ? 64 : -100,
+            top: _showToast ? MediaQuery.paddingOf(context).top + 8 : -100,
             left: 16,
             right: 16,
             child: AnimatedOpacity(
@@ -643,7 +644,11 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                 child: Container(
                   constraints: const BoxConstraints(minHeight: 56),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(color: ohm.successContainer, borderRadius: BorderRadius.circular(14)),
+                  decoration: BoxDecoration(
+                    color: cs.surface.withValues(alpha: 0.96),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [BoxShadow(color: cs.shadow.withValues(alpha: 0.12), blurRadius: 30, offset: const Offset(0, 8))],
+                  ),
                   child: Row(
                     children: [
                       Icon(Icons.local_shipping_rounded, color: ohm.success, size: 22),
@@ -651,7 +656,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                       Expanded(
                         child: Text(
                           "Vas en camino al domicilio",
-                          style: theme.textTheme.bodyMedium?.copyWith(color: ohm.onSuccessContainer, fontWeight: FontWeight.w600),
+                          style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurface, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],

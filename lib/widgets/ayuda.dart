@@ -758,21 +758,22 @@ class ZonaEstado extends StatelessWidget {
               if (accionPrincipal)
                 OhmGradientButton(label: etiqueta, icon: accionIcono, height: AppTouch.min, loading: ocupado, onPressed: alAccion)
               else
+                // v2 (opción C): la acción secundaria de la zona es la píldora gris de las filas.
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: ocupado ? null : alAccion,
-                    style: TextButton.styleFrom(
-                      foregroundColor: estado == EstadoZona.opcional ? Theme.of(context).colorScheme.primary : c.borde,
-                      minimumSize: const Size(44, AppTouch.min),
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                    ),
-                    icon: ocupado
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Icon(accionIcono ?? Icons.wifi_rounded, size: 18),
-                    label: Text(etiqueta),
-                  ),
+                  child: ocupado
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                              const SizedBox(width: 10),
+                              Text(etiqueta, style: Theme.of(context).textTheme.bodyMedium),
+                            ],
+                          ),
+                        )
+                      : BotonFila(etiqueta: etiqueta, icono: accionIcono, onPressed: alAccion),
                 ),
             ],
           ],
