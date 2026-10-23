@@ -65,7 +65,8 @@ class EmparejadorEzviz extends ChangeNotifier {
   /// Hay un aprovisionamiento arrancado en el SDK (hay que pararlo y devolver el teléfono a su red).
   bool _wifiArrancada = false;
 
-  bool get ocupado => etapa == EtapaEzviz.preparando || etapa == EtapaEzviz.conectandoWifi || etapa == EtapaEzviz.esperandoNube || etapa == EtapaEzviz.registrando;
+  bool get ocupado =>
+      etapa == EtapaEzviz.preparando || etapa == EtapaEzviz.conectandoWifi || etapa == EtapaEzviz.esperandoNube || etapa == EtapaEzviz.registrando;
 
   Future<void> empezar({required String serie, required String codigo, required String red, required String contrasena, required String nombre}) async {
     if (ocupado) return;
@@ -128,7 +129,15 @@ class EmparejadorEzviz extends ChangeNotifier {
     });
     _wifiArrancada = true;
     try {
-      await puente.configurarWifi(serie: _serie, codigo: _codigo, red: _red, contrasena: contrasena, modo: nativo.modo, prefijoHotspot: nativo.prefijoHotspot, tope: topeWifi);
+      await puente.configurarWifi(
+        serie: _serie,
+        codigo: _codigo,
+        red: _red,
+        contrasena: contrasena,
+        modo: nativo.modo,
+        prefijoHotspot: nativo.prefijoHotspot,
+        tope: topeWifi,
+      );
     } on EzvizError catch (e) {
       if (!_vigente(intento)) return;
       await _detener();
@@ -237,10 +246,10 @@ class EmparejadorEzviz extends ChangeNotifier {
   }
 
   String _copiaPuente(EzvizError e) => switch (e.codigo) {
-    EzvizCodigo.noEnlazado => 'Esta versión de la app no puede conectar cámaras EZVIZ. Actualízala.',
-    EzvizCodigo.noConfigurado => 'No se pudo iniciar EZVIZ en este teléfono. Avisa a soporte.',
-    EzvizCodigo.sinSesion || EzvizCodigo.tokenCaducado => 'EZVIZ no aceptó la cuenta de la casa. Vuelve a intentarlo; si sigue, avisa a soporte.',
-    EzvizCodigo.noSoportado => 'Este teléfono no puede usar el programa de EZVIZ.',
+    EzvizCodigo.noEnlazado => 'Esta versión de la app no puede conectar esta cámara. Actualízala.',
+    EzvizCodigo.noConfigurado => 'No se pudo empezar a conectar la cámara en este teléfono. Avisa a soporte.',
+    EzvizCodigo.sinSesion || EzvizCodigo.tokenCaducado => 'No se aceptó la cuenta de cámaras de la casa. Vuelve a intentarlo; si sigue, avisa a soporte.',
+    EzvizCodigo.noSoportado => 'Este teléfono no puede conectar esta cámara.',
     EzvizCodigo.wifiTiempo => copiaWifiTiempo,
     _ => e.codigoProveedor != null ? copiaErrorWifi(e.codigoProveedor) : e.mensaje,
   };
@@ -257,11 +266,11 @@ class EmparejadorEzviz extends ChangeNotifier {
   }
 }
 
+// v2 (2026-10-23): sin marcas en texto visible («su app de origen», «la cámara»).
 const copiaOtraCuenta =
-    'Esta cámara está ligada a otra cuenta de EZVIZ. Pide al cliente que la quite de su app EZVIZ o restablécela de fábrica, y vuelve a intentarlo.';
+    'Esta cámara está registrada en otra cuenta. Pide al cliente que la quite de su app de origen o restablécela de fábrica, y vuelve a intentarlo.';
 const copiaWifiTiempo = 'La cámara no terminó de conectarse. Mantén RESET 10–15 s hasta que la luz parpadee, espera a que esté lista y vuelve a intentarlo.';
-const copiaNubeTiempo =
-    'La cámara no llegó a internet. Revisa la contraseña de la Wi‑Fi y que la red sea de 2.4 GHz (no 5 GHz), y vuelve a intentarlo.';
+const copiaNubeTiempo = 'La cámara no llegó a internet. Revisa la contraseña de la Wi‑Fi y que la red sea de 2.4 GHz (no 5 GHz), y vuelve a intentarlo.';
 
 /// Pasos del SDK (mismos nombres en iOS y Android) → texto para el instalador.
 String copiaPaso(String? paso) => switch (paso) {
@@ -284,7 +293,7 @@ String copiaErrorWifi(int? codigo) => switch (codigo) {
   110 || 502 => 'Ya hay una conexión en marcha. Espera un momento y vuelve a intentarlo.',
   507 => 'No se pudo encender la Wi‑Fi del teléfono.',
   705 => 'Sube el volumen del teléfono al máximo y vuelve a intentarlo.',
-  801 || 802 => 'No se pudo hablar con la nube de EZVIZ. Revisa el internet del teléfono.',
+  801 || 802 => 'No se pudo registrar la cámara. Revisa el internet del teléfono y vuelve a intentarlo.',
   null => 'La cámara no terminó de conectarse a la red.',
   _ => 'La cámara no terminó de conectarse a la red (código $codigo).',
 };

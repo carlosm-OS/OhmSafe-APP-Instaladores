@@ -6,7 +6,7 @@ import '../core/ezviz/emparejador_ezviz.dart';
 import '../core/utils/etiqueta_ezviz.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/ayuda.dart';
-import '../widgets/botones_dialogo.dart';
+import '../widgets/hoja_decision.dart';
 import '../widgets/ohm_gradient_button.dart';
 import 'escanear_serie_screen.dart';
 
@@ -101,20 +101,12 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
   Future<void> _empezar() async {
     FocusScope.of(context).unfocus();
     if (_contrasena.text.isEmpty) {
-      final sinClave = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('¿La red no tiene contraseña?'),
-          content: const Text('Si la Wi‑Fi de la casa tiene contraseña, pídesela al cliente y que la escriba aquí.'),
-          actions: [
-            BotonesDialogo(
-              secundario: 'Volver',
-              onSecundario: () => Navigator.pop(ctx, false),
-              primario: 'Sí, sin contraseña',
-              onPrimario: () => Navigator.pop(ctx, true),
-            ),
-          ],
-        ),
+      final sinClave = await mostrarHojaDecision(
+        context,
+        titulo: '¿La red no tiene contraseña?',
+        texto: 'Si la Wi‑Fi de la casa tiene contraseña, pídesela al cliente y que la escriba aquí.',
+        seguir: 'Conectar sin contraseña',
+        salir: 'Escribir la contraseña',
       );
       if (sinClave != true) return;
     }
@@ -123,22 +115,15 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
 
   Future<void> _salir() async {
     if (_emp.ocupado) {
-      final si = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('¿Cancelar la conexión?'),
-          content: const Text('La cámara se quedará sin registrar. Puedes volver a intentarlo después.'),
-          actions: [
-            BotonesDialogo(
-              secundario: 'Seguir',
-              onSecundario: () => Navigator.pop(ctx, false),
-              primario: 'Cancelar',
-              onPrimario: () => Navigator.pop(ctx, true),
-            ),
-          ],
-        ),
+      final seguir = await mostrarHojaDecision(
+        context,
+        titulo: '¿Dejar de conectar la cámara?',
+        texto: 'Lo que llevas de este paso no se guarda; la cámara se queda sin registrar y puedes volver a empezar cuando quieras.',
+        seguir: 'Seguir conectando',
+        salir: 'Salir sin conectar',
+        pierde: true,
       );
-      if (si != true || !mounted) return;
+      if (seguir != false || !mounted) return;
       await _emp.cancelar();
     }
     if (mounted) Navigator.pop(context, false);
@@ -163,14 +148,12 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
               EncabezadoFlujo(titulo: 'Conectar cámara a la Wi‑Fi', alVolver: _salir),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                   physics: const BouncingScrollPhysics(),
                   children: [
-                    if (_emp.etapa == EtapaEzviz.error)
-                      MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo conectar la cámara', texto: _emp.error),
                     if (ocupado) EsperandoSenal(titulo: _emp.texto, texto: 'No cierres la app ni te alejes de la cámara. Puede tardar hasta 3 minutos.'),
                     const EtiquetaSeccion(
-                      'ANTES DE EMPEZAR',
+                      'Antes de empezar',
                       tituloAyuda: 'Cómo preparar la cámara',
                       ayuda: [
                         'Conecta la cámara a la corriente y espera 2 minutos a que esté lista.',
@@ -186,15 +169,15 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                           const _Punto('1', 'Enchufa la cámara y espera a que la luz parpadee: así está lista para conectarse.'),
                           const _Punto(
                             '2',
-                            'Conecta este teléfono a la Wi‑Fi de la casa, a la red de 2.4 GHz: si el módem tiene dos redes, es la que NO dice «5G» en el nombre.',
+                            'Conecta este teléfono a la Wi‑Fi de la casa, a la red de 2.4 GHz: si el módem tiene dos redes, es la que no dice «5G» en el nombre.',
                           ),
                           const _Punto('3', 'Ten al cliente cerca: él escribe la contraseña de su Wi‑Fi en este teléfono.'),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                     const EtiquetaSeccion(
-                      'LA CÁMARA',
+                      'La cámara',
                       tituloAyuda: 'Etiqueta de la cámara',
                       ayuda: [
                         'Serie (S/N) y código de verificación de 6 letras: están en la etiqueta de la cámara o de la caja.',
@@ -210,7 +193,7 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                         labelText: 'Número de serie',
                         helperText: 'En la etiqueta, como S/N.',
                         suffixIcon: IconButton(
-                          tooltip: 'Escanear etiqueta',
+                          tooltip: 'Escanear la etiqueta',
                           icon: const Icon(Icons.qr_code_scanner_rounded),
                           onPressed: ocupado ? null : _escanear,
                         ),
@@ -236,7 +219,7 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                     ),
                     const SizedBox(height: 20),
                     const EtiquetaSeccion(
-                      'LA WI‑FI DE LA CASA',
+                      'La Wi‑Fi de la casa',
                       tituloAyuda: 'Red y contraseña',
                       ayuda: [
                         'El nombre de la red se guarda en la ficha de la casa: si el cliente cambia de módem, soporte sabrá a qué red estaba la cámara.',
@@ -271,13 +254,16 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                         labelText: 'Contraseña de la Wi‑Fi',
                         helperText: 'La escribe el cliente. No se guarda.',
                         suffixIcon: IconButton(
-                          tooltip: _verContrasena ? 'Ocultar' : 'Mostrar',
-                          icon: Icon(_verContrasena ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                          tooltip: _verContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña',
+                          icon: Icon(_verContrasena ? Icons.visibility_off_rounded : Icons.visibility_rounded),
                           onPressed: () => setState(() => _verContrasena = !_verContrasena),
                         ),
                       ),
                     ),
                     const SizedBox(height: 24),
+                    // El error va junto al botón (v2).
+                    if (_emp.etapa == EtapaEzviz.error)
+                      MensajeFlujo(icono: Icons.error_outline_rounded, color: cs.error, titulo: 'No se pudo conectar la cámara', texto: _emp.error),
                     OhmGradientButton(
                       label: _emp.etapa == EtapaEzviz.error ? 'Volver a intentar' : 'Conectar la cámara',
                       icon: Icons.wifi_rounded,
@@ -285,7 +271,7 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                       loadingLabel: 'Conectando la cámara…',
                       onPressed: ocupado || !_completo ? null : _empezar,
                     ),
-                    if (ocupado) ...[const SizedBox(height: 12), BotonSecundario(etiqueta: 'Cancelar', onPressed: _salir)],
+                    if (ocupado) ...[const SizedBox(height: 12), BotonSecundario(etiqueta: 'Dejar de conectar', onPressed: _salir)],
                   ],
                 ),
               ),
@@ -304,7 +290,8 @@ class _Punto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -314,14 +301,14 @@ class _Punto extends StatelessWidget {
             width: 24,
             height: 24,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: cs.surfaceContainerHighest, shape: BoxShape.circle),
             child: Text(
               n,
-              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+              style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurface, fontWeight: FontWeight.w600),
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(texto, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.35))),
+          Expanded(child: Text(texto, style: theme.textTheme.bodyMedium)),
         ],
       ),
     );
