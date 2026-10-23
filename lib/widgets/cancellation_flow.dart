@@ -10,6 +10,8 @@ import '../core/theme/app_theme_extension.dart';
 import '../core/utils/ubicacion.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../screens/instalaciones_screen.dart';
+import 'ayuda.dart';
+import 'ohm_gradient_button.dart';
 
 /// Motivos de cancelación en sitio (mismo catálogo que el backend, `MOTIVOS_CANCELACION`).
 const motivosCancelacion = <String, String>{
@@ -33,8 +35,7 @@ void showCancellationFlow(BuildContext context, Map<String, dynamic> ticket) {
     // No se arrastra para cerrar: mientras envía, cerrarla dejaba al técnico en el flujo con la
     // instalación ya cancelada (auditoría 2026-10-23). Se cierra con su ✕ o tocando fuera.
     enableDrag: false,
-    backgroundColor: Theme.of(context).cardColor,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    // v2 (2026-10-23): fondo y forma vienen del tema (radio 28 de las hojas).
     builder: (_) => _HojaCancelacion(ticket: ticket, contextoPadre: context),
   );
 }
@@ -55,6 +56,20 @@ class _HojaCancelacionState extends State<_HojaCancelacion> {
   bool _enviando = false;
   String? _error;
 
+  /// El error vino del envío (no de un dato que falta): se titula «No se canceló…».
+  bool _falloEnvio = false;
+
+  /// «reparación» o «instalación», según el tipo que trae el ticket (el mismo que usa el cierre).
+  bool get _esReparacion {
+    final tipo = (widget.ticket['type'] as String?)?.toLowerCase() ?? '';
+    return tipo.contains('reparacion') || tipo.contains('reparación');
+  }
+
+  String get _que => _esReparacion ? 'reparación' : 'instalación';
+
+  /// Texto del motivo; con reparación, «Mal clima impide reparar».
+  String _textoMotivo(String clave, String texto) => clave == 'mal_clima' && _esReparacion ? 'Mal clima impide reparar' : texto;
+
   @override
   void dispose() {
     _notas.dispose();
@@ -67,8 +82,12 @@ class _HojaCancelacionState extends State<_HojaCancelacion> {
       builder: (ctx) => SafeArea(
         child: Wrap(
           children: [
-            ListTile(leading: const Icon(Icons.photo_camera), title: const Text('Tomar foto'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
-            ListTile(leading: const Icon(Icons.photo_library), title: const Text('Elegir de la galería'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
+            ListTile(leading: const Icon(Icons.photo_camera_rounded), title: const Text('Tomar foto'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Elegir de la galería'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
           ],
         ),
       ),
@@ -81,16 +100,23 @@ class _HojaCancelacionState extends State<_HojaCancelacion> {
   Future<void> _confirmar() async {
     final notas = _notas.text.trim();
     if (_motivo == null) {
-      setState(() => _error = 'Elige el motivo de la cancelación.');
+      setState(() {
+        _falloEnvio = false;
+        _error = 'Elige el motivo de la cancelación.';
+      });
       return;
     }
     if (_motivo == 'otro' && notas.length < 5) {
-      setState(() => _error = 'Con «Otro» cuéntanos qué pasó.');
+      setState(() {
+        _falloEnvio = false;
+        _error = 'Con «Otro» cuéntanos qué pasó.';
+      });
       return;
     }
     setState(() {
       _enviando = true;
       _error = null;
+      _falloEnvio = false;
     });
     final foto = _foto == null ? null : base64Encode(await File(_foto!.path).readAsBytes());
     final ubicacion = ubicacionJson(await ubicacionActual(limite: const Duration(seconds: 4)));
@@ -105,7 +131,8 @@ class _HojaCancelacionState extends State<_HojaCancelacion> {
       },
       (f) => setState(() {
         _enviando = false;
-        _error = 'No se pudo cancelar: ${f.message}';
+        _falloEnvio = true;
+        _error = f.message;
       }),
     );
   }
@@ -114,98 +141,89 @@ class _HojaCancelacionState extends State<_HojaCancelacion> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final ohm = context.ohm;
     return PopScope(
       canPop: !_enviando,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Cancelar instalación',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color),
+                  Expanded(
+                    child: Semantics(header: true, child: Text('Cancelar $_que', style: theme.textTheme.headlineSmall)),
                   ),
                   IconButton(
+                    tooltip: 'Cerrar',
                     onPressed: _enviando ? null : () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                    icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant),
                   ),
                 ],
               ),
-              Text('Operaciones llamará al cliente y la reagendará.', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-              const SizedBox(height: 16),
-              Text(
-                '¿Qué pasó?',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurfaceVariant),
-              ),
-              const SizedBox(height: 8),
+              Text('Operaciones llamará al cliente y la reagendará.', style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+              const SizedBox(height: 20),
+              Text('¿Qué pasó?', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 10),
+              // Motivos como chips v2: píldora gris; el elegido en naranja claro con palomita.
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   for (final e in motivosCancelacion.entries)
-                    ChoiceChip(label: Text(e.value), selected: _motivo == e.key, onSelected: _enviando ? null : (_) => setState(() => _motivo = e.key)),
+                    ChoiceChip(
+                      label: Text(_textoMotivo(e.key, e.value)),
+                      selected: _motivo == e.key,
+                      onSelected: _enviando ? null : (_) => setState(() => _motivo = e.key),
+                      showCheckmark: true,
+                      checkmarkColor: cs.onPrimaryContainer,
+                      backgroundColor: cs.surfaceContainerHighest,
+                      selectedColor: cs.primaryContainer,
+                      side: BorderSide.none,
+                      shape: const StadiumBorder(),
+                      labelStyle: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: _motivo == e.key ? cs.onPrimaryContainer : cs.onSurface,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               TextField(
                 controller: _notas,
                 maxLines: 3,
                 enabled: !_enviando,
                 textCapitalization: TextCapitalization.sentences,
-                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                 decoration: InputDecoration(
                   hintText: _motivo == 'otro' ? 'Cuéntanos qué pasó (obligatorio)' : 'Notas para operaciones (opcional)',
-                  hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
-                  filled: true,
-                  fillColor: ohm.surfaceContainer,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.all(16),
+                  fillColor: context.ohm.surfaceContainer,
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _enviando ? null : _elegirFoto,
-                      icon: Icon(_foto == null ? Icons.add_a_photo_outlined : Icons.check_circle, size: 18),
-                      label: Text(_foto == null ? 'Agregar foto (opcional)' : 'Foto lista'),
-                    ),
-                  ),
-                  if (_foto != null) IconButton(onPressed: _enviando ? null : () => setState(() => _foto = null), icon: const Icon(Icons.close, size: 18)),
-                ],
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  _error!,
-                  style: TextStyle(color: cs.error, fontSize: 13, fontWeight: FontWeight.w600),
+              if (_foto == null)
+                BotonSecundario(etiqueta: 'Agregar foto (opcional)', icono: Icons.add_a_photo_rounded, onPressed: _enviando ? null : _elegirFoto)
+              else
+                Row(
+                  children: [
+                    Expanded(child: EstadoPunto('Foto lista', color: context.ohm.success)),
+                    BotonFila(etiqueta: 'Quitar foto', onPressed: _enviando ? null : () => setState(() => _foto = null)),
+                  ],
                 ),
-              ],
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _enviando ? null : _confirmar,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.error,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
+              const SizedBox(height: 20),
+              if (_error != null)
+                Semantics(
+                  liveRegion: true,
+                  child: MensajeFlujo(
+                    icono: Icons.error_outline_rounded,
+                    color: cs.error,
+                    titulo: _falloEnvio ? 'No se canceló la $_que' : _error!,
+                    texto: _falloEnvio ? _error : null,
                   ),
-                  child: _enviando
-                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Confirmar cancelación', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-              ),
+              OhmGradientButton(label: 'Confirmar cancelación', loading: _enviando, loadingLabel: 'Cancelando la $_que…', onPressed: _confirmar),
             ],
           ),
         ),
