@@ -13,6 +13,7 @@ import '../core/theme/app_theme_extension.dart';
 import '../features/auth/domain/entities/acceso.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
 import '../widgets/avatar_halo.dart';
+import '../widgets/ayuda.dart';
 import '../widgets/ohm_gradient_button.dart';
 
 /// Primer ingreso del instalador y «olvidé mi contraseña» (contrato `/auth/correo|codigo|activar`):
@@ -38,58 +39,33 @@ String mensajeAcceso(Failure f) {
   return f.message;
 }
 
-/// Encabezado común: logo OhmSafe y título.
-class _Encabezado extends StatelessWidget {
-  final String titulo;
-  final String subtitulo;
-  const _Encabezado({required this.titulo, required this.subtitulo});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Column(
+/// Marco v2 (2026-10-23) de estas pantallas: el encabezado de todos (título grande a la izquierda,
+/// sin logo ni campana: todavía no hay sesión) y el contenido en una lista con margen de 16.
+Widget _marco(BuildContext context, {required String titulo, String? subtitulo, required List<Widget> children, bool atras = true}) => Scaffold(
+  body: SafeArea(
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Image.asset(
-          isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-          height: 40,
-          fit: BoxFit.contain,
-          errorBuilder: (_, _, _) => const SizedBox(height: 40),
-        ),
-        const SizedBox(height: 28),
-        Text(titulo, textAlign: TextAlign.center, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
-        Text(subtitulo, textAlign: TextAlign.center, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant, height: 1.4)),
-      ],
-    );
-  }
-}
-
-InputDecoration _decoracion(BuildContext context, String hint, IconData icono) => InputDecoration(
-      hintText: hint,
-      prefixIcon: Icon(icono, size: 20),
-      filled: true,
-      fillColor: context.ohm.surfaceContainer,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5)),
-      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-    );
-
-Widget _marco(BuildContext context, {required List<Widget> children, bool atras = true}) => Scaffold(
-      appBar: atras ? AppBar(backgroundColor: Colors.transparent, elevation: 0) : null,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+        EncabezadoFlujo(titulo: titulo, subtitulo: subtitulo, volver: atras, campana: false),
+        Expanded(
+          child: Align(
+            alignment: Alignment.topCenter,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 32), children: children),
             ),
           ),
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
+
+/// Error del acceso junto a la acción (v2): tarjeta roja con qué pasó; el mensaje ya dice cómo seguir.
+Widget _errorAcceso(BuildContext context, String error) => Semantics(
+  liveRegion: true,
+  child: MensajeFlujo(icono: Icons.error_outline_rounded, color: Theme.of(context).colorScheme.error, titulo: error),
+);
 
 // -----------------------------------------------------------------------------
 // Código de 6 dígitos
@@ -180,59 +156,53 @@ class _CodigoAccesoScreenState extends State<CodigoAccesoScreen> {
     setState(() => _error = null);
     final r = await sl.get<AuthRepository>().solicitarAcceso(email: widget.email, olvide: true);
     if (!mounted) return;
-    r.fold(
-      (a) {
-        setState(() => _espera = a.esperaSegundos > 0 ? a.esperaSegundos : 60);
-        _arrancarReloj();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Si tu correo está registrado, te llegará un código nuevo.')));
-      },
-      (f) => setState(() => _error = mensajeAcceso(f)),
-    );
+    r.fold((a) {
+      setState(() => _espera = a.esperaSegundos > 0 ? a.esperaSegundos : 60);
+      _arrancarReloj();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Si tu correo está registrado, te llegará un código nuevo.')));
+    }, (f) => setState(() => _error = mensajeAcceso(f)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return _marco(context, children: [
-      _Encabezado(
-        titulo: widget.olvide ? 'Crea una contraseña nueva' : 'Revisa tu correo',
-        subtitulo: 'Si ${widget.email} está registrado como instalador OhmSafe, te enviamos un código de 6 dígitos. Revisa también tu carpeta de spam.',
-      ),
-      const SizedBox(height: 28),
-      TextField(
-        controller: _codigo,
-        autofocus: true,
-        keyboardType: TextInputType.number,
-        autofillHints: const [AutofillHints.oneTimeCode],
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: 10),
-        decoration: _decoracion(context, '000000', Icons.pin_outlined).copyWith(prefixIcon: null, counterText: ''),
-        onChanged: (v) {
-          if (v.length == 6 && !_cargando) _verificar();
-        },
-        onSubmitted: (_) => _cargando ? null : _verificar(),
-      ),
-      if (_error != null) ...[
-        const SizedBox(height: 14),
-        Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: cs.error, fontWeight: FontWeight.w600, fontSize: 13)),
-      ],
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton.icon(
-          onPressed: _cargando ? null : _pegar,
-          icon: const Icon(Icons.content_paste_rounded, size: 18),
-          label: const Text('Pegar código'),
+    final theme = Theme.of(context);
+    return _marco(
+      context,
+      titulo: widget.olvide ? 'Crea una contraseña nueva' : 'Revisa tu correo',
+      subtitulo: 'Si ${widget.email} está registrado como instalador OhmSafe, te enviamos un código de 6 dígitos. Revisa también tu carpeta de spam.',
+      children: [
+        const EtiquetaSeccion('Código de 6 dígitos'),
+        TextField(
+          controller: _codigo,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          autofillHints: const [AutofillHints.oneTimeCode],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+          textAlign: TextAlign.center,
+          style: theme.textTheme.displaySmall?.copyWith(letterSpacing: 10),
+          decoration: const InputDecoration(hintText: '000000', counterText: ''),
+          onChanged: (v) {
+            if (v.length == 6 && !_cargando) _verificar();
+          },
+          onSubmitted: (_) => _cargando ? null : _verificar(),
         ),
-      ),
-      const SizedBox(height: 12),
-      OhmGradientButton(label: 'Verificar código', icon: Icons.verified_user_outlined, loading: _cargando, loadingLabel: 'Verificando el código…', onPressed: _verificar),
-      const SizedBox(height: 12),
-      TextButton(
-        onPressed: _espera > 0 ? null : _reenviar,
-        child: Text(_espera > 0 ? 'Reenviar código en $_espera s' : 'Reenviar código'),
-      ),
-    ]);
+        Align(
+          alignment: Alignment.centerRight,
+          child: BotonFila(etiqueta: 'Pegar código', icono: Icons.content_paste_rounded, onPressed: _cargando ? null : _pegar),
+        ),
+        const SizedBox(height: 8),
+        if (_error != null) _errorAcceso(context, _error!),
+        OhmGradientButton(
+          label: 'Verificar código',
+          icon: Icons.verified_user_rounded,
+          loading: _cargando,
+          loadingLabel: 'Verificando el código…',
+          onPressed: _verificar,
+        ),
+        const SizedBox(height: 12),
+        BotonSecundario(etiqueta: _espera > 0 ? 'Reenviar código en $_espera s' : 'Reenviar código', onPressed: _espera > 0 ? null : _reenviar),
+      ],
+    );
   }
 }
 
@@ -251,61 +221,86 @@ class BienvenidaInstaladorScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final nombre = verificado.nombre.isNotEmpty ? verificado.nombre.split(' ').first : '';
-    final entrada = AppMotion.duration(context, const Duration(milliseconds: 650));
-    return _marco(context, atras: false, children: [
-      TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: 1),
-        duration: entrada,
-        curve: Curves.easeOutBack,
-        builder: (_, t, child) => Opacity(opacity: t.clamp(0.0, 1.0), child: Transform.scale(scale: 0.85 + 0.15 * t, child: child)),
+    final entrada = AppMotion.of(context, AppDurations.deliberate);
+    // Momento de celebración: centrado, sin encabezado (no hay a dónde regresar).
+    return Scaffold(
+      body: SafeArea(
         child: Center(
-          child: AvatarHalo(
-            size: 128,
-            initials: initialsFromName(verificado.nombre),
-            imageBase64: verificado.fotoBase64,
-            placeholderIcon: Icons.engineering_rounded,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: entrada,
+                  curve: AppCurves.confirm,
+                  builder: (_, t, child) => Opacity(
+                    opacity: t.clamp(0.0, 1.0),
+                    child: Transform.scale(scale: 0.85 + 0.15 * t, child: child),
+                  ),
+                  child: Center(
+                    child: AvatarHalo(
+                      size: 128,
+                      initials: initialsFromName(verificado.nombre),
+                      imageBase64: verificado.fotoBase64,
+                      placeholderIcon: Icons.engineering_rounded,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Semantics(
+                  header: true,
+                  child: Text(nombre.isNotEmpty ? '¡Bienvenido, $nombre!' : '¡Bienvenido!', textAlign: TextAlign.center, style: theme.textTheme.displayMedium),
+                ),
+                const SizedBox(height: 14),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(20)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.verified_rounded, color: cs.primary, size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text('Instalador certificado OhmSafe', textAlign: TextAlign.center, style: theme.textTheme.titleSmall),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (verificado.numeroInstalador.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Instalador #${verificado.numeroInstalador}',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ],
+                const SizedBox(height: 22),
+                Text(
+                  'Te deseamos mucho éxito en cada instalación. Cada cerca que instalas protege a una familia.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 32),
+                OhmGradientButton(
+                  label: 'Crear mi contraseña',
+                  icon: Icons.arrow_forward_rounded,
+                  onPressed: () => Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (_) => CrearPasswordScreen(email: email, activacion: verificado.activacion, primeraVez: true, onToggleTheme: onToggleTheme),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-      const SizedBox(height: 28),
-      Text(
-        nombre.isNotEmpty ? '¡Bienvenido, $nombre!' : '¡Bienvenido!',
-        textAlign: TextAlign.center,
-        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-      ),
-      const SizedBox(height: 14),
-      Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.verified_rounded, color: cs.primary, size: 20),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text('Instalador certificado OhmSafe', textAlign: TextAlign.center, style: TextStyle(color: cs.primary, fontWeight: FontWeight.w800)),
-            ),
-          ]),
-        ),
-      ),
-      if (verificado.numeroInstalador.isNotEmpty) ...[
-        const SizedBox(height: 10),
-        Text('Instalador #${verificado.numeroInstalador}', textAlign: TextAlign.center, style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
-      ],
-      const SizedBox(height: 22),
-      Text(
-        'Te deseamos mucho éxito en cada instalación. Cada cerca que instalas protege a una familia.',
-        textAlign: TextAlign.center,
-        style: theme.textTheme.bodyLarge?.copyWith(height: 1.45),
-      ),
-      const SizedBox(height: 32),
-      OhmGradientButton(
-        label: 'Crear mi contraseña',
-        icon: Icons.arrow_forward_rounded,
-        onPressed: () => Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (_) => CrearPasswordScreen(email: email, activacion: verificado.activacion, primeraVez: true, onToggleTheme: onToggleTheme),
-        )),
-      ),
-    ]);
+    );
   }
 }
 
@@ -329,6 +324,10 @@ class _CrearPasswordScreenState extends State<CrearPasswordScreen> {
   final _confirmar = TextEditingController();
   bool _oculta = true;
   bool _cargando = false;
+
+  // v2: los errores de cada campo van debajo del campo; los del servidor, en rojo junto al botón.
+  String? _errorPassword;
+  String? _errorConfirmar;
   String? _error;
 
   @override
@@ -341,11 +340,23 @@ class _CrearPasswordScreenState extends State<CrearPasswordScreen> {
   Future<void> _crear() async {
     final p = _password.text;
     final regla = validarPasswordNueva(p);
-    if (regla != null) return setState(() => _error = regla);
-    if (p != _confirmar.text) return setState(() => _error = 'Las contraseñas no coinciden.');
+    if (regla != null) {
+      return setState(() {
+        _errorPassword = regla;
+        _errorConfirmar = null;
+      });
+    }
+    if (p != _confirmar.text) {
+      return setState(() {
+        _errorPassword = null;
+        _errorConfirmar = 'Las contraseñas no coinciden.';
+      });
+    }
     setState(() {
       _cargando = true;
       _error = null;
+      _errorPassword = null;
+      _errorConfirmar = null;
     });
     final r = await sl.get<AuthRepository>().activar(email: widget.email, activacion: widget.activacion, password: p);
     if (!mounted) return;
@@ -363,51 +374,100 @@ class _CrearPasswordScreenState extends State<CrearPasswordScreen> {
     );
   }
 
+  Widget _regla(String texto, bool cumple) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ok = context.ohm.success;
+    return Semantics(
+      label: '$texto: ${cumple ? 'cumple' : 'falta'}',
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          Icon(cumple ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 18, color: cumple ? ok : cs.outline),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(texto, style: theme.textTheme.bodyMedium?.copyWith(color: cumple ? ok : cs.onSurfaceVariant)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ojo = IconButton(icon: Icon(_oculta ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20), onPressed: () => setState(() => _oculta = !_oculta));
-    return _marco(context, atras: !widget.primeraVez, children: [
-      _Encabezado(
-        titulo: widget.primeraVez ? 'Crea tu contraseña' : 'Contraseña nueva',
-        subtitulo: 'Con ella entrarás a la app a partir de ahora. Usa al menos 8 caracteres, con letras y números.',
-      ),
-      const SizedBox(height: 28),
-      // Sin la pista «contraseña nueva» de iOS: con ella iOS toma el campo al primer carácter para
-      // sugerir una contraseña segura y, sin llavero de iCloud (simulador, muchos teléfonos), el
-      // campo se traba y sólo muestra la primera letra. La pista «contraseña» basta para que el
-      // gestor del sistema ofrezca guardarla al terminar (finishAutofillContext).
-      AutofillGroup(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          TextField(
-            key: const ValueKey('password-nueva'),
-            controller: _password,
-            obscureText: _oculta,
-            autocorrect: false,
-            enableSuggestions: false,
-            autofillHints: const [AutofillHints.password],
-            textInputAction: TextInputAction.next,
-            decoration: _decoracion(context, 'Contraseña nueva', Icons.lock_outline_rounded).copyWith(suffixIcon: ojo),
+    final ojo = IconButton(
+      tooltip: _oculta ? 'Mostrar contraseña' : 'Ocultar contraseña',
+      icon: Icon(_oculta ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
+      onPressed: () => setState(() => _oculta = !_oculta),
+    );
+    final p = _password.text;
+    return _marco(
+      context,
+      atras: !widget.primeraVez,
+      titulo: widget.primeraVez ? 'Crea tu contraseña' : 'Contraseña nueva',
+      subtitulo: 'Con ella entrarás a la app a partir de ahora.',
+      children: [
+        // Sin la pista «contraseña nueva» de iOS: con ella iOS toma el campo al primer carácter para
+        // sugerir una contraseña segura y, sin llavero de iCloud (simulador, muchos teléfonos), el
+        // campo se traba y sólo muestra la primera letra. La pista «contraseña» basta para que el
+        // gestor del sistema ofrezca guardarla al terminar (finishAutofillContext).
+        AutofillGroup(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const EtiquetaSeccion('Contraseña nueva'),
+              TextField(
+                key: const ValueKey('password-nueva'),
+                controller: _password,
+                obscureText: _oculta,
+                autocorrect: false,
+                enableSuggestions: false,
+                autofillHints: const [AutofillHints.password],
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => setState(() => _errorPassword = null),
+                decoration: InputDecoration(hintText: 'Al menos 8, con letras y números', suffixIcon: ojo, errorText: _errorPassword),
+              ),
+              const SizedBox(height: 12),
+              // Una sola regla, la misma de Mi cuenta › Contraseña; se va marcando mientras escribes.
+              TarjetaFlujo(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _regla('Al menos 8 caracteres', p.length >= 8),
+                    const SizedBox(height: 8),
+                    _regla('Letras y números', RegExp(r'[A-Za-z]').hasMatch(p) && RegExp(r'\d').hasMatch(p)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              const EtiquetaSeccion('Repite la contraseña'),
+              TextField(
+                key: const ValueKey('password-confirmar'),
+                controller: _confirmar,
+                obscureText: _oculta,
+                autocorrect: false,
+                enableSuggestions: false,
+                textInputAction: TextInputAction.done,
+                onChanged: (_) {
+                  if (_errorConfirmar != null) setState(() => _errorConfirmar = null);
+                },
+                onSubmitted: (_) => _cargando ? null : _crear(),
+                decoration: InputDecoration(errorText: _errorConfirmar),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          TextField(
-            key: const ValueKey('password-confirmar'),
-            controller: _confirmar,
-            obscureText: _oculta,
-            autocorrect: false,
-            enableSuggestions: false,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _cargando ? null : _crear(),
-            decoration: _decoracion(context, 'Repite la contraseña', Icons.lock_outline_rounded),
-          ),
-        ]),
-      ),
-      if (_error != null) ...[
-        const SizedBox(height: 14),
-        Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: cs.error, fontWeight: FontWeight.w600, fontSize: 13)),
+        ),
+        const SizedBox(height: 24),
+        if (_error != null) _errorAcceso(context, _error!),
+        OhmGradientButton(
+          label: widget.primeraVez ? 'Crear contraseña y entrar' : 'Guardar y entrar',
+          icon: Icons.login_rounded,
+          loading: _cargando,
+          loadingLabel: 'Guardando tu contraseña…',
+          onPressed: _crear,
+        ),
       ],
-      const SizedBox(height: 24),
-      OhmGradientButton(label: widget.primeraVez ? 'Crear contraseña y entrar' : 'Guardar y entrar', icon: Icons.login_rounded, loading: _cargando, loadingLabel: 'Guardando tu contraseña…', onPressed: _crear),
-    ]);
+    );
   }
 }
