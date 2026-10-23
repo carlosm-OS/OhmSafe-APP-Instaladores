@@ -430,22 +430,19 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
       ),
       if (!_wifiLeida)
         const SizedBox(height: 56)
-      else if (_wifiCasa != null)
-        FilaFlujo(
-          titulo: 'Conectado a la Wi‑Fi de la casa',
-          subtitulo: '«${_wifiCasa!.red}» · la contraseña es la del paso 4',
-          marcada: true,
-          trailing: BotonFila(etiqueta: 'Cambiar', icono: Icons.wifi_rounded, onPressed: _irWifiCasa),
-        )
-      else ...[
-        MensajeFlujo(
-          icono: Icons.wifi_off_rounded,
-          color: cs.primary,
-          titulo: 'Falta la Wi‑Fi de la casa',
-          texto: 'Captúrala una vez en el paso «Wi‑Fi de la casa» y aquí se usa sola, sin volver a escribirla.',
+      else
+        // Zona de estado (propuesta A del lienzo, Carlos 2026-10-23): verde «EN ORDEN» o rojo «FALTA».
+        ZonaEstado(
+          estado: _wifiCasa != null ? EstadoZona.enOrden : EstadoZona.falta,
+          titulo: 'Wi‑Fi de la casa',
+          detalle: _wifiCasa != null
+              ? '«${_wifiCasa!.red}» · la contraseña es la que escribió el cliente en el paso 4.'
+              : 'Sin ella $_que no se puede conectar. Captúrala una vez en el paso 4 y aquí se usa sola.',
+          accionEtiqueta: _wifiCasa != null ? 'Cambiar red' : 'Ir al paso 4 · Wi‑Fi de la casa',
+          accionIcono: Icons.wifi_rounded,
+          accionPrincipal: _wifiCasa == null,
+          alAccion: _irWifiCasa,
         ),
-        BotonSecundario(etiqueta: 'Ir a Wi‑Fi de la casa', onPressed: _irWifiCasa),
-      ],
       const SizedBox(height: 24),
       OhmGradientButton(
         label: 'Siguiente',
@@ -457,9 +454,12 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
               }
             : null,
       ),
-      if (_wifiLeida && (faltaNombre || _wifiCasa == null)) ...[
+      if (_wifiLeida && _wifiCasa == null) ...[
         const SizedBox(height: 10),
-        _Nota(faltaNombre ? 'Escribe un nombre para $_que y sigue.' : 'Falta la Wi‑Fi de la casa para seguir.'),
+        FaltaParaSeguir([if (faltaNombre) 'nombre', 'Wi‑Fi de la casa']),
+      ] else if (_wifiLeida && faltaNombre) ...[
+        const SizedBox(height: 10),
+        _Nota('Escribe un nombre para $_que y sigue.'),
       ],
     ]);
   }

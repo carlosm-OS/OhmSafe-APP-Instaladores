@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_dimens.dart';
 import '../core/theme/app_motion.dart';
 import 'movimiento.dart';
+import 'ohm_gradient_button.dart';
 
 import 'notification_bell.dart';
 
@@ -651,6 +653,205 @@ class EsperandoSenal extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Estado de un requisito en una [ZonaEstado].
+enum EstadoZona { enOrden, falta, opcional }
+
+/// Zona de estado de un requisito (propuesta A del lienzo, Carlos 2026-10-23): verde «EN ORDEN»,
+/// rojo «FALTA» o gris «OPCIONAL». Nunca sólo color: ícono ✓/✕ + etiqueta + una frase que dice qué
+/// hacer, y la acción dentro de la zona. Rojo sólo para lo que impide seguir; lo opcional va en gris.
+class ZonaEstado extends StatelessWidget {
+  const ZonaEstado({
+    super.key,
+    required this.estado,
+    required this.titulo,
+    required this.detalle,
+    this.accionEtiqueta,
+    this.alAccion,
+    this.accionPrincipal = false,
+    this.accionIcono,
+    this.ocupado = false,
+  });
+
+  final EstadoZona estado;
+  final String titulo;
+  final String detalle;
+
+  /// Sin etiqueta no hay acción. [accionPrincipal] la pinta como botón naranja de ancho completo
+  /// (para resolver un «FALTA»); si no, es un enlace del color de la zona («Cambiar red»).
+  final String? accionEtiqueta;
+  final VoidCallback? alAccion;
+  final bool accionPrincipal;
+  final IconData? accionIcono;
+
+  /// La acción está en curso: el botón lo dice y no se puede volver a tocar.
+  final bool ocupado;
+
+  static const _verde = Color(0xFF166534);
+  static const _gris = Color(0xFF64748B);
+
+  ({Color fondo, Color borde, Color texto, Color marca, String etiqueta}) _colores(BuildContext context) {
+    final theme = Theme.of(context);
+    final oscuro = theme.brightness == Brightness.dark;
+    return switch (estado) {
+      EstadoZona.enOrden => (
+        fondo: oscuro ? _verde.withValues(alpha: 0.28) : const Color(0xFFDCFCE7),
+        borde: oscuro ? const Color(0xFF22C55E) : _verde,
+        texto: oscuro ? const Color(0xFFBBF7D0) : const Color(0xFF14532D),
+        marca: _verde,
+        etiqueta: 'EN ORDEN',
+      ),
+      EstadoZona.falta => (
+        fondo: oscuro ? AvisoRojo.fondo.withValues(alpha: 0.24) : const Color(0xFFFEE2E2),
+        borde: oscuro ? const Color(0xFFF87171) : AvisoRojo.fondo,
+        texto: oscuro ? const Color(0xFFFECACA) : const Color(0xFF991B1B),
+        marca: AvisoRojo.fondo,
+        etiqueta: 'FALTA',
+      ),
+      EstadoZona.opcional => (
+        fondo: oscuro ? theme.colorScheme.surface.withValues(alpha: 0.5) : theme.colorScheme.surface,
+        borde: theme.dividerColor.withValues(alpha: 0.45),
+        texto: theme.textTheme.bodyLarge?.color ?? (oscuro ? Colors.white : Colors.black87),
+        marca: _gris,
+        etiqueta: 'OPCIONAL',
+      ),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _colores(context);
+    final ok = estado == EstadoZona.enOrden;
+    final marca = estado == EstadoZona.opcional
+        ? Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: c.marca, width: 2),
+            ),
+            child: Icon(Icons.remove_rounded, size: 18, color: c.marca),
+          )
+        : Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: c.marca),
+            child: Icon(ok ? Icons.check_rounded : Icons.close_rounded, size: 20, color: Colors.white),
+          );
+    final etiqueta = accionEtiqueta;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AnimatedContainer(
+        duration: AppMotion.of(context, AppDurations.base),
+        curve: AppCurves.standard,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: c.fondo,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.borde, width: estado == EstadoZona.opcional ? 1 : 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              container: true,
+              label: '${c.etiqueta}: $titulo. $detalle',
+              child: ExcludeSemantics(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CambioSuave(
+                      alineacion: Alignment.center,
+                      child: KeyedSubtree(key: ValueKey(estado), child: marca),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                titulo,
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.texto),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(color: c.marca, borderRadius: BorderRadius.circular(999)),
+                                child: Text(
+                                  c.etiqueta,
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(detalle, style: TextStyle(fontSize: 13.5, height: 1.45, color: c.texto)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (etiqueta != null) ...[
+              const SizedBox(height: 10),
+              if (accionPrincipal)
+                OhmGradientButton(label: etiqueta, icon: accionIcono, height: AppTouch.min, loading: ocupado, onPressed: alAccion)
+              else
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: ocupado ? null : alAccion,
+                    style: TextButton.styleFrom(
+                      foregroundColor: estado == EstadoZona.opcional ? Theme.of(context).colorScheme.primary : c.borde,
+                      minimumSize: const Size(44, AppTouch.min),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
+                    icon: ocupado
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : Icon(accionIcono ?? Icons.wifi_rounded, size: 18),
+                    label: Text(etiqueta),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Renglón rojo bajo un botón apagado: qué falta para seguir (no sólo el botón gris).
+class FaltaParaSeguir extends StatelessWidget {
+  const FaltaParaSeguir(this.faltantes, {super.key});
+
+  final List<String> faltantes;
+
+  @override
+  Widget build(BuildContext context) {
+    final oscuro = Theme.of(context).brightness == Brightness.dark;
+    final color = oscuro ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B);
+    final lista = faltantes.length < 2 ? faltantes.join() : '${faltantes.sublist(0, faltantes.length - 1).join(', ')} y ${faltantes.last}';
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.error_outline_rounded, size: 16, color: oscuro ? const Color(0xFFF87171) : AvisoRojo.fondo),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            'Para seguir falta: $lista.',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, height: 1.35, color: color),
+          ),
+        ),
+      ],
     );
   }
 }

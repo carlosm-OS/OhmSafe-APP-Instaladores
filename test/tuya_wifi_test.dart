@@ -256,17 +256,19 @@ void main() {
     final local = WifiCasaLocal(almacen: _MemoriaWifi());
     await t.runAsync(() => local.guardar('i99', const WifiCasa(red: 'Casa Pérez', contrasena: 'secreta123')));
     await montarPantalla(t, local);
-    expect(find.text('Conectado a la Wi‑Fi de la casa'), findsOneWidget);
+    expect(find.text('EN ORDEN'), findsOneWidget);
+    expect(find.text('Wi‑Fi de la casa'), findsOneWidget);
     expect(find.textContaining('«Casa Pérez»'), findsOneWidget);
-    expect(find.text('Cambiar'), findsOneWidget);
+    expect(find.text('Cambiar red'), findsOneWidget);
     expect(find.text('Contraseña de la Wi‑Fi'), findsNothing);
     expect(find.text('Nombre de la red (Wi‑Fi)'), findsNothing);
   });
 
   testWidgets('sin Wi‑Fi de la casa pide ir al paso y no deja conectar', (t) async {
     await montarPantalla(t, WifiCasaLocal(almacen: _MemoriaWifi()));
-    expect(find.text('Falta la Wi‑Fi de la casa'), findsOneWidget);
-    expect(find.text('Ir a Wi‑Fi de la casa'), findsOneWidget);
+    expect(find.text('FALTA'), findsOneWidget);
+    expect(find.text('Ir al paso 4 · Wi‑Fi de la casa'), findsOneWidget);
+    expect(find.text('Para seguir falta: nombre y Wi‑Fi de la casa.'), findsOneWidget);
     expect(find.text('Contraseña de la Wi‑Fi'), findsNothing);
   });
 

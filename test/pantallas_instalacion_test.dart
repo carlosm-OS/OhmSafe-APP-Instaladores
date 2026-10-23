@@ -109,8 +109,9 @@ void main() {
         await _ver(t, find.text('Principal'));
         expect(find.text('OS-PRUEBA-0001'), findsOneWidget);
         expect(find.text('En línea'), findsWidgets);
-        expect(find.text('Prueba del energizador'), findsOneWidget);
-        for (final seccion in ['ENERGIZADOR (OHMBOX)', 'SENSORES CABLEADOS', 'SIRENA', 'SALIDAS AUXILIARES', 'SENSORES INALÁMBRICOS', 'CÁMARAS']) {
+        await _ver(t, find.textContaining('ENERGIZADOR (OHMBOX)'));
+        await _ver(t, find.text('Prueba del energizador'));
+        for (final seccion in ['SENSORES CABLEADOS', 'SIRENA', 'SALIDAS AUXILIARES', 'SENSORES INALÁMBRICOS', 'CÁMARAS']) {
           await _ver(t, find.textContaining(seccion));
         }
         // Sensores Wi‑Fi apagados por ahora (_wifiHabilitado): ni sección ni «Agregar».
@@ -173,7 +174,9 @@ void main() {
       await t.pump(const Duration(milliseconds: 600));
       await t.pump(const Duration(milliseconds: 600));
       expect(find.textContaining('La contraseña se queda sólo en este teléfono'), findsNothing);
-      expect(find.text('Sin Wi‑Fi de la casa'), findsOneWidget);
+      // Zona de estado gris «OPCIONAL» (propuesta A, 2026-10-23): sin Wi‑Fi no es un error aquí.
+      expect(find.text('OPCIONAL'), findsWidgets);
+      expect(find.text('Agregar Wi‑Fi de la casa'), findsWidgets);
     });
   });
 

@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Próxima build (en preparación) — 23 de octubre de 2026
+
+- **Zonas de estado de la Wi‑Fi.** La Wi‑Fi de la casa se muestra como una zona de color con ícono y etiqueta: verde «EN ORDEN» cuando está lista (con «Cambiar red»), roja «FALTA» cuando impide seguir (al conectar una cámara o un sensor: «Ir al paso 4 · Wi‑Fi de la casa», y bajo el botón apagado «Para seguir falta: …») y gris «OPCIONAL» cuando no es obligatoria (en «Agregar dispositivos» y en la segunda conexión del OhmBox). El rojo sólo aparece cuando algo bloquea.
+
 ## Build 59 (TestFlight servidor de pruebas; APK de producción) — 22 de octubre de 2026
 
 - **«Conectar cámara o sensor Wi‑Fi» en 4 pasos** (Datos → Prepara el equipo → Conectando → Listo): cada botón dice qué está pasando, una línea de etapas marca lo hecho y lo que falta, y el contador muestra cuánto llevas de los 5 minutos. Si algo falla, dice en qué etapa y ofrece «Volver a intentar» o «Cambiar el modo o los datos».

@@ -796,15 +796,17 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   'La contraseña se queda sólo en este teléfono y se borra al terminar la instalación.',
                                 ],
                               ),
-                              FilaFlujo(
-                                titulo: _wifi != null ? '«${_wifi!.red}»' : 'Sin Wi‑Fi de la casa',
-                                subtitulo: _wifi != null
-                                    ? 'La usan sensores, cámaras y el OhmBox'
-                                    : 'Opcional · agrégala si vas a instalar equipos Wi‑Fi o para el OhmBox',
-                                marcada: _wifi != null,
-                                trailing: BotonFila(etiqueta: _wifi != null ? 'Cambiar' : 'Agregar', icono: Icons.wifi_rounded, onPressed: _ocupado ? null : _irWifiCasa),
+                              // Zona de estado (propuesta A del lienzo, Carlos 2026-10-23): aquí es opcional, gris y no rojo.
+                              ZonaEstado(
+                                estado: _wifi != null ? EstadoZona.enOrden : EstadoZona.opcional,
+                                titulo: 'Wi‑Fi de la casa',
+                                detalle: _wifi != null
+                                    ? '«${_wifi!.red}» · la usan los sensores y cámaras Wi‑Fi y el OhmBox.'
+                                    : 'Agrégala si vas a instalar sensores o cámaras Wi‑Fi, o para el OhmBox.',
+                                accionEtiqueta: _wifi != null ? 'Cambiar red' : 'Agregar Wi‑Fi de la casa',
+                                accionIcono: Icons.wifi_rounded,
+                                alAccion: _ocupado ? null : _irWifiCasa,
                               ),
-                              const SizedBox(height: 12),
 
                               // ---------------- Energizador (OhmBox): opcional desde la build 54 (Carlos, 2026-10-20).
                               EtiquetaSeccion(
@@ -830,21 +832,24 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
                                   subtitulo: 'Enciende y apaga la cerca frente al cliente',
                                   trailing: BotonFila(etiqueta: 'Probar', onPressed: _ocupado ? null : _probarEnergizador),
                                 ),
-                                FilaFlujo(
+                                ZonaEstado(
+                                  estado: _ohmboxWifiOk ? EstadoZona.enOrden : EstadoZona.opcional,
                                   titulo: 'Segunda conexión por Wi‑Fi',
-                                  subtitulo: _ohmboxWifiOk
-                                      ? 'Conectado a «${_wifi?.red ?? ''}», además de la red celular'
+                                  detalle: _ohmboxWifiOk
+                                      ? 'El OhmBox está en «${_wifi?.red ?? ''}», además de la red celular.'
                                       : _wifi == null
-                                      ? 'Opcional · agrega la Wi‑Fi de la casa para conectarlo'
-                                      : 'Conéctalo a «${_wifi!.red}» además de la red celular',
-                                  marcada: _ohmboxWifiOk,
-                                  trailing: _ohmboxWifiOk
+                                      ? 'Agrega la Wi‑Fi de la casa para que el OhmBox la use además de la red celular.'
+                                      : 'Conecta el OhmBox a «${_wifi!.red}»: si la red celular falla, sigue reportando.',
+                                  accionEtiqueta: _ohmboxWifiOk
                                       ? null
-                                      : BotonFila(
-                                          etiqueta: _wifi == null ? 'Agregar Wi‑Fi' : 'Conectar',
-                                          icono: Icons.wifi_rounded,
-                                          onPressed: _ocupado || _conectandoOhmboxWifi ? null : (_wifi == null ? _irWifiCasa : _conectarOhmboxWifi),
-                                        ),
+                                      : _wifi == null
+                                      ? 'Agregar Wi‑Fi de la casa'
+                                      : _conectandoOhmboxWifi
+                                      ? 'Conectando el OhmBox a la Wi‑Fi…'
+                                      : 'Conectar el OhmBox a la Wi‑Fi',
+                                  accionIcono: Icons.wifi_rounded,
+                                  ocupado: _conectandoOhmboxWifi,
+                                  alAccion: _ocupado ? null : (_wifi == null ? _irWifiCasa : _conectarOhmboxWifi),
                                 ),
                                 _agregar('Agregar otro OhmBox', 'Sólo si compró un segundo energizador para esta casa', _ocupado || _ohmbox == null ? null : _agregarOhmbox),
                               ],
