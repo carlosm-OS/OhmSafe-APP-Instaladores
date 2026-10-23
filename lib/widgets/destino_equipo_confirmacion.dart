@@ -32,14 +32,15 @@ class _Confirmacion extends StatelessWidget {
     // Textos del lienzo de Carlos (2026-10-15, versión A): lo único que decide el instalador es si
     // está en esa dirección; «casa nueva», «suscripción» y la venta pasan a segundo plano.
     final titulo = bloquea ? 'Todavía no se puede vincular' : '¿Estás instalando en esta dirección?';
-    final icono = bloquea ? Icons.help_outline : Icons.home_outlined;
+    final icono = bloquea ? Icons.help_outline_rounded : Icons.home_rounded;
     final acento = bloquea ? cs.error : cs.primary;
     final explicacion = destino.esNueva
-        ? 'El energizador quedará ligado a esta casa del cliente. Si no es donde estás, no lo vincules y avisa a operaciones.'
+        ? 'El energizador quedará vinculado a esta casa del cliente. Si no es donde estás, no lo vincules y avisa a operaciones.'
         : 'El energizador se suma a esta casa del cliente. Si no es donde estás, no lo vincules y avisa a operaciones.';
 
     return SafeArea(
-      child: Padding(
+      // Desplazable: con letra grande o en teléfonos chicos la hoja no cabe y los botones quedaban fuera.
+      child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.of(context).viewInsets.bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -47,7 +48,7 @@ class _Confirmacion extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(child: Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, height: 1.35))),
+                Expanded(child: Text(titulo, style: theme.textTheme.headlineSmall)),
                 const InfoAyuda(
                   titulo: '¿Por qué esta casa?',
                   puntos: [
@@ -68,28 +69,30 @@ class _Confirmacion extends StatelessWidget {
                 titulo: destino.casaNombre!,
                 etiqueta: destino.esNueva ? 'Nueva' : 'Ya tiene equipo',
                 texto: (destino.direccion ?? '').isEmpty ? null : destino.direccion,
-                resaltado: true,
               ),
               const SizedBox(height: 12),
             ],
             // Al bloquear, el motivo del backend explica qué falta; si no, el texto fijo de arriba.
-            Text(bloquea ? destino.motivo : explicacion, style: theme.textTheme.bodyMedium?.copyWith(color: bloquea ? cs.error : cs.onSurfaceVariant, height: 1.45)),
+            Text(bloquea ? destino.motivo : explicacion, style: theme.textTheme.bodyMedium?.copyWith(color: bloquea ? cs.error : cs.onSurfaceVariant)),
             if (venta != null) ...[
               const SizedBox(height: 10),
               // La venta, discreta: una línea gris (le sirve a soporte, no compite con la dirección).
               Text(
-                ['Venta ${venta.nombre}', venta.esServicioNuevo ? (venta.plan ?? 'Plan nuevo') : 'Equipo adicional', ...venta.equipos.map((e) => '${e.cantidad} ${e.nombre}')]
-                    .join(' · '),
-                style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                [
+                  'Venta ${venta.nombre}',
+                  venta.esServicioNuevo ? (venta.plan ?? 'Plan nuevo') : 'Equipo adicional',
+                  ...venta.equipos.map((e) => '${e.cantidad} ${e.nombre}'),
+                ].join(' · '),
+                style: theme.textTheme.bodySmall,
               ),
             ],
             if (destino.aviso != null) ...[
               const SizedBox(height: 10),
-              _Bloque(icono: Icons.info_outline, color: ohm.warning, titulo: 'Nota para operaciones', texto: destino.aviso),
+              _Bloque(icono: Icons.info_outline_rounded, color: ohm.warning, titulo: 'Nota para operaciones', texto: destino.aviso),
             ],
             const SizedBox(height: 20),
             if (bloquea)
-              BotonesDialogo(primario: 'Entendido', onPrimario: () => Navigator.pop(context, false))
+              BotonesDialogo(primario: 'Entendido, avisaré a operaciones', onPrimario: () => Navigator.pop(context, false))
             else
               BotonesDialogo(
                 secundario: 'No es esta dirección',
@@ -105,7 +108,7 @@ class _Confirmacion extends StatelessWidget {
 }
 
 class _Bloque extends StatelessWidget {
-  const _Bloque({required this.icono, required this.color, required this.titulo, this.etiqueta, this.texto, this.resaltado = false});
+  const _Bloque({required this.icono, required this.color, required this.titulo, this.etiqueta, this.texto});
   final IconData icono;
   final Color color;
   final String titulo;
@@ -113,19 +116,14 @@ class _Bloque extends StatelessWidget {
   /// Etiqueta junto al nombre («Nueva» / «Ya tiene equipo»).
   final String? etiqueta;
   final String? texto;
-  final bool resaltado;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      // Tarjeta blanca con borde tenue, como el resto del flujo; la casa elegida lleva borde naranja.
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: resaltado ? color : theme.dividerColor.withValues(alpha: 0.3), width: resaltado ? 1.5 : 1),
-      ),
+      padding: const EdgeInsets.all(16),
+      // v2 (2026-10-23): grupo gris claro sin borde sobre la hoja blanca; el color va sólo en el ícono.
+      decoration: BoxDecoration(color: context.ohm.surfaceContainer, borderRadius: BorderRadius.circular(14)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -140,21 +138,21 @@ class _Bloque extends StatelessWidget {
                   runSpacing: 4,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(titulo, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(titulo, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                     if (etiqueta != null)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, borderRadius: BorderRadius.circular(6)),
+                        decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(8)),
                         child: Text(
                           etiqueta!,
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: theme.colorScheme.onPrimaryContainer),
+                          style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
                         ),
                       ),
                   ],
                 ),
                 if (texto != null) ...[
                   const SizedBox(height: 2),
-                  Text(texto!, style: theme.textTheme.bodySmall),
+                  Text(texto!, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                 ],
               ],
             ),

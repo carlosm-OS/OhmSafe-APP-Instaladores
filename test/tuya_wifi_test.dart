@@ -334,36 +334,37 @@ void main() {
   Future<void> alPaso2(WidgetTester t) async {
     await t.enterText(find.byType(TextField).first, 'Jardín');
     await t.pump();
-    await t.tap(find.text('Siguiente'));
+    await t.tap(find.text('Continuar'));
     await t.pumpAndSettle();
   }
 
-  testWidgets('si el teléfono ve la red del equipo, sugiere «Punto de acceso» (paso 2)', (t) async {
+  testWidgets('si el teléfono ve la red del equipo, sugiere «Red de la cámara» (paso 2)', (t) async {
     await montarCon(t, listador: _ConRedEquipo());
     await alPaso2(t);
-    expect(find.text('El equipo está en modo punto de acceso'), findsOneWidget);
+    // v2 (2026-10-23): modos sin jerga («Punto de acceso» → «Red de la cámara»).
+    expect(find.text('La cámara creó su propia red'), findsOneWidget);
     expect(find.textContaining('«SmartLife-9997»'), findsOneWidget);
   });
 
-  testWidgets('regla de oro: el flujo va en pasos (1 datos → 2 preparar) y «Atrás» regresa', (t) async {
+  testWidgets('regla de oro: el flujo va en pasos (1 datos → 2 preparar) y «Volver a los datos» regresa', (t) async {
     await montarCon(t);
-    expect(find.textContaining('PASO 1 DE 4', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Paso 1 de 4', findRichText: true), findsOneWidget);
     expect(find.text('Escribe un nombre para la cámara y sigue.'), findsOneWidget);
     // Sin nombre no se avanza.
-    await t.tap(find.text('Siguiente'));
+    await t.tap(find.text('Continuar'));
     await asentar(t);
-    expect(find.textContaining('PASO 1 DE 4', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Paso 1 de 4', findRichText: true), findsOneWidget);
 
     await alPaso2(t);
-    expect(find.textContaining('PASO 2 DE 4', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Paso 2 de 4', findRichText: true), findsOneWidget);
     // Lo ya capturado se resume, no se vuelve a mostrar el formulario.
     expect(find.text('«Jardín»'), findsOneWidget);
     expect(find.text('Número de serie (opcional)'), findsNothing);
     expect(find.text('Conectar la cámara'), findsOneWidget);
 
-    await t.tap(find.text('Atrás'));
+    await t.tap(find.text('Volver a los datos'));
     await asentar(t);
-    expect(find.textContaining('PASO 1 DE 4', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Paso 1 de 4', findRichText: true), findsOneWidget);
   });
 
   testWidgets('regla de oro: al conectar dice en qué etapa va (hecho / en curso / pendiente)', (t) async {
@@ -371,20 +372,21 @@ void main() {
     await montarCon(t);
     await t.runAsync(() => emp.empezar(clase: 'camara', nombre: 'Jardín', red: 'Casa Pérez', contrasena: 'x'));
     await asentar(t);
-    expect(find.textContaining('PASO 3 DE 4', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Paso 3 de 4', findRichText: true), findsOneWidget);
     expect(find.text('Conectando la cámara…'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp(r'^Pedir el permiso de la casa, hecho')), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp(r'^Pasarle la red de la casa a la cámara, en curso')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp(r'^Esperar a que la cámara avise a la nube, pendiente')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Esperar a que la cámara se registre, pendiente')), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp(r'^Guardar en la casa del cliente, pendiente')), findsOneWidget);
-    // Cancelar pide confirmación y regresa al paso 2 (no saca de la pantalla).
-    await t.tap(find.text('Cancelar'));
+    // Dejar de conectar pide confirmación en una hoja (v2) y regresa al paso 2 (no saca de la pantalla).
+    await t.tap(find.text('Dejar de conectar'));
     await asentar(t);
-    expect(find.text('¿Cancelar el emparejamiento?'), findsOneWidget);
-    await t.tap(find.text('Cancelar').last);
+    expect(find.text('¿Dejar de conectar la cámara?'), findsOneWidget);
+    expect(find.text('Seguir conectando'), findsOneWidget);
+    await t.tap(find.text('Salir sin conectar'));
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await asentar(t);
-    expect(find.textContaining('PASO 2 DE 4', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Paso 2 de 4', findRichText: true), findsOneWidget);
     sem.dispose();
   });
 
@@ -401,7 +403,7 @@ void main() {
     await t.tap(find.text('Cambiar el modo o los datos'));
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await asentar(t);
-    expect(find.textContaining('PASO 2 DE 4', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Paso 2 de 4', findRichText: true), findsOneWidget);
     sem.dispose();
   });
 

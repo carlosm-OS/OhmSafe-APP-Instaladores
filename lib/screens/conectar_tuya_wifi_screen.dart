@@ -12,6 +12,7 @@ import '../core/wifi/redes_wifi.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../widgets/ayuda.dart';
 import '../widgets/botones_dialogo.dart';
+import '../widgets/hoja_decision.dart';
 import '../widgets/movimiento.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/progreso_flujo.dart';
@@ -31,9 +32,10 @@ import 'wifi_casa_screen.dart';
 /// transcurrido contra lo que dura el permiso):
 ///
 ///  1. Datos — qué es, nombre, serie (opcional) y la Wi‑Fi de la casa ya capturada.
-///  2. Prepara el equipo — modo de emparejamiento y modo de conexión (Bluetooth / rápido / punto de acceso).
+///  2. Prepara el equipo — listo para conectar y modo de conexión («Cerca del teléfono» = BLE,
+///     «Rápido» = EZ, «Red de la cámara/del sensor» = AP; v2 2026-10-23: nombres sin jerga).
 ///  3. Conectando — línea de progreso; si falla, en qué etapa y qué hacer.
-///  4. Listo — la tarjeta «Equipo conectado» con lo que dijo la nube.
+///  4. Listo — la tarjeta «Equipo conectado» con lo que dijo el registro.
 class ConectarTuyaWifiScreen extends StatefulWidget {
   const ConectarTuyaWifiScreen({super.key, required this.ordenId, required this.clase, this.emparejador, this.listador, this.local});
   final String ordenId;
@@ -94,6 +96,9 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
   bool get _esSensor => widget.clase == 'sensor';
   String get _que => _esSensor ? 'el sensor' : 'la cámara';
   String get _queMayus => _esSensor ? 'El sensor' : 'La cámara';
+
+  /// Concordancia: «lo» para el sensor, «la» para la cámara.
+  String get _lo => _esSensor ? 'lo' : 'la';
 
   _Paso get _paso {
     if (_conectado) return _Paso.listo;
@@ -206,10 +211,10 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
     _ => _faseActiva,
   };
 
-  /// El equipo ya recibió la red (el SDK lo dijo, o ya pasó lo que suele tardar) y falta que avise a la nube.
+  /// El equipo ya recibió la red (el SDK lo dijo, o ya pasó lo que suele tardar) y falta que se registre.
   bool _esperandoNube() {
     final t = _emp.texto.toLowerCase();
-    if (t.contains('nube') || t.contains('recibió')) return true;
+    if (t.contains('registr') || t.contains('recibió')) return true;
     final d = _desdePasarRed;
     return d != null && DateTime.now().difference(d) >= _pasarRedTipico;
   }
@@ -220,20 +225,12 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
     FocusScope.of(context).unfocus();
     // Con la Wi‑Fi del paso 4 ya se confirmó ahí si la red no tiene contraseña.
     if (_wifiCasa == null && _contrasena.text.isEmpty) {
-      final sinClave = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('¿La red no tiene contraseña?'),
-          content: const Text('Si la Wi‑Fi de la casa tiene contraseña, pídesela al cliente y que la escriba aquí.'),
-          actions: [
-            BotonesDialogo(
-              secundario: 'Volver',
-              onSecundario: () => Navigator.pop(ctx, false),
-              primario: 'Sí, sin contraseña',
-              onPrimario: () => Navigator.pop(ctx, true),
-            ),
-          ],
-        ),
+      final sinClave = await mostrarHojaDecision(
+        context,
+        titulo: '¿La red no tiene contraseña?',
+        texto: 'Si la Wi‑Fi de la casa tiene contraseña, pídesela al cliente y que la escriba aquí.',
+        seguir: 'Conectar sin contraseña',
+        salir: 'Escribir la contraseña',
       );
       if (sinClave != true) return;
     }
@@ -278,9 +275,9 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
         title: const Text('Avisa a operaciones'),
         content: Text(
           'Diles que el equipo con ID $id no es el que instalaste, para que lo quiten de la casa. '
-          'Luego pon el equipo correcto en modo de emparejamiento y vuelve a conectarlo.',
+          'Luego pon el equipo correcto listo para conectar (luz parpadeando rápido) y vuelve a conectarlo.',
         ),
-        actions: [BotonesDialogo(primario: 'Entendido', onPrimario: () => Navigator.pop(ctx))],
+        actions: [BotonesDialogo(primario: 'Entendido, avisaré', onPrimario: () => Navigator.pop(ctx))],
       ),
     );
   }
@@ -296,22 +293,16 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
         return;
       case _Paso.conectando:
         if (_emp.etapa == EtapaTuya.error) return _revisar();
-        final si = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('¿Cancelar el emparejamiento?'),
-            content: Text('$_queMayus se quedará sin registrar. Puedes volver a intentarlo después.'),
-            actions: [
-              BotonesDialogo(
-                secundario: 'Seguir',
-                onSecundario: () => Navigator.pop(ctx, false),
-                primario: 'Cancelar',
-                onPrimario: () => Navigator.pop(ctx, true),
-              ),
-            ],
-          ),
+        // v2 (2026-10-23, lienzo «V5 · Hoja»): decidir en una hoja desde abajo; salir pierde lo que va.
+        final seguir = await mostrarHojaDecision(
+          context,
+          titulo: _esSensor ? '¿Dejar de conectar el sensor?' : '¿Dejar de conectar la cámara?',
+          texto: 'Lo que llevas de este paso no se guarda; $_que se queda sin registrar y puedes volver a empezar cuando quieras.',
+          seguir: 'Seguir conectando',
+          salir: 'Salir sin conectar',
+          pierde: true,
         );
-        if (si != true || !mounted) return;
+        if (seguir != false || !mounted) return;
         await _emp.cancelar();
         if (mounted) setState(() => _elegido = _Paso.preparar);
         return;
@@ -353,7 +344,13 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
                       _Paso.datos => _pasoDatos(context),
                       _Paso.preparar => _pasoPreparar(context),
                       _Paso.conectando => _pasoConectando(context),
-                      _Paso.listo => _Conectado(emp: _emp, esSensor: _esSensor, tipo: _tipos[_tipo] ?? '', alListo: () => Navigator.pop(context, true), alNoEsEste: _noEsEste),
+                      _Paso.listo => _Conectado(
+                        emp: _emp,
+                        esSensor: _esSensor,
+                        tipo: _tipos[_tipo] ?? '',
+                        alListo: () => Navigator.pop(context, true),
+                        alNoEsEste: _noEsEste,
+                      ),
                     },
                   ),
                 ),
@@ -366,7 +363,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
   }
 
   Widget _lista(List<Widget> hijos) => ListView(
-    padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+    padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
     physics: const BouncingScrollPhysics(),
     children: [for (var i = 0; i < hijos.length; i++) EntradaSuave(index: i, child: hijos[i])],
   );
@@ -380,12 +377,12 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
     return _lista([
       if (!_emp.puente.tieneLlaves)
         MensajeFlujo(
-          icono: Icons.error_outline,
+          icono: Icons.error_outline_rounded,
           color: cs.error,
-          titulo: 'Esta versión no puede emparejar equipos Wi‑Fi',
-          texto: 'Falta la configuración de emparejamiento en la app. Avisa a soporte.',
+          titulo: 'Esta versión no puede conectar equipos Wi‑Fi',
+          texto: 'Le falta una configuración a la app. Actualízala; si sigue, avisa a soporte.',
         ),
-      EtiquetaSeccion(_esSensor ? 'EL SENSOR' : 'LA CÁMARA'),
+      EtiquetaSeccion(_esSensor ? 'El sensor' : 'La cámara'),
       if (_esSensor) ...[
         DropdownButtonFormField<String>(
           isExpanded: true,
@@ -421,7 +418,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
       ),
       const SizedBox(height: 20),
       const EtiquetaSeccion(
-        'LA WI‑FI DE LA CASA',
+        'La Wi‑Fi de la casa',
         tituloAyuda: 'Wi‑Fi de la casa',
         ayuda: [
           'Se usa la red que capturaste en el paso «Wi‑Fi de la casa»: el cliente escribió la contraseña una sola vez.',
@@ -445,7 +442,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
         ),
       const SizedBox(height: 24),
       OhmGradientButton(
-        label: 'Siguiente',
+        label: 'Continuar',
         icon: Icons.arrow_forward_rounded,
         onPressed: _completo && _emp.puente.tieneLlaves
             ? () {
@@ -468,26 +465,28 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
   // Paso 2 · Prepara el equipo
   // ---------------------------------------------------------------------------
   Widget _pasoPreparar(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     final serie = _serie.text.trim();
     return _lista([
-      FilaFlujo(
-        titulo: '«${_nombre.text.trim()}»${_esSensor ? ' · ${_tipos[_tipo]}' : ''}',
-        subtitulo: [if (serie.isNotEmpty) 'Serie $serie', if (_wifiCasa != null) 'Wi‑Fi «${_wifiCasa!.red}»'].join(' · '),
-        marcada: true,
-        trailing: BotonFila(etiqueta: 'Editar', icono: Icons.edit_outlined, onPressed: () => setState(() => _elegido = _Paso.datos)),
+      GrupoFilas(
+        children: [
+          FilaFlujo(
+            titulo: '«${_nombre.text.trim()}»${_esSensor ? ' · ${_tipos[_tipo]}' : ''}',
+            subtitulo: [if (serie.isNotEmpty) 'Serie $serie', if (_wifiCasa != null) 'Wi‑Fi «${_wifiCasa!.red}»'].join(' · '),
+            trailing: BotonFila(etiqueta: 'Editar', icono: Icons.edit_rounded, onPressed: () => setState(() => _elegido = _Paso.datos)),
+          ),
+        ],
       ),
-      const SizedBox(height: 16),
       EtiquetaSeccion(
-        'ANTES DE CONECTAR',
+        'Antes de conectar',
         tituloAyuda: 'Cómo preparar $_que',
         ayuda: [
-          'Enciende $_que y ponlo en modo de emparejamiento: mantén su botón (RESET) 5–10 s hasta que la luz parpadee rápido.',
+          'Enciende $_que y ${_esSensor ? 'déjalo listo' : 'déjala lista'} para conectar: mantén su botón (RESET) 5–10 s hasta que la luz parpadee rápido.',
           'Este teléfono debe estar en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»); los equipos no se conectan a redes de 5 GHz.',
-          if (_modo == 'BLE') 'Bluetooth: el teléfono busca el equipo cerca y le pasa la red; ten el Bluetooth encendido. Si no lo ve en 20 segundos, la app sigue sola en modo rápido.',
-          if (_modo == 'EZ') 'Modo rápido: el equipo escucha en la red de la casa; deja el teléfono cerca.',
-          if (_modo == 'AP') 'Punto de acceso: el teléfono se conecta un momento a la red Wi‑Fi que crea el equipo (aparece nueva y sin contraseña) y luego vuelve solo a la de la casa.',
+          if (_modo == 'BLE')
+            'Cerca del teléfono: el teléfono busca $_que por Bluetooth y le pasa la red; ten el Bluetooth encendido. Si no $_lo encuentra en 20 s, la app cambia sola al modo rápido.',
+          if (_modo == 'EZ') 'Rápido: $_que escucha en la red de la casa; deja el teléfono cerca.',
+          if (_modo == 'AP')
+            '${_esSensor ? 'Red del sensor' : 'Red de la cámara'}: el teléfono se conecta un momento a la red Wi‑Fi que crea $_que (aparece nueva y sin contraseña) y luego vuelve solo a la de la casa.',
         ],
       ),
       TarjetaFlujo(
@@ -495,53 +494,60 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Punto('1', 'Enciende $_que y mantén su botón de reinicio 5–10 s, hasta que la luz parpadee rápido.'),
-            const _Punto('2', 'Deja este teléfono en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que NO dice «5G»).'),
-            _Punto(
-              '3',
-              switch (_modo) {
-                'AP' => 'Al tocar «Conectar» la app te pedirá unir el teléfono a la red Wi‑Fi del equipo y regresar.',
-                'EZ' => 'Quédate cerca del equipo con el teléfono.',
-                _ => 'Ten el Bluetooth del teléfono encendido y acércate al equipo.',
-              },
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 16),
-      const EtiquetaSeccion('CÓMO SE VA A CONECTAR'),
-      if (_redEquipoVista != null && _modo == 'AP')
-        MensajeFlujo(
-          icono: Icons.router_outlined,
-          color: cs.primary,
-          titulo: 'El equipo está en modo punto de acceso',
-          texto: 'El teléfono ve su red «$_redEquipoVista». Por eso elegimos «Punto de acceso».',
-        ),
-      TarjetaFlujo(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          children: [
-            for (final (valor, icono, titulo, texto) in [
-              ('BLE', Icons.bluetooth_rounded, 'Bluetooth', 'El normal: el teléfono busca $_que cerca. Si no la ve en 20 s, sigue sola en modo rápido.'),
-              ('EZ', Icons.wifi_rounded, 'Rápido', '$_queMayus escucha en la Wi‑Fi de la casa.'),
-              ('AP', Icons.router_outlined, 'Punto de acceso', 'Si en la lista de Wi‑Fi aparece una red nueva y abierta del equipo.'),
-            ])
-              _OpcionModo(
-                icono: icono,
-                titulo: titulo,
-                texto: texto,
-                elegida: _modo == valor,
-                alElegir: () => setState(() {
-                  _modo = valor;
-                  _modoTocado = true;
-                }),
-              ),
+            const _Punto('2', 'Deja este teléfono en la Wi‑Fi de la casa, en la red de 2.4 GHz (la que no dice «5G»).'),
+            _Punto('3', switch (_modo) {
+              'AP' => 'Al tocar «Conectar» la app te pedirá unir el teléfono a la red Wi‑Fi de $_que y regresar.',
+              'EZ' => 'Quédate cerca de $_que con el teléfono.',
+              _ => 'Ten el Bluetooth del teléfono encendido y acércate a $_que.',
+            }),
           ],
         ),
       ),
       const SizedBox(height: 24),
-      OhmGradientButton(label: _esSensor ? 'Conectar el sensor' : 'Conectar la cámara', icon: Icons.wifi_rounded, onPressed: _emp.puente.tieneLlaves ? _empezar : null),
+      EtiquetaSeccion('¿Cómo $_lo conectamos?'),
+      if (_redEquipoVista != null && _modo == 'AP')
+        MensajeFlujo(
+          icono: Icons.router_rounded,
+          color: context.ohm.info,
+          titulo: '$_queMayus creó su propia red',
+          texto: 'El teléfono ve su red «$_redEquipoVista». Por eso elegimos «${_esSensor ? 'Red del sensor' : 'Red de la cámara'}».',
+        ),
+      GrupoFilas(
+        children: [
+          for (final (valor, icono, titulo, texto) in [
+            (
+              'BLE',
+              Icons.bluetooth_rounded,
+              'Cerca del teléfono',
+              'Lo normal. El teléfono $_lo encuentra y le pasa la red. Si no $_lo encuentra en 20 s, la app cambia sola al modo rápido.',
+            ),
+            ('EZ', Icons.bolt_rounded, 'Rápido', 'Si la luz de $_que parpadea rápido.'),
+            (
+              'AP',
+              Icons.router_rounded,
+              _esSensor ? 'Red del sensor' : 'Red de la cámara',
+              'Si en la lista de Wi‑Fi del teléfono aparece una red nueva y abierta.',
+            ),
+          ])
+            _OpcionModo(
+              icono: icono,
+              titulo: titulo,
+              texto: texto,
+              elegida: _modo == valor,
+              alElegir: () => setState(() {
+                _modo = valor;
+                _modoTocado = true;
+              }),
+            ),
+        ],
+      ),
+      OhmGradientButton(
+        label: _esSensor ? 'Conectar el sensor' : 'Conectar la cámara',
+        icon: Icons.wifi_rounded,
+        onPressed: _emp.puente.tieneLlaves ? _empezar : null,
+      ),
       const SizedBox(height: 12),
-      BotonSecundario(etiqueta: 'Atrás', onPressed: () => setState(() => _elegido = _Paso.datos)),
+      BotonSecundario(etiqueta: 'Volver a los datos', onPressed: () => setState(() => _elegido = _Paso.datos)),
     ]);
   }
 
@@ -552,9 +558,9 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
     final error = _emp.etapa == EtapaTuya.error;
     final red = _wifiCasa?.red ?? _red.text.trim();
     final modoTexto = switch (_emp.modoUsado.isEmpty ? _modo : _emp.modoUsado) {
-      'AP' => 'punto de acceso',
+      'AP' => _esSensor ? 'red del sensor' : 'red de la cámara',
       'EZ' => 'modo rápido',
-      _ => 'Bluetooth',
+      _ => 'cerca del teléfono',
     };
     return _lista([
       TarjetaProceso(
@@ -564,9 +570,9 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
       ),
       const SizedBox(height: 16),
       if (!error) ...[
-        const _Nota('No cierres la app ni te alejes del equipo: la pantalla avanza sola en cuanto el equipo responde.'),
+        _Nota('No cierres la app ni te alejes de $_que: la pantalla avanza sola en cuanto responde.'),
         const SizedBox(height: 16),
-        BotonSecundario(etiqueta: 'Cancelar', onPressed: _salir),
+        BotonSecundario(etiqueta: 'Dejar de conectar', onPressed: _salir),
       ],
     ]);
   }
@@ -613,10 +619,7 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
         return EtapaProgreso(
           titulo: 'Pedir el permiso de la casa',
           estado: estado,
-          frases: [
-            if (textoEmp.isNotEmpty) textoEmp,
-            'Con este permiso $_que queda en la cuenta del cliente.',
-          ],
+          frases: [if (textoEmp.isNotEmpty) textoEmp, 'Con este permiso $_que queda en la cuenta del cliente.'],
           detalle: detalleError,
           accion: accionError,
         );
@@ -631,22 +634,18 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
         return EtapaProgreso(
           titulo: 'Pasarle la red de la casa a $_que',
           estado: estado,
-          frases: [
-            if (textoEmp.isNotEmpty) textoEmp,
-            'Cuando $_que recibe la red, su luz deja de parpadear rápido.',
-            'Mantén el teléfono cerca de $_que.',
-          ],
+          frases: [if (textoEmp.isNotEmpty) textoEmp, 'Cuando $_que recibe la red, su luz deja de parpadear rápido.', 'Mantén el teléfono cerca de $_que.'],
           detalle: detalleError,
           accion: accionError,
         );
       case _Fase.esperarNube:
         return EtapaProgreso(
-          titulo: 'Esperar a que $_que avise a la nube',
+          titulo: 'Esperar a que $_que se registre',
           estado: estado,
           frases: [
             '$_queMayus se está conectando a «$red»…',
-            'En cuanto llegue a la nube, esta pantalla avanza sola.',
-            'Suele tardar menos de 1 minuto; el permiso dura 5.',
+            'En cuanto se registre, esta pantalla avanza sola.',
+            'Suele tardar menos de 1 minuto; tienes 5 minutos.',
             'Si la contraseña de la Wi‑Fi no es la correcta, $_que no llega: revísala en el paso «Wi‑Fi de la casa».',
           ],
           detalle: detalleError,
@@ -664,8 +663,9 @@ class _ConectarTuyaWifiScreenState extends State<ConectarTuyaWifiScreen> with Wi
   }
 }
 
-/// Una opción de «Cómo se va a conectar»: fila con su explicación (antes un SegmentedButton que
-/// partía «Bluetooth» en dos líneas en teléfonos angostos, video de Nahum 2026-10-22).
+/// Una opción de «¿Cómo la conectamos?»: fila con su explicación (antes un SegmentedButton que
+/// partía «Bluetooth» en dos líneas en teléfonos angostos, video de Nahum 2026-10-22). Va dentro de
+/// un [GrupoFilas].
 class _OpcionModo extends StatelessWidget {
   const _OpcionModo({required this.icono, required this.titulo, required this.texto, required this.elegida, required this.alElegir});
   final IconData icono;
@@ -687,17 +687,16 @@ class _OpcionModo extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icono, size: 22, color: elegida ? cs.primary : theme.iconTheme.color?.withValues(alpha: 0.6)),
-              const SizedBox(width: 12),
+              Icon(icono, size: 22, color: elegida ? cs.primary : cs.onSurfaceVariant),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(titulo, style: TextStyle(fontSize: 15, fontWeight: elegida ? FontWeight.w800 : FontWeight.w600, color: elegida ? cs.primary : theme.textTheme.bodyLarge?.color)),
+                    Text(titulo, style: theme.textTheme.titleMedium?.copyWith(fontWeight: elegida ? FontWeight.w600 : FontWeight.w500)),
                     const SizedBox(height: 2),
-                    Text(texto, style: TextStyle(fontSize: 13, height: 1.35, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
+                    Text(texto, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
                   ],
                 ),
               ),
@@ -718,11 +717,7 @@ class _Nota extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Text(
-      texto,
-      textAlign: TextAlign.center,
-      style: theme.textTheme.bodySmall?.copyWith(height: 1.4, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
-    );
+    return Text(texto, textAlign: TextAlign.center, style: theme.textTheme.bodySmall);
   }
 }
 
@@ -733,7 +728,8 @@ class _Punto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -743,21 +739,21 @@ class _Punto extends StatelessWidget {
             width: 24,
             height: 24,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: cs.surfaceContainerHighest, shape: BoxShape.circle),
             child: Text(
               n,
-              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+              style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurface, fontWeight: FontWeight.w600),
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(texto, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.35))),
+          Expanded(child: Text(texto, style: theme.textTheme.bodyMedium)),
         ],
       ),
     );
   }
 }
 
-/// Tarjeta «Equipo conectado» (2026-10-22): lo que la nube dijo del equipo que entró, para que el
+/// Tarjeta «Equipo conectado» (2026-10-22): lo que se registró del equipo que entró, para que el
 /// instalador confirme que es el que tiene en la mano.
 class _Conectado extends StatelessWidget {
   const _Conectado({required this.emp, required this.esSensor, required this.tipo, required this.alListo, required this.alNoEsEste});
@@ -770,6 +766,7 @@ class _Conectado extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final ok = context.ohm.success;
     final fabrica = emp.nombreDeFabrica.trim();
     final datos = <(String, String)>[
@@ -780,54 +777,53 @@ class _Conectado extends StatelessWidget {
       ('Red Wi‑Fi', emp.red.isEmpty ? '—' : emp.red),
     ];
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       physics: const BouncingScrollPhysics(),
       children: [
         TarjetaFlujo(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.check_circle_rounded, color: ok, size: 28),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text('Equipo conectado', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text('«${emp.nombre}» quedó en la casa del cliente.', style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 12),
-              for (final (k, v) in datos)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Row(
+          child: Semantics(
+            liveRegion: true,
+            child: Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: ok, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        width: 110,
-                        child: Text(
-                          k,
-                          style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
-                        ),
-                      ),
-                      Expanded(
-                        child: SelectableText(v, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      ),
+                      Text('Equipo conectado', style: theme.textTheme.headlineSmall),
+                      const SizedBox(height: 2),
+                      Text('«${emp.nombre}» quedó en la casa del cliente.', style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
                     ],
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        Text(
-          'Revisa que sea el equipo que tienes en la mano: su luz ya no parpadea rápido.',
-          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), height: 1.4),
-        ),
         const SizedBox(height: 24),
-        OhmGradientButton(label: 'Listo', icon: Icons.check_rounded, onPressed: alListo),
+        GrupoFilas(
+          pie: 'Revisa que sea el equipo que tienes en la mano: su luz ya no parpadea rápido.',
+          children: [
+            for (final (k, v) in datos)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: Text(k, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                    ),
+                    Expanded(
+                      child: SelectableText(v, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        OhmGradientButton(label: 'Volver a dispositivos', icon: Icons.check_rounded, onPressed: alListo),
         const SizedBox(height: 12),
         BotonSecundario(etiqueta: 'No es este equipo', onPressed: alNoEsEste),
       ],
@@ -835,8 +831,8 @@ class _Conectado extends StatelessWidget {
   }
 }
 
-/// Modo punto de acceso: el teléfono tiene que unirse a la red del equipo antes de seguir
-/// (2026-10-22). Va dentro de la etapa «Unir el teléfono a la red del equipo».
+/// Modo «Red de la cámara/del sensor» (AP): el teléfono tiene que unirse a la red del equipo antes
+/// de seguir (2026-10-22). Va dentro de la etapa «Unir el teléfono a la red del equipo».
 class _RedDelEquipo extends StatelessWidget {
   const _RedDelEquipo({required this.emp, this.redVista});
   final EmparejadorTuya emp;
@@ -855,7 +851,7 @@ class _RedDelEquipo extends StatelessWidget {
         Text(
           '1. Toca «Abrir ajustes de Wi‑Fi» (en iPhone: Ajustes › Wi‑Fi).\n'
           '2. Elige $cual. No tiene contraseña.\n'
-          '3. Regresa a esta app: sigue sola. El permiso dura 5 minutos en total, así que hazlo sin pausas.',
+          '3. Regresa a esta app: sigue sola. Tienes 5 minutos en total, así que hazlo sin pausas.',
           style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
         ),
         if (todaviaNo) ...[
@@ -869,7 +865,14 @@ class _RedDelEquipo extends StatelessWidget {
         OhmGradientButton(label: 'Abrir ajustes de Wi‑Fi', icon: Icons.settings_rounded, onPressed: emp.puente.abrirAjustesWifi),
         const SizedBox(height: 10),
         BotonSecundario(etiqueta: 'Ya me conecté', onPressed: () => emp.continuarAP()),
-        if (todaviaNo) TextButton(onPressed: () => emp.continuarAP(forzar: true), child: const Text('Seguir de todos modos')),
+        if (todaviaNo) ...[
+          const SizedBox(height: 4),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: cs.onSurface, minimumSize: const Size(44, 44)),
+            onPressed: () => emp.continuarAP(forzar: true),
+            child: const Text('Seguir de todos modos'),
+          ),
+        ],
       ],
     );
   }
