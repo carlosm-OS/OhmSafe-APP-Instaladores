@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import '../core/utils/destino_equipo.dart';
 import '../widgets/destino_equipo_confirmacion.dart';
 import '../core/theme/app_theme_extension.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/cancellation_flow.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
@@ -110,9 +109,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
   /// Cámara real: lee el QR del energizador, pone la serie en el campo y
   /// arranca el diagnóstico con ella.
   Future<void> _startScanning() async {
-    final serie = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const EscanearSerieScreen()),
-    );
+    final serie = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => const EscanearSerieScreen()));
     if (!mounted || serie == null || serie.isEmpty) return;
     _macController.text = serie;
     await _startValidation(serie);
@@ -120,8 +117,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
 
   /// Mensaje del backend tal cual cuando es sobre la serie (ya instalada o
   /// apartada en otra instalación); si no, con contexto.
-  String _mensajeError(Failure f, String contexto) =>
-      f is ServerFailure && f.code.startsWith('SERIE_') ? f.message : '$contexto: ${f.message}';
+  String _mensajeError(Failure f, String contexto) => f is ServerFailure && f.code.startsWith('SERIE_') ? f.message : '$contexto: ${f.message}';
 
   /// Diagnóstico REAL por número de serie: lee la telemetría del equipo y pinta
   /// cada prueba. La tierra física no tiene telemetría → la confirma el instalador.
@@ -147,54 +143,56 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     // Odoo (ya instalada con otro cliente o apartada en otra instalación).
     final result = await sl.get<OrdenesRepository>().diagnosticoEnergizador(s, ordenId: ordenId);
     if (!mounted) return;
-    result.fold((d) {
-      setState(() {
-        _isLoading = false;
-        if (d['encontrado'] != true) {
-          if (d['motivo'] == 'NUEVO' && (d['mac'] ?? '').toString().isNotEmpty) {
-            // Equipo nuevo con MAC en su lote: se puede vincular (eso lo da de alta).
-            _diag = Map<String, dynamic>.from(d);
-            _macDetectada = (d['mac'] ?? '').toString();
-            _equipoNuevo = true;
-            _redLteStatus = 'Gris';
-            _retornoStatus = 'Gris';
-            _triggerBanner(true, "Equipo nuevo: se da de alta al vincularlo.");
-            return;
-          }
-          // De vuelta al input: sin equipo no hay nada que diagnosticar. Antes
-          // el estado se quedaba en `validating` y el panel de pruebas (con su
-          // título de éxito) seguía en pantalla junto al banner de error.
-          _diag = null;
-          _macDetectada = '';
-          _currentState = LinkState.input;
-          _triggerBanner(
+    result.fold(
+      (d) {
+        setState(() {
+          _isLoading = false;
+          if (d['encontrado'] != true) {
+            if (d['motivo'] == 'NUEVO' && (d['mac'] ?? '').toString().isNotEmpty) {
+              // Equipo nuevo con MAC en su lote: se puede vincular (eso lo da de alta).
+              _diag = Map<String, dynamic>.from(d);
+              _macDetectada = (d['mac'] ?? '').toString();
+              _equipoNuevo = true;
+              _redLteStatus = 'Gris';
+              _retornoStatus = 'Gris';
+              _triggerBanner(true, "Equipo nuevo: se da de alta al vincularlo.");
+              return;
+            }
+            // De vuelta al input: sin equipo no hay nada que diagnosticar. Antes
+            // el estado se quedaba en `validating` y el panel de pruebas (con su
+            // título de éxito) seguía en pantalla junto al banner de error.
+            _diag = null;
+            _macDetectada = '';
+            _currentState = LinkState.input;
+            _triggerBanner(
               false,
               d['motivo'] == 'SIN_ALTA'
                   ? "Al equipo $s le falta un dato en almacén (su MAC). Pide a almacén que lo capture y vuelve a escanear."
-                  : "No encontramos el equipo $s. Revisa el número o escanea el QR.");
-          return;
-        }
-        _diag = Map<String, dynamic>.from(d);
-        _macDetectada = (d['mac'] ?? '').toString();
-        _equipoNuevo = false;
-        // Telemetría real -> estado de cada prueba.
-        _retornoStatus = d['conexionLinea'] == true ? 'Verde' : 'Rojo'; // energía de la calle
-        _redLteStatus = d['bateria'] == 'ok'
-            ? 'Verde'
-            : (d['bateria'] == 'baja' ? 'Rojo' : 'Gris');
-        // La prueba de alto voltaje (cerca energizada) se retiró por ahora: los equipos
-        // todavía no traen ese sensor en la telemetría (Carlos, 2026-10-06). El estado de
-        // la cerca sigue visible como dato informativo más abajo.
-        _showBanner = false; // la ficha ya dice «¿Es este el equipo?»
-      });
-      _vigilarSenal(s);
-    }, (f) {
-      setState(() {
-        _isLoading = false;
-        _currentState = LinkState.input;
-        _triggerBanner(false, _mensajeError(f, "No pudimos leer el equipo"));
-      });
-    });
+                  : "No encontramos el equipo $s. Revisa el número o escanea el QR.",
+            );
+            return;
+          }
+          _diag = Map<String, dynamic>.from(d);
+          _macDetectada = (d['mac'] ?? '').toString();
+          _equipoNuevo = false;
+          // Telemetría real -> estado de cada prueba.
+          _retornoStatus = d['conexionLinea'] == true ? 'Verde' : 'Rojo'; // energía de la calle
+          _redLteStatus = d['bateria'] == 'ok' ? 'Verde' : (d['bateria'] == 'baja' ? 'Rojo' : 'Gris');
+          // La prueba de alto voltaje (cerca energizada) se retiró por ahora: los equipos
+          // todavía no traen ese sensor en la telemetría (Carlos, 2026-10-06). El estado de
+          // la cerca sigue visible como dato informativo más abajo.
+          _showBanner = false; // la ficha ya dice «¿Es este el equipo?»
+        });
+        _vigilarSenal(s);
+      },
+      (f) {
+        setState(() {
+          _isLoading = false;
+          _currentState = LinkState.input;
+          _triggerBanner(false, _mensajeError(f, "No pudimos leer el equipo"));
+        });
+      },
+    );
   }
 
   void _toggleTierra() {
@@ -234,11 +232,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         return;
       }
     }
-    final result = await repo.vincularEnergizador(
-          id,
-          codigo: _macDetectada.isNotEmpty ? _macDetectada : serie,
-          serie: serie,
-        );
+    final result = await repo.vincularEnergizador(id, codigo: _macDetectada.isNotEmpty ? _macDetectada : serie, serie: serie);
     if (!mounted) return;
     result.fold(
       (dashboard) async {
@@ -270,20 +264,22 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           _equipoNuevo = false;
           _isSending = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text([
-            casa != null ? "Energizador vinculado a «$casa»" : "Energizador vinculado",
-            if (suscripcion != null && suscripcion.isNotEmpty) suscripcion,
-          ].join('\n')),
-          duration: const Duration(seconds: 5),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              [
+                casa != null ? "Energizador vinculado a «$casa»" : "Energizador vinculado",
+                if (suscripcion != null && suscripcion.isNotEmpty) suscripcion,
+              ].join('\n'),
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
         Navigator.pop(context, 'device_linked');
       },
       (failure) {
         setState(() => _isSending = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_mensajeError(failure, "No pudimos vincular el energizador"))),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_mensajeError(failure, "No pudimos vincular el energizador"))));
       },
     );
   }
@@ -299,9 +295,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
 
   /// Botón principal: «Vincular» (si el equipo es nuevo, eso lo da de alta). Al vincular la
   /// pantalla se cierra sola; «Continuar» sólo queda por si se regresa a ella ya vinculado.
-  String get _ctaLabel => _vinculado
-      ? "Continuar"
-      : (_equipoNuevo ? "Dar de alta y vincular" : "Vincular energizador");
+  String get _ctaLabel => _vinculado ? "Continuar" : (_equipoNuevo ? "Dar de alta y vincular" : "Vincular energizador");
   // Mientras envía, el botón sigue naranja con su spinner (loading ya ignora los toques).
   bool get _ctaHabilitado => _diag != null;
   void _onCta() {
@@ -312,38 +306,45 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     _vincularEnergizador();
   }
 
+  /// La flecha y el atrás del teléfono hacen lo mismo (auditoría 2026-10-23: el del teléfono salía de
+  /// la pantalla aunque se estuviera validando).
+  void _regresar() {
+    if (_isSending) return;
+    if (_currentState == LinkState.validating && !_vinculado) {
+      _dejarDeVigilar();
+      setState(() {
+        _currentState = LinkState.input;
+        _showBanner = false;
+      });
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                EncabezadoFlujo(
-                  titulo: "Vincular energizador",
-                  alVolver: () {
-                    if (_currentState == LinkState.validating && !_vinculado) {
-                      _dejarDeVigilar();
-                      setState(() {
-                        _currentState = LinkState.input;
-                        _showBanner = false;
-                      });
-                    } else {
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
-                Expanded(child: _buildStateContent(context)),
-              ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _regresar();
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Stack(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  EncabezadoFlujo(titulo: "Vincular energizador", alVolver: _regresar),
+                  Expanded(child: _buildStateContent(context)),
+                ],
+              ),
             ),
-          ),
-          const AppBottomNav(),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -357,7 +358,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
     switch (_currentState) {
       case LinkState.input:
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
           physics: const BouncingScrollPhysics(),
           children: [
             if (_showBanner) _avisoBusqueda(),
@@ -374,7 +375,10 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                     children: [
                       Icon(Icons.qr_code_2_rounded, size: 96, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8)),
                       const SizedBox(height: 12),
-                      Text("Escanea el QR de la etiqueta", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)),
+                      Text(
+                        "Escanea el QR de la etiqueta",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
+                      ),
                       const SizedBox(height: 4),
                       Text("El energizador debe estar encendido.", style: muted.copyWith(color: cs.primary)),
                     ],
@@ -427,7 +431,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
         final enLinea = _diag?['enLinea'] == true;
         final cerca = _diag?['cercaActiva'] == true;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
           physics: const BouncingScrollPhysics(),
           children: [
             if (_isLoading)
@@ -449,9 +453,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                   (etiqueta: "Serie", valor: _diag?['serie']?.toString() ?? '—', color: null, key: null),
                   (
                     etiqueta: "Conexión",
-                    valor: enLinea
-                        ? "En línea"
-                        : (_equipoNuevo ? "Se ve al vincularlo" : (_esperandoSenal ? "Esperando señal…" : "Sin señal reciente")),
+                    valor: enLinea ? "En línea" : (_equipoNuevo ? "Se ve al vincularlo" : (_esperandoSenal ? "Esperando señal…" : "Sin señal reciente")),
                     // Rojo sólo cuando ya se esperó: equipo nuevo o en espera van en blanco.
                     color: enLinea ? FichaEquipo.enLinea : (_equipoNuevo || _esperandoSenal ? null : FichaEquipo.sinSenal),
                     key: null,
@@ -467,19 +469,15 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 _vinculado
                     ? "Ya quedó ligado a esta instalación."
                     : (enLinea
-                        ? "Revisa que la serie coincida con la etiqueta."
-                        : _equipoNuevo
-                            ? "Es un equipo nuevo: su conexión se ve después de vincularlo y puede tardar 1 o 2 minutos en aparecer en línea. Ya puedes vincularlo."
-                            : "Puedes vincularlo sin señal. Para la prueba del siguiente paso sí necesita corriente y señal."),
+                          ? "Revisa que la serie coincida con la etiqueta."
+                          : _equipoNuevo
+                          ? "Es un equipo nuevo: su conexión se ve después de vincularlo y puede tardar 1 o 2 minutos en aparecer en línea. Ya puedes vincularlo."
+                          : "Puedes vincularlo sin señal. Para la prueba del siguiente paso sí necesita corriente y señal."),
                 textAlign: TextAlign.center,
                 style: muted,
               ),
               const SizedBox(height: 24),
-              OhmGradientButton(
-                label: _ctaLabel,
-                loading: _isSending,
-                onPressed: _ctaHabilitado ? _onCta : null,
-              ),
+              OhmGradientButton(label: _ctaLabel, loading: _isSending, loadingLabel: 'Vinculando el energizador…', onPressed: _ctaHabilitado ? _onCta : null),
               const SizedBox(height: 12),
               if (!_vinculado) ...[
                 BotonSecundario(
@@ -487,15 +485,16 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                   onPressed: _isSending
                       ? null
                       : () => setState(() {
-                            _dejarDeVigilar();
-                            _currentState = LinkState.input;
-                            _showBanner = false;
-                            _diag = null;
-                          }),
+                          _dejarDeVigilar();
+                          _currentState = LinkState.input;
+                          _showBanner = false;
+                          _diag = null;
+                        }),
                 ),
                 const SizedBox(height: 12),
               ],
-              BotonSecundario(etiqueta: "Reportar incidencias (opcional)", onPressed: () => showCancellationFlow(context, widget.ticket)),
+              // Antes decía «Reportar incidencias (opcional)» y abría la hoja de cancelar (auditoría 2026-10-23).
+              BotonSecundario(etiqueta: "Cancelar instalación", onPressed: () => showCancellationFlow(context, widget.ticket)),
             ],
           ],
         );
@@ -524,10 +523,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
       decoration: BoxDecoration(
         color: _tierraConfirmada ? cs.primary.withValues(alpha: 0.08) : theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _tierraConfirmada ? cs.primary : theme.dividerColor.withValues(alpha: 0.6),
-          width: _tierraConfirmada ? 1.5 : 1,
-        ),
+        border: Border.all(color: _tierraConfirmada ? cs.primary : theme.dividerColor.withValues(alpha: 0.6), width: _tierraConfirmada ? 1.5 : 1),
       ),
       child: InkWell(
         onTap: _toggleTierra,
@@ -550,21 +546,12 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                     const SizedBox(height: 10),
                     Text(
                       "Confirmo que instalé la tierra física conforme al procedimiento",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        height: 1.35,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, height: 1.35, color: theme.textTheme.bodyLarge?.color),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       "Obligatorio para cerrar. Queda registrado a tu nombre y control de calidad lo verifica en sitio.",
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.35,
-                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.65),
-                      ),
+                      style: TextStyle(fontSize: 12, height: 1.35, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.65)),
                     ),
                     const SizedBox(height: 6),
                   ],
@@ -619,11 +606,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
           color: cardBg,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: status == 'Rojo'
-                  ? cs.error.withValues(alpha: 0.4)
-                  : theme.dividerColor.withValues(alpha: 0.3),
-            ),
+            side: BorderSide(color: status == 'Rojo' ? cs.error.withValues(alpha: 0.4) : theme.dividerColor.withValues(alpha: 0.3)),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -633,27 +616,16 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: theme.textTheme.bodyLarge?.color,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(10)),
                   child: Text(
                     badgeText,
-                    style: TextStyle(
-                      color: badgeTextColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(color: badgeTextColor, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -665,11 +637,7 @@ class _LinkEnergizerScreenState extends State<LinkEnergizerScreen> {
             padding: const EdgeInsets.only(left: 20, bottom: 12),
             child: Text(
               errorSubtitle,
-              style: const TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
       ],

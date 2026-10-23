@@ -10,7 +10,6 @@ import '../core/theme/app_motion.dart';
 import '../widgets/movimiento.dart';
 import '../core/utils/fechas_odoo.dart';
 import '../core/theme/app_theme_extension.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import 'route_details_screen.dart';
 import 'perimeter_inspection_screen.dart';
@@ -347,10 +346,12 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => CierreInstalacionScreen(ticket: widget.ticket)));
     if (result == 'cierre_completed' && mounted) {
       setState(() => _step5Completed = true);
+      // El cierre ya se envió en su pantalla: aquí sólo se celebra (auditoría 2026-10-23; antes había
+      // que tocar un segundo «Terminar» que fingía 2.5 s de envío sin mandar nada).
+      await _submitFinalInstallation(this.context);
     }
   }
 
-  bool _isSubmitting = false;
 
   /// El paso 3 es una variante: instalación de cerca por defecto, o
   /// reparación cuando el ticket es de tipo reparación. Se detecta por
@@ -462,7 +463,7 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
                 // Expanded Ticket details (identical layout to expanded ticket, without start route button)
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 100), // Extra bottom padding for floating bar space
+                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 40), // Sin barra inferior dentro del flujo (auditoría 2026-10-23)
                     physics: const BouncingScrollPhysics(),
                     children: [
                       Card(
@@ -734,7 +735,6 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
           ),
 
           // Barra de navegación compartida
-          const AppBottomNav(),
 
           // Momentary Toast Notification (slides down from top, goes away in 4s)
           AnimatedPositioned(
@@ -773,55 +773,18 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
               ),
             ),
           ),
-          if (_isSubmitting) _buildLoadingOverlay(context),
         ],
       ),
     );
   }
 
-  Widget _buildLoadingOverlay(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      color: Colors.black.withValues(alpha: 0.6),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          margin: const EdgeInsets.symmetric(horizontal: 40),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 10))],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: cs.primary, strokeWidth: 3.5),
-              const SizedBox(height: 20),
-              const Text("Enviando el cierre…", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              const Text("Subiendo fotos, ubicación y firma", style: TextStyle(fontSize: 12, color: Colors.grey)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
+  /// Fin de la visita: borra la Wi‑Fi de este teléfono, la anota en el historial y muestra el éxito.
+  /// No envía nada: el cierre ya se mandó (y se confirmó) en su pantalla.
   Future<void> _submitFinalInstallation(BuildContext context) async {
-    setState(() {
-      _isSubmitting = true;
-    });
     // La contraseña de la Wi‑Fi de la casa sólo vive durante la visita (opción A, 2026-10-22).
     await WifiCasaLocal.instancia.borrar((widget.ticket['id'] ?? '').toString());
 
-    // Simulated network delay (2.5 seconds)
-    await Future.delayed(const Duration(milliseconds: 2500));
-
     if (mounted) {
-      setState(() {
-        _isSubmitting = false;
-      });
-
       final bool isRep = _isReparacion;
       // Registra el ticket completado en el historial del instalador.
       AppStateProvider.of(context).addCompletedTicket(widget.ticket);

@@ -9,7 +9,8 @@
 //     a Duration.zero cuando el usuario pidió menos animación.
 // =============================================================================
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 abstract final class AppDurations {
   static const Duration instant = Duration(milliseconds: 80);
@@ -73,6 +74,8 @@ class OhmPageTransitionsBuilder extends PageTransitionsBuilder {
   @override
   Widget buildTransitions<T>(PageRoute<T> route, BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
     final curva = CurvedAnimation(parent: animation, curve: AppCurves.standard, reverseCurve: AppCurves.exit);
+    // Con «Reducir movimiento» sólo funde, sin deslizar (auditoría 2026-10-23).
+    if (AppMotion.reducido(context)) return FadeTransition(opacity: curva, child: child);
     return FadeTransition(
       opacity: curva,
       child: SlideTransition(
@@ -80,5 +83,17 @@ class OhmPageTransitionsBuilder extends PageTransitionsBuilder {
         child: child,
       ),
     );
+  }
+}
+
+/// iPhone: la transición nativa de iOS, que trae el gesto de deslizar desde el borde para regresar
+/// (auditoría 2026-10-23: al usar la de GO en iOS se había perdido). Con «Reducir movimiento», funde.
+class OhmIosPageTransitionsBuilder extends PageTransitionsBuilder {
+  const OhmIosPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(PageRoute<T> route, BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+    if (AppMotion.reducido(context)) return FadeTransition(opacity: animation, child: child);
+    return const CupertinoPageTransitionsBuilder().buildTransitions(route, context, animation, secondaryAnimation, child);
   }
 }

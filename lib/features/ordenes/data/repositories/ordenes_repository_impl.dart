@@ -18,13 +18,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       return Success(ordenes);
     } on UnauthorizedException {
       // 401 en una lectura/acción = sesión expirada.
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -35,13 +35,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       return Success(orden);
     } on UnauthorizedException {
       // 401 en una lectura/acción = sesión expirada.
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -51,13 +51,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       final tarifas = await dataSource.getTarifas();
       return Success(tarifas);
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -70,13 +70,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
       return const Success(true);
     } on UnauthorizedException {
       // 401 en una lectura/acción = sesión expirada.
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -104,7 +104,7 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.cancelar(id, motivo: motivo, notas: notas, fotoBase64: fotoBase64, ubicacion: ubicacion));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
@@ -117,7 +117,7 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.historial(rango: rango));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
@@ -130,13 +130,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.casasParaVincular(id));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -145,13 +145,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.pruebaEstado(id));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -160,13 +160,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.pruebaAbrir(id));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -175,13 +175,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.pruebaExtender(id));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -190,13 +190,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.pruebaAccion(id, accion));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -205,13 +205,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.pruebaTerminar(id));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -220,13 +220,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.dispositivosEstado(id));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -235,13 +235,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.rfAprender(id, tipo: tipo, nombre: nombre, botones: botones));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -250,13 +250,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.rfSesion(id, sid));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -265,13 +265,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.rfTerminar(id, sid, nombre: nombre));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -280,13 +280,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.rfCancelar(id, sid));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -295,13 +295,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.sensorWifiAgregar(id, externalId: externalId, nombre: nombre, tipo: tipo));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -310,13 +310,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.camaraAgregar(id, proveedor: proveedor, serie: serie, codigo: codigo, nombre: nombre));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -325,13 +325,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.wifiSesion(id, proveedor));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -340,13 +340,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.ezvizSondeo(id, serie));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -355,13 +355,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.tuyaToken(id, modo: modo, zonaHoraria: zonaHoraria));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -370,13 +370,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.tuyaTokenResultado(id, token));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -385,13 +385,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.dispositivoWifiAgregar(id, proveedor: proveedor, clase: clase, externalId: externalId, nombre: nombre, codigo: codigo, red: red, tipo: tipo, productId: productId, category: category, serie: serie));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -400,13 +400,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.ohmboxEstado(id));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -415,13 +415,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.ohmboxAgregar(id, serie: serie, mac: mac));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -430,13 +430,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.cableadoEstado(id));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -445,13 +445,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.cableadoProbarEntrada(id, index));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -460,13 +460,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.cableadoRegistrarEntrada(id, index, nombre: nombre, icono: icono));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -475,13 +475,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.cableadoProbarSirena(id));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -490,13 +490,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.cableadoSirena(id, encender: encender));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -505,13 +505,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.cableadoConfirmarSirena(id, sono: sono));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -520,13 +520,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.cableadoProbarSalida(id, index));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -535,13 +535,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.cableadoRegistrarSalida(id, index, nombre: nombre, tipo: tipo, modo: modo, pulsoSeg: pulsoSeg, funciono: funciono));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -550,13 +550,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.vincularEnergizador(id, codigo: codigo, serie: serie, tierraConfirmada: tierraConfirmada));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -565,13 +565,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.diagnosticoEnergizador(serie, ordenId: ordenId));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -580,13 +580,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.subirEvidencia(id, categoria, imagenBase64));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -599,13 +599,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.wifiCasaGuardar(id, red: red, omitir: omitir));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -614,13 +614,13 @@ class OrdenesRepositoryImpl implements OrdenesRepository {
     try {
       return Success(await dataSource.ohmboxWifi(id, red: red, contrasena: contrasena));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 }

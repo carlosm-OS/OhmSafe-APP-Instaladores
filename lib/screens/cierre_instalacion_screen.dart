@@ -10,7 +10,6 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import '../core/di/injection_container.dart';
@@ -18,6 +17,7 @@ import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/theme/app_motion.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/botones_dialogo.dart';
+import '../widgets/hoja_decision.dart';
 
 class CierreInstalacionScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -30,6 +30,13 @@ class CierreInstalacionScreen extends StatefulWidget {
 class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   int _currentStep = 1;
   bool _isLoading = false;
+
+  /// Envío en curso desde el PRIMER toque (auditoría 2026-10-23: firma y GPS tardan hasta 4 s antes
+  /// del overlay y en ese hueco «Terminar» se podía tocar otra vez y mandar el cierre doble).
+  bool _enviando = false;
+
+  /// Qué está pasando, para el botón y el overlay (regla de oro).
+  String _fase = 'Enviando el cierre…';
 
   // Reference coordinates for anti-fraud location verification
   // (Centred in Mexico City - Juarez/Roma area, where our mock installer is operating)
@@ -178,7 +185,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (!mounted) return;
       setState(() {
         _capturingCategory = null;
-        _step1Error = "No se pudo tomar la foto: $e";
+        debugPrint("Cámara del cierre: $e");
+        _step1Error = "No se pudo abrir la cámara. Vuelve a intentar; si sigue, reinicia la app.";
       });
     }
   }
@@ -278,6 +286,19 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Submit all details and complete installation
   Future<void> _submitCierreInstalacion({bool confirmarUbicacion = false}) async {
+    if (_enviando) return;
+    setState(() {
+      _enviando = true;
+      _fase = 'Revisando las fotos…';
+    });
+    try {
+      await _enviarCierre(confirmarUbicacion: confirmarUbicacion);
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  Future<void> _enviarCierre({required bool confirmarUbicacion}) async {
     // Compile JSON Payload
     final Map<String, dynamic> geoJson = {};
     _photoLocations.forEach((category, pos) {
@@ -293,6 +314,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (_fotosSinSubir.isNotEmpty) {
       setState(() {
         _step3Error = null;
+        _fase = 'Subiendo las fotos…';
         _isLoading = true;
       });
       await _reintentarSubidasPendientes();
@@ -310,8 +332,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
     // La firma se rasteriza ANTES de mostrar el overlay de carga: el lienzo
     // debe seguir montado para poder medirlo.
+    setState(() => _fase = 'Preparando la firma…');
     final firmaBase64 = await _firmaPngBase64();
     if (!mounted) return;
+    setState(() => _fase = 'Tomando tu ubicación…');
     final ubicacionCierre = ubicacionJson(await _getCurrentLocation());
     if (!mounted) return;
     if (firmaBase64 == null) {
@@ -342,6 +366,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     // Enviar al backend vía repositorio (Mock o Api según EnvConfig.useMock).
     setState(() {
       _step3Error = null;
+      _fase = 'Enviando el cierre…';
       _isLoading = true;
     });
     final repo = sl.get<OrdenesRepository>();
@@ -354,8 +379,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         _confirmarCierreLejos(failure);
         return;
       }
-      setState(() => _step3Error = "No se pudo enviar el cierre: ${failure.message}");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("No se pudo enviar el cierre: ${failure.message}")));
+      // Un solo aviso, junto al botón (antes también salía repetido abajo).
+      setState(() => _step3Error = "No se envió el cierre. Tus fotos y la firma siguen guardadas: revisa la señal y vuelve a intentar.");
     });
   }
 
@@ -515,6 +540,30 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     }
   }
 
+  /// La flecha y el atrás del teléfono hacen lo mismo (auditoría 2026-10-23: el del teléfono cerraba
+  /// todo el cierre y se perdían fotos, entrega y firma): regresan un subpaso y, en el primero,
+  /// preguntan antes de soltar las fotos.
+  Future<void> _regresar() async {
+    if (_enviando) return;
+    if (_currentStep > 1) {
+      _prevStep();
+      return;
+    }
+    if (_photoFileKeys.isEmpty && _signaturePoints.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    final seguir = await mostrarHojaDecision(
+      context,
+      titulo: '¿Salir del cierre?',
+      texto: 'Las fotos que tomaste no se guardan en este teléfono: al volver tendrás que tomarlas otra vez.',
+      seguir: 'Seguir con el cierre',
+      salir: 'Salir del cierre',
+      pierde: true,
+    );
+    if (seguir == false && mounted) Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -528,140 +577,140 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     final brandDark = cs.onSurface;
     final brandOrange = cs.secondary;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Top Header Logo & Bell
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text("OHM", style: TextStyle(fontWeight: FontWeight.w900)),
-                            Text(
-                              "SAFE",
-                              style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Align(alignment: Alignment.centerRight, child: const NotificationBell()),
-                    ],
-                  ),
-                ),
-
-                // Back Button & Title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _regresar();
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Stack(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Top Header Logo & Bell
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        Text(
-                          _isReparacion ? "Reparaciones" : "Instalaciones",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () {
-                              if (_currentStep > 1) {
-                                _prevStep();
-                              } else {
-                                Navigator.pop(context);
-                              }
-                            },
-                            style: IconButton.styleFrom(padding: const EdgeInsets.all(6), shape: const CircleBorder()),
-                            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.iconTheme.color),
+                        Image.asset(
+                          isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
+                          height: 28,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text("OHM", style: TextStyle(fontWeight: FontWeight.w900)),
+                              Text(
+                                "SAFE",
+                                style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
+                              ),
+                            ],
                           ),
                         ),
+                        Align(alignment: Alignment.centerRight, child: const NotificationBell()),
                       ],
                     ),
                   ),
-                ),
 
-                // Screen Subtitle
-                Center(
-                  child: Text(
-                    _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Wizard Steps Navigation Indicator
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Back Button & Title
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: SizedBox(
+                      height: 48,
+                      child: Stack(
+                        alignment: Alignment.center,
                         children: [
-                          _buildStepIndicatorLabel(1, "Fotos", brandOrange),
-                          _buildStepIndicatorLabel(2, "Entrega", brandOrange),
-                          _buildStepIndicatorLabel(3, "Firma", brandOrange),
+                          Text(
+                            _isReparacion ? "Reparaciones" : "Instalaciones",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                          ),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: IconButton(
+                              tooltip: 'Regresar',
+                              onPressed: _regresar,
+                              style: IconButton.styleFrom(padding: const EdgeInsets.all(6), shape: const CircleBorder()),
+                              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.iconTheme.color),
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      // Progress Line
-                      Row(
-                        children: [
-                          _buildStepProgressSegment(1),
-                          const SizedBox(width: 4),
-                          _buildStepProgressSegment(2),
-                          const SizedBox(width: 4),
-                          _buildStepProgressSegment(3),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
 
-                // Main Wizard Page Container
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 110),
+                  // Screen Subtitle
+                  Center(
+                    child: Text(
+                      _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Wizard Steps Navigation Indicator
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (_currentStep == 1) ...[
-                          _buildStep1Evidence(brandDark, brandOrange),
-                        ] else if (_currentStep == 2) ...[
-                          _buildStep2Equipment(brandDark, brandOrange),
-                        ] else if (_currentStep == 3) ...[
-                          _buildStep3Signature(brandDark, brandOrange),
-                        ],
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildStepIndicatorLabel(1, "Fotos", brandOrange),
+                            _buildStepIndicatorLabel(2, "Entrega", brandOrange),
+                            _buildStepIndicatorLabel(3, "Firma", brandOrange),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // Progress Line
+                        Row(
+                          children: [
+                            _buildStepProgressSegment(1),
+                            const SizedBox(width: 4),
+                            _buildStepProgressSegment(2),
+                            const SizedBox(width: 4),
+                            _buildStepProgressSegment(3),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 24),
+
+                  // Main Wizard Page Container
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (_currentStep == 1) ...[
+                            _buildStep1Evidence(brandDark, brandOrange),
+                          ] else if (_currentStep == 2) ...[
+                            _buildStep2Equipment(brandDark, brandOrange),
+                          ] else if (_currentStep == 3) ...[
+                            _buildStep3Signature(brandDark, brandOrange),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // Shared bottom navigation bar overlay
-          const AppBottomNav(),
+            // Shared bottom navigation bar overlay
 
-          // Sending loading overlay
-          if (_isLoading) _buildLoadingOverlay(context),
-        ],
+            // Sending loading overlay
+            if (_isLoading) _buildLoadingOverlay(context),
+          ],
+        ),
       ),
     );
   }
@@ -1636,6 +1685,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
               child: OhmGradientButton(
                 label: _isReparacion ? "Terminar reparación" : "Terminar instalación",
                 icon: Icons.check_circle_rounded,
+                loading: _enviando,
+                loadingLabel: _fase,
                 onPressed: _canSubmitCierre() ? _submitCierreInstalacion : null,
               ),
             ),
@@ -1664,9 +1715,9 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
             children: [
               CircularProgressIndicator(color: cs.primary, strokeWidth: 3.5),
               const SizedBox(height: 20),
-              const Text("Enviando el cierre…", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(_fase, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
-              const Text("Subiendo fotos, ubicación y firma", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text("No cierres la app; tarda menos de un minuto.", style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
             ],
           ),
         ),

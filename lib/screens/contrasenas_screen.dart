@@ -377,18 +377,6 @@ class _ContrasenasScreenState extends State<ContrasenasScreen> {
                           alignment: Alignment.topRight,
                           children: [
                             const NotificationBell(),
-                            Positioned(
-                              top: 10,
-                              right: 10,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Colors.blueAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),

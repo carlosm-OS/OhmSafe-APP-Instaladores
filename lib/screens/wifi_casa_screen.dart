@@ -40,6 +40,9 @@ class _WifiCasaScreenState extends State<WifiCasaScreen> {
   final _contrasena = TextEditingController();
   bool _verContrasena = false;
   bool _guardando = false;
+
+  /// «Omitir» también guarda; así sólo su botón dice que está trabajando (auditoría 2026-10-23).
+  bool _omitiendo = false;
   String? _error;
 
   String get _id => (widget.ticket['id'] ?? '').toString();
@@ -122,6 +125,7 @@ class _WifiCasaScreenState extends State<WifiCasaScreen> {
   Future<void> _omitir() async {
     setState(() {
       _guardando = true;
+      _omitiendo = true;
       _error = null;
     });
     final r = await _repo.wifiCasaGuardar(_id, omitir: true);
@@ -129,6 +133,7 @@ class _WifiCasaScreenState extends State<WifiCasaScreen> {
     if (r.isFailure) {
       setState(() {
         _guardando = false;
+        _omitiendo = false;
         _error = r.failureValue.message;
       });
       return;
@@ -206,11 +211,12 @@ class _WifiCasaScreenState extends State<WifiCasaScreen> {
                   OhmGradientButton(
                     label: 'Guardar Wi‑Fi de la casa',
                     icon: Icons.wifi_rounded,
-                    loading: _guardando,
-                    onPressed: _guardando || _red.text.trim().isEmpty ? null : _guardar,
+                    loading: _guardando && !_omitiendo,
+                    loadingLabel: 'Guardando la Wi‑Fi de la casa…',
+                    onPressed: (_omitiendo || _red.text.trim().isEmpty) ? null : _guardar,
                   ),
                   const SizedBox(height: 12),
-                  BotonSecundario(etiqueta: 'Omitir: esta casa no la necesita', onPressed: _guardando ? null : _omitir),
+                  BotonSecundario(etiqueta: _omitiendo ? 'Omitiendo la Wi‑Fi de la casa…' : 'Omitir: esta casa no la necesita', onPressed: _guardando ? null : _omitir),
                 ],
               ),
             ),

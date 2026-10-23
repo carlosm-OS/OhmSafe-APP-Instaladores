@@ -8,6 +8,7 @@ import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/entities/orden.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/utils/fechas_odoo.dart';
+import '../widgets/hoja_decision.dart';
 
 /// Sección Instalaciones. Carga las órdenes de instalación desde el
 /// repositorio (Mock o Api según `EnvConfig.useMock`). Cada orden arranca
@@ -839,75 +840,25 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     if (mounted) _cargar(silencioso: true);
   }
 
-  Future<void> _iniciarServicio(Orden orden) async {
-    final result = await _repo.iniciarRuta(orden.id);
-    if (!mounted) return;
-    result.fold(
-      (_) => Navigator.push(context, MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: orden.toTicketMap()))),
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("No se pudo iniciar la ruta: ${failure.message}"))),
-    );
-  }
-
-  void _showConfirmationDialog(BuildContext context, Orden orden) {
-    final theme = Theme.of(context);
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: theme.cardColor,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "¿Estás seguro de iniciar la ruta?",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  "El cliente será notificado que tu servicio está en camino",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), height: 1.4),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _iniciarServicio(orden);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
-                    ),
-                    child: const Text("Iniciar ruta de servicio", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                  child: Text(
-                    "Cancelar",
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+  /// «Iniciar ruta»: hoja desde abajo que avisa al cliente UNA vez (auditoría 2026-10-23: antes el
+  /// botón seguía vivo mientras enviaba y un segundo toque avisaba dos veces; al volver no se refrescaba).
+  Future<void> _showConfirmationDialog(BuildContext context, Orden orden) async {
+    final nombre = orden.cliente.trim().split(' ').first;
+    final ok = await mostrarHojaDecision(
+      context,
+      titulo: '¿Salir hacia el domicilio?',
+      texto: nombre.isEmpty ? 'Le avisamos al cliente que vas en camino.' : 'Le avisamos a $nombre que vas en camino.',
+      seguir: 'Iniciar ruta',
+      salir: 'Ahora no',
+      cargandoTexto: 'Avisando al cliente…',
+      alSeguir: () async {
+        final r = await _repo.iniciarRuta(orden.id);
+        return r.isSuccess ? null : 'No pudimos avisar al cliente. Revisa tu señal y vuelve a intentar.';
       },
     );
+    if (ok != true || !mounted) return;
+    await Navigator.push(this.context, MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: orden.toTicketMap())));
+    if (mounted) _cargar(silencioso: true);
   }
 
   Widget _buildErrorState(ThemeData theme) {

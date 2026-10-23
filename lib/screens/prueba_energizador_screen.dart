@@ -6,7 +6,6 @@ import '../core/di/injection_container.dart';
 import '../core/network/actividad.dart';
 import '../core/error/failures.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import '../widgets/botones_dialogo.dart';
@@ -194,7 +193,7 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                     child: _cargando
                         ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(cs.primary)))
                         : ListView(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                             physics: const BouncingScrollPhysics(),
                             children: [
                               if (_error != null)
@@ -239,6 +238,7 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                                   label: _cercaEncendida ? 'Apagar la cerca' : 'Encender la cerca',
                                   icon: _cercaEncendida ? Icons.power_settings_new_rounded : Icons.bolt_rounded,
                                   loading: _enviando,
+                                  loadingLabel: _cercaEncendida ? 'Apagando la cerca…' : 'Encendiendo la cerca…',
                                   onPressed: accionAlternar,
                                 )
                               else
@@ -265,7 +265,7 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
                               const SizedBox(height: 20),
 
                               if (_demostrada)
-                                OhmGradientButton(label: 'Terminar prueba', loading: _enviando, onPressed: () => _terminar(omitir: false))
+                                OhmGradientButton(label: 'Terminar prueba', loading: _enviando, loadingLabel: 'Guardando la prueba…', onPressed: () => _terminar(omitir: false))
                               else
                                 BotonSecundario(etiqueta: 'Terminar prueba', onPressed: _enviando ? null : () => _terminar(omitir: false)),
                             ],
@@ -275,7 +275,6 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
               ),
             ),
             // La barra es un Positioned: va sobre el Stack, no dentro de la columna.
-            const AppBottomNav(),
           ],
         ),
       ),

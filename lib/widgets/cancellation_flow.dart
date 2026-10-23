@@ -30,6 +30,9 @@ void showCancellationFlow(BuildContext context, Map<String, dynamic> ticket) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    // No se arrastra para cerrar: mientras envía, cerrarla dejaba al técnico en el flujo con la
+    // instalación ya cancelada (auditoría 2026-10-23). Se cierra con su ✕ o tocando fuera.
+    enableDrag: false,
     backgroundColor: Theme.of(context).cardColor,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (_) => _HojaCancelacion(ticket: ticket, contextoPadre: context),
@@ -62,10 +65,12 @@ class _HojaCancelacionState extends State<_HojaCancelacion> {
     final origen = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (ctx) => SafeArea(
-        child: Wrap(children: [
-          ListTile(leading: const Icon(Icons.photo_camera), title: const Text('Tomar foto'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
-          ListTile(leading: const Icon(Icons.photo_library), title: const Text('Elegir de la galería'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
-        ]),
+        child: Wrap(
+          children: [
+            ListTile(leading: const Icon(Icons.photo_camera), title: const Text('Tomar foto'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
+            ListTile(leading: const Icon(Icons.photo_library), title: const Text('Elegir de la galería'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
+          ],
+        ),
       ),
     );
     if (origen == null) return;
@@ -110,83 +115,99 @@ class _HojaCancelacionState extends State<_HojaCancelacion> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Cancelar instalación', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color)),
-                IconButton(onPressed: _enviando ? null : () => Navigator.pop(context), icon: const Icon(Icons.close_rounded), visualDensity: VisualDensity.compact),
-              ],
-            ),
-            Text('Operaciones llamará al cliente y la reagendará.', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-            const SizedBox(height: 16),
-            Text('¿Qué pasó?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurfaceVariant)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final e in motivosCancelacion.entries)
-                  ChoiceChip(label: Text(e.value), selected: _motivo == e.key, onSelected: _enviando ? null : (_) => setState(() => _motivo = e.key)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _notas,
-              maxLines: 3,
-              enabled: !_enviando,
-              textCapitalization: TextCapitalization.sentences,
-              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-              decoration: InputDecoration(
-                hintText: _motivo == 'otro' ? 'Cuéntanos qué pasó (obligatorio)' : 'Notas para operaciones (opcional)',
-                hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
-                filled: true,
-                fillColor: ohm.surfaceContainer,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.all(16),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _enviando ? null : _elegirFoto,
-                    icon: Icon(_foto == null ? Icons.add_a_photo_outlined : Icons.check_circle, size: 18),
-                    label: Text(_foto == null ? 'Agregar foto (opcional)' : 'Foto lista'),
+    return PopScope(
+      canPop: !_enviando,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Cancelar instalación',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color),
                   ),
-                ),
-                if (_foto != null) IconButton(onPressed: _enviando ? null : () => setState(() => _foto = null), icon: const Icon(Icons.close, size: 18)),
-              ],
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text(_error!, style: TextStyle(color: cs.error, fontSize: 13, fontWeight: FontWeight.w600)),
-            ],
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _enviando ? null : _confirmar,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: cs.error,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: _enviando
-                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Confirmar cancelación', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  IconButton(
+                    onPressed: _enviando ? null : () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
               ),
-            ),
-          ],
+              Text('Operaciones llamará al cliente y la reagendará.', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+              const SizedBox(height: 16),
+              Text(
+                '¿Qué pasó?',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurfaceVariant),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final e in motivosCancelacion.entries)
+                    ChoiceChip(label: Text(e.value), selected: _motivo == e.key, onSelected: _enviando ? null : (_) => setState(() => _motivo = e.key)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _notas,
+                maxLines: 3,
+                enabled: !_enviando,
+                textCapitalization: TextCapitalization.sentences,
+                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                decoration: InputDecoration(
+                  hintText: _motivo == 'otro' ? 'Cuéntanos qué pasó (obligatorio)' : 'Notas para operaciones (opcional)',
+                  hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                  filled: true,
+                  fillColor: ohm.surfaceContainer,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _enviando ? null : _elegirFoto,
+                      icon: Icon(_foto == null ? Icons.add_a_photo_outlined : Icons.check_circle, size: 18),
+                      label: Text(_foto == null ? 'Agregar foto (opcional)' : 'Foto lista'),
+                    ),
+                  ),
+                  if (_foto != null) IconButton(onPressed: _enviando ? null : () => setState(() => _foto = null), icon: const Icon(Icons.close, size: 18)),
+                ],
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _error!,
+                  style: TextStyle(color: cs.error, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _enviando ? null : _confirmar,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cs.error,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: _enviando
+                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Confirmar cancelación', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -226,6 +226,7 @@ class _AprenderRfState extends State<_AprenderRf> {
                 primario: 'Guardar',
                 onPrimario: _puedeGuardar ? _guardar : null,
                 primarioCargando: _guardando,
+                primarioCargandoTexto: 'Guardando el sensor…',
               ),
           ],
         ),

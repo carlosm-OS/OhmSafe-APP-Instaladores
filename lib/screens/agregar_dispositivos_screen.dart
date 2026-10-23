@@ -10,7 +10,6 @@ import '../core/theme/app_theme_extension.dart';
 import '../core/utils/serie_formato.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/wifi/wifi_casa_local.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/movimiento.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
@@ -203,7 +202,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     }
   }
 
-  /// Sale a la lista de pasos y cierra la ventana de control.
+  /// «Listo, volver a los pasos»: cierra la ventana de control y marca el paso como hecho.
   Future<void> _salir() async {
     if (_saliendo) return;
     setState(() => _saliendo = true);
@@ -214,6 +213,25 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     if (_sirenaSonando) await _repo.cableadoSirena(_id, encender: false);
     await _repo.pruebaTerminar(_id);
     if (mounted) Navigator.pop(context, 'dispositivos_listos');
+  }
+
+  /// Atrás (flecha o el del teléfono): sale al instante SIN marcar el paso como hecho (auditoría
+  /// 2026-10-23: antes regresar lo daba por listo y tardaba dos llamadas de red). La sirena y la
+  /// ventana de control se cierran en segundo plano.
+  void _regresar() {
+    if (_saliendo) return;
+    _saliendo = true;
+    _ventana?.cancel();
+    _sondeo?.cancel();
+    _sirenaAutoApagado?.cancel();
+    final repo = _repo;
+    final id = _id;
+    final sonando = _sirenaSonando;
+    unawaited(() async {
+      if (sonando) await repo.cableadoSirena(id, encender: false);
+      await repo.pruebaTerminar(id);
+    }());
+    Navigator.pop(context);
   }
 
   /// Error al leer los dispositivos de la casa (p. ej. la casa no se pudo resolver): antes se callaba y
@@ -735,7 +753,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _salir();
+        if (!didPop) _regresar();
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -746,12 +764,12 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  EncabezadoFlujo(titulo: 'Agregar dispositivos', alVolver: _salir),
+                  EncabezadoFlujo(titulo: 'Agregar dispositivos', alVolver: _regresar),
                   Expanded(
                     child: _cargando
                         ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(cs.primary)))
                         : ListView(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                             physics: const BouncingScrollPhysics(),
                             children: _conEntrada([
                               if (_error != null)
@@ -994,7 +1012,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
 
 
                               const SizedBox(height: 20),
-                              OhmGradientButton(label: 'Listo, volver a los pasos', loading: _saliendo, onPressed: _ocupado ? null : _salir),
+                              OhmGradientButton(label: 'Listo, volver a los pasos', loading: _saliendo, loadingLabel: 'Cerrando las pruebas…', onPressed: _ocupado ? null : _salir),
                             ]),
                           ),
                   ),
@@ -1002,7 +1020,6 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
               ),
             ),
             // La barra es un Positioned: va sobre el Stack, no dentro de la columna.
-            const AppBottomNav(),
           ],
         ),
       ),

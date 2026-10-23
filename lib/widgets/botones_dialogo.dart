@@ -17,10 +17,13 @@ import '../core/theme/app_dimens.dart';
 /// Botón secundario de las ventanas emergentes: borde gris y texto oscuro, mismo alto y radio que el
 /// primario (el naranja queda sólo en la acción principal).
 class BotonContornoSecundario extends StatelessWidget {
-  const BotonContornoSecundario({super.key, required this.etiqueta, required this.onPressed});
+  const BotonContornoSecundario({super.key, required this.etiqueta, required this.onPressed, this.peligro = false});
 
   final String etiqueta;
   final VoidCallback? onPressed;
+
+  /// Salir pierde trabajo: el texto va en rojo (hoja de decisión, 2026-10-23).
+  final bool peligro;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +32,7 @@ class BotonContornoSecundario extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: cs.onSurface,
+        foregroundColor: peligro ? cs.error : cs.onSurface,
         minimumSize: const Size.fromHeight(AppTouch.primary),
         side: BorderSide(color: cs.outlineVariant.withValues(alpha: onPressed == null ? 0.5 : 1), width: 1.5),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
@@ -53,6 +56,8 @@ class BotonesDialogo extends StatelessWidget {
     this.secundario,
     this.onSecundario,
     this.primarioCargando = false,
+    this.primarioCargandoTexto,
+    this.secundarioPeligro = false,
   });
 
   final String primario;
@@ -62,6 +67,12 @@ class BotonesDialogo extends StatelessWidget {
 
   /// Muestra un indicador en el primario y lo deja sin efecto (p. ej. «Guardar» mientras guarda).
   final bool primarioCargando;
+
+  /// Qué está pasando mientras [primarioCargando] («Guardando el sensor…»). Sin ella, la etiqueta.
+  final String? primarioCargandoTexto;
+
+  /// El secundario pierde trabajo («Salir sin conectar»): texto en rojo.
+  final bool secundarioPeligro;
 
   @override
   Widget build(BuildContext context) {
@@ -76,12 +87,22 @@ class BotonesDialogo extends StatelessWidget {
           FilledButton(
             onPressed: primarioCargando ? () {} : onPrimario,
             child: primarioCargando
-                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: cs.onPrimary))
+                ? Semantics(
+                    liveRegion: true,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.4, color: cs.onPrimary)),
+                        const SizedBox(width: 10),
+                        Flexible(child: Text(primarioCargandoTexto ?? primario, overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                  )
                 : Text(primario),
           ),
           if (secundario != null) ...[
             const SizedBox(height: 12),
-            BotonContornoSecundario(etiqueta: secundario!, onPressed: onSecundario),
+            BotonContornoSecundario(etiqueta: secundario!, onPressed: onSecundario, peligro: secundarioPeligro),
           ],
         ],
       ),

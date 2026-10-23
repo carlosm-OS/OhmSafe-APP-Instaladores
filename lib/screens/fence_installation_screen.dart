@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/notification_bell.dart';
 import '../core/theme/app_theme_extension.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/cancellation_flow.dart';
 import '../core/di/injection_container.dart';
@@ -194,7 +193,7 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                 // Main scrollable list
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                     physics: const BouncingScrollPhysics(),
                     children: [
                       // Client info card
@@ -287,7 +286,9 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
                       OhmGradientButton(
                         label: "Completar instalación",
                         icon: Icons.arrow_forward,
-                        onPressed: _isSending ? null : _guardarInstalacion,
+                        loading: _isSending,
+                        loadingLabel: "Guardando la cerca…",
+                        onPressed: _guardarInstalacion,
                       ),
                       const SizedBox(height: 12),
 
@@ -321,7 +322,6 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
           ),
 
           // Shared bottom navigation bar
-          const AppBottomNav(),
         ],
       ),
     );

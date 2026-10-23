@@ -282,6 +282,7 @@ class _ConectarCamaraWifiScreenState extends State<ConectarCamaraWifiScreen> {
                       label: _emp.etapa == EtapaEzviz.error ? 'Volver a intentar' : 'Conectar la cámara',
                       icon: Icons.wifi_rounded,
                       loading: ocupado,
+                      loadingLabel: 'Conectando la cámara…',
                       onPressed: ocupado || !_completo ? null : _empezar,
                     ),
                     if (ocupado) ...[const SizedBox(height: 12), BotonSecundario(etiqueta: 'Cancelar', onPressed: _salir)],

@@ -310,6 +310,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       label: _pidePassword ? "Iniciar sesión" : "Continuar",
                       icon: _pidePassword ? Icons.login_rounded : Icons.arrow_forward_rounded,
                       loading: _loading,
+                      loadingLabel: 'Entrando…',
                       onPressed: _pidePassword ? _login : _continuar,
                     ),
                     if (!_pidePassword && !_leyendoCorreo) ...[

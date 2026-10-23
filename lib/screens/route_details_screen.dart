@@ -4,7 +4,6 @@ import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
 import '../widgets/notification_bell.dart';
 import '../core/theme/app_theme_extension.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
@@ -150,7 +149,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                 // Content View
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                     physics: const BouncingScrollPhysics(),
                     children: [
                       // Ticket details card for consistency and clarity
@@ -295,7 +294,9 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                       // Route Details Actions Box
                         OhmGradientButton(
                           label: "Marcar llegada",
-                          onPressed: _isSending ? null : _marcarLlegada,
+                          loading: _isSending,
+                          loadingLabel: "Tomando tu ubicación…",
+                          onPressed: _marcarLlegada,
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
@@ -323,7 +324,6 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
           ),
 
           // Shared bottom navigation bar
-          const AppBottomNav(),
         ],
       ),
     );

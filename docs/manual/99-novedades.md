@@ -4,6 +4,19 @@ De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el núme
 
 ## Próxima build (en preparación) — 23 de octubre de 2026
 
+- **No se pierde ni se duplica trabajo.**
+  - Durante la instalación ya no aparece la barra de abajo: tocar «Home» a media prueba o firma te sacaba sin preguntar.
+  - El atrás del teléfono hace lo mismo que la flecha en el cierre, en vincular energizador y en agregar dispositivos. Regresar de agregar dispositivos ya no marca el paso como listo.
+  - Si sales del cierre con fotos tomadas, la app pregunta antes.
+- **Un solo envío.**
+  - «Iniciar ruta» abre una hoja desde abajo, dice «Avisando al cliente…» y no deja avisar dos veces. Al volver, la lista se actualiza.
+  - «Terminar instalación» se bloquea desde el primer toque y va diciendo qué hace: «Subiendo las fotos…», «Preparando la firma…», «Tomando tu ubicación…», «Enviando el cierre…».
+  - Ya no hay un segundo «Terminar» que fingía enviar.
+- **Los botones dicen qué está pasando.** Por ejemplo: «Vinculando el energizador…», «Encendiendo la cerca…», «Guardando la Wi‑Fi de la casa…», «Tomando tu ubicación…», «Entrando…».
+- **Errores en palabras claras.** Ya no aparecen textos técnicos: «Algo falló de nuestro lado. Vuelve a intentar; si sigue, avisa a soporte.» y «Tu sesión venció. Entra de nuevo con tu contraseña.».
+- **iPhone:** vuelve el gesto de deslizar desde el borde para regresar. Con «Reducir movimiento» las pantallas sólo se funden.
+- **Sin avisos falsos.** Se quitó el punto azul que siempre aparecía sobre la campana en Mi cuenta.
+- El botón que decía «Reportar incidencias (opcional)» y abría la cancelación ahora dice «Cancelar instalación».
 - **Zonas de estado de la Wi‑Fi.** La Wi‑Fi de la casa se muestra como una zona de color con ícono y etiqueta: verde «EN ORDEN» cuando está lista (con «Cambiar red»), roja «FALTA» cuando impide seguir (al conectar una cámara o un sensor: «Ir al paso 4 · Wi‑Fi de la casa», y bajo el botón apagado «Para seguir falta: …») y gris «OPCIONAL» cuando no es obligatoria (en «Agregar dispositivos» y en la segunda conexión del OhmBox). El rojo sólo aparece cuando algo bloquea.
 
 ## Build 59 (TestFlight servidor de pruebas; APK de producción) — 22 de octubre de 2026

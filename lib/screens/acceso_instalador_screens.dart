@@ -226,7 +226,7 @@ class _CodigoAccesoScreenState extends State<CodigoAccesoScreen> {
         ),
       ),
       const SizedBox(height: 12),
-      OhmGradientButton(label: 'Verificar código', icon: Icons.verified_user_outlined, loading: _cargando, onPressed: _verificar),
+      OhmGradientButton(label: 'Verificar código', icon: Icons.verified_user_outlined, loading: _cargando, loadingLabel: 'Verificando el código…', onPressed: _verificar),
       const SizedBox(height: 12),
       TextButton(
         onPressed: _espera > 0 ? null : _reenviar,
@@ -407,7 +407,7 @@ class _CrearPasswordScreenState extends State<CrearPasswordScreen> {
         Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: cs.error, fontWeight: FontWeight.w600, fontSize: 13)),
       ],
       const SizedBox(height: 24),
-      OhmGradientButton(label: widget.primeraVez ? 'Crear contraseña y entrar' : 'Guardar y entrar', icon: Icons.login_rounded, loading: _cargando, onPressed: _crear),
+      OhmGradientButton(label: widget.primeraVez ? 'Crear contraseña y entrar' : 'Guardar y entrar', icon: Icons.login_rounded, loading: _cargando, loadingLabel: 'Guardando tu contraseña…', onPressed: _crear),
     ]);
   }
 }

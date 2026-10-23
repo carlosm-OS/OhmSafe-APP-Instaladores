@@ -12,6 +12,7 @@
 //     icon: Icons.login_rounded,       // opcional
 //     onPressed: _submit,              // null => deshabilitado
 //     loading: _isLoading,             // opcional: muestra spinner
+//     loadingLabel: 'Entrando…',       // qué está pasando mientras carga (regla de oro)
 //   )
 // =============================================================================
 
@@ -22,19 +23,16 @@ import '../core/theme/app_motion.dart';
 import '../core/theme/app_theme_extension.dart';
 
 class OhmGradientButton extends StatefulWidget {
-  const OhmGradientButton({
-    super.key,
-    required this.label,
-    this.onPressed,
-    this.icon,
-    this.loading = false,
-    this.height = AppTouch.primary,
-  });
+  const OhmGradientButton({super.key, required this.label, this.onPressed, this.icon, this.loading = false, this.loadingLabel, this.height = AppTouch.primary});
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool loading;
+
+  /// Frase de lo que está pasando mientras [loading] (auditoría 2026-10-23: nunca un círculo mudo).
+  /// Sin ella se deja la etiqueta junto al círculo.
+  final String? loadingLabel;
   final double height;
 
   bool get _hasAction => onPressed != null;
@@ -58,30 +56,31 @@ class _OhmGradientButtonState extends State<OhmGradientButton> {
     final hasAction = widget._hasAction; // pinta gradiente (incl. loading)
     final tappable = widget._tappable; // acepta toque
 
+    final texto = widget.loading ? (widget.loadingLabel ?? widget.label) : widget.label;
     final child = widget.loading
-        ? SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.4,
-              valueColor: AlwaysStoppedAnimation<Color>(cs.onPrimary),
-            ),
+        ? Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, valueColor: AlwaysStoppedAnimation<Color>(cs.onPrimary))),
+              const SizedBox(width: AppSpacing.md),
+              Flexible(
+                child: Text(
+                  texto,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: cs.onPrimary),
+                ),
+              ),
+            ],
           )
         : Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (widget.icon != null) ...[
-                Icon(widget.icon, size: 20, color: cs.onPrimary),
-                const SizedBox(width: AppSpacing.sm),
-              ],
+              if (widget.icon != null) ...[Icon(widget.icon, size: 20, color: cs.onPrimary), const SizedBox(width: AppSpacing.sm)],
               Flexible(
                 child: Text(
                   widget.label,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelLarge
-                      ?.copyWith(color: cs.onPrimary),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: cs.onPrimary),
                 ),
               ),
             ],
@@ -90,7 +89,8 @@ class _OhmGradientButtonState extends State<OhmGradientButton> {
     return Semantics(
       button: true,
       enabled: tappable,
-      label: widget.label,
+      liveRegion: widget.loading,
+      label: texto,
       child: AnimatedScale(
         scale: _pressed && tappable ? 0.97 : 1.0,
         duration: AppMotion.duration(context, AppDurations.fast),
@@ -110,9 +110,7 @@ class _OhmGradientButtonState extends State<OhmGradientButton> {
               borderRadius: AppRadius.brMd,
             ),
             child: DefaultTextStyle.merge(
-              style: TextStyle(
-                color: hasAction ? cs.onPrimary : cs.onSurface.withValues(alpha: 0.38),
-              ),
+              style: TextStyle(color: hasAction ? cs.onPrimary : cs.onSurface.withValues(alpha: 0.38)),
               child: child,
             ),
           ),

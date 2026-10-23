@@ -3,7 +3,6 @@ import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
 import '../widgets/notification_bell.dart';
 import '../core/theme/app_theme_extension.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
@@ -217,7 +216,7 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                 // Main Content Scrollable
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                     physics: const BouncingScrollPhysics(),
                     children: [
                       // Client & Metraje info card
@@ -365,7 +364,9 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
                         // Main action: Completar perímetro
                         OhmGradientButton(
                           label: "Completar perímetro",
-                          onPressed: (_hasSelection && !_isSending)
+                          loading: _isSending,
+                          loadingLabel: "Guardando la inspección…",
+                          onPressed: _hasSelection
                               ? _guardarInspeccion
                               : null,
                         ),
@@ -401,7 +402,6 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
           ),
 
           // Shared Bottom Navigation Bar
-          const AppBottomNav(),
         ],
       ),
     );

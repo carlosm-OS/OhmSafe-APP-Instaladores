@@ -220,6 +220,7 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
                       label: _error == null ? 'Registrar la cámara' : 'Volver a intentar',
                       icon: Icons.videocam_outlined,
                       loading: _ocupado,
+                      loadingLabel: 'Conectando la cámara…',
                       onPressed: _ocupado || !_completo ? null : _registrar,
                     ),
                   ],
