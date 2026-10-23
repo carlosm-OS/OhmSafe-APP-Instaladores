@@ -187,11 +187,7 @@ class _PruebaEnergizadorScreenState extends State<PruebaEnergizadorScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  EncabezadoFlujo(
-                    titulo: 'Prueba del energizador',
-                    subtitulo: serie.isEmpty ? null : 'Energizador $serie',
-                    alVolver: () => _terminar(omitir: true),
-                  ),
+                  EncabezadoFlujo(titulo: 'Prueba del energizador', alVolver: () => _terminar(omitir: true)),
                   Expanded(
                     child: _cargando
                         ? Padding(

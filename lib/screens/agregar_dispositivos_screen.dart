@@ -1244,7 +1244,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       _ => _Fila(
         icono: icono,
         titulo: titulo,
-        estado: EstadoPunto('Sin probar · ahora marca $ahora', color: cs.onSurfaceVariant),
+        estado: EstadoPunto('Sin probar · marca $ahora', color: cs.onSurfaceVariant),
         trailing: BotonFila(etiqueta: 'Probar', onPressed: _listo ? () => _probarEntrada(index) : null),
       ),
     };
@@ -1319,7 +1319,7 @@ class _AgregarDispositivosScreenState extends State<AgregarDispositivosScreen> {
       titulo: 'Salida $index',
       estado: noEncendio
           ? EstadoPunto('No encendió · quedó en el reporte. Revisa el cable y vuelve a probar', color: cs.error)
-          : EstadoPunto('Sin probar · se enciende 5 segundos', color: cs.onSurfaceVariant),
+          : EstadoPunto('Sin probar', color: cs.onSurfaceVariant),
       trailing: BotonFila(etiqueta: noEncendio ? 'Volver a probar' : 'Probar', onPressed: _listo ? () => _probarSalida(index) : null),
     );
   }
@@ -1531,7 +1531,8 @@ class _Pregunta extends StatelessWidget {
             ),
             style: theme.textTheme.bodyMedium,
           ),
-          Wrap(spacing: 8, children: botones),
+          // IntrinsicWidth: la píldora mide lo que su texto (dentro de Wrap se estiraba a todo lo ancho).
+          Wrap(spacing: 8, children: [for (final b in botones) IntrinsicWidth(child: b)]),
         ],
       ),
     );
