@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../controllers/app_state_provider.dart';
 import '../core/di/injection_container.dart';
 import '../core/theme/app_theme_extension.dart';
+import '../widgets/ayuda.dart';
 import '../core/push/push_service.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
@@ -36,8 +37,10 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
   bool _loading = false;
   String? _error;
+
   /// Paso 2: el correo ya tiene contraseña y se muestra el campo.
   bool _pidePassword = false;
+
   /// Mientras se lee el último correo del teléfono no se pinta el paso 1.
   bool _leyendoCorreo = true;
 
@@ -97,9 +100,11 @@ class _LoginScreenState extends State<LoginScreen> {
           _passwordFocus.requestFocus();
           return;
         }
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => CodigoAccesoScreen(email: email, esperaInicial: a.esperaSegundos, olvide: olvide, onToggleTheme: widget.onToggleTheme),
-        ));
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CodigoAccesoScreen(email: email, esperaInicial: a.esperaSegundos, olvide: olvide, onToggleTheme: widget.onToggleTheme),
+          ),
+        );
       },
       (f) => setState(() {
         _loading = false;
@@ -113,10 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
       _error = null;
     });
-    final result = await _auth.login(
-      email: _emailController.text,
-      password: _passwordController.text,
-    );
+    final result = await _auth.login(email: _emailController.text, password: _passwordController.text);
     if (!mounted) return;
     result.fold(
       (sesion) {
@@ -160,46 +162,33 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    // El aviso con que se llega (sesión vencida, sin red) no es un error de lo que escribiste: va en
+    // tarjeta blanca; los errores de esta pantalla, en rojo junto al botón (v2, 2026-10-23).
+    final esAviso = _error != null && _error == widget.aviso;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: const BoxConstraints(maxWidth: 480),
               child: AutofillGroup(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Logo
+                    // Puerta de entrada: aquí el logo es la identidad (todavía no hay Home).
                     Image.asset(
-                      isDark
-                          ? 'assets/assets/logo_white.png'
-                          : 'assets/assets/logo_light.png',
-                      height: 44,
+                      isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
+                      height: 40,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            "OHM",
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: theme.textTheme.bodyLarge?.color,
-                            ),
-                          ),
-                          Text(
-                            "SAFE",
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: cs.primary,
-                            ),
-                          ),
+                          Text("OHM", style: theme.textTheme.displaySmall),
+                          Text("SAFE", style: theme.textTheme.displaySmall?.copyWith(color: cs.primary)),
                         ],
                       ),
                     ),
@@ -207,37 +196,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       "App de Instaladores",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: theme.textTheme.bodyMedium?.color?.withValues(
-                          alpha: 0.7,
-                        ),
-                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                     ),
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 32),
 
-                    Text("Correo", style: _labelStyle(theme, isDark)),
-                    const SizedBox(height: 6),
+                    const EtiquetaSeccion("Correo"),
                     TextField(
                       controller: _emailController,
                       readOnly: _pidePassword,
                       keyboardType: TextInputType.emailAddress,
+                      autocorrect: false,
                       // Sugerencias de correo del historial del teléfono (QuickType
                       // en iOS / autofill en Android).
-                      autofillHints: const [
-                        AutofillHints.username,
-                        AutofillHints.email,
-                      ],
+                      autofillHints: const [AutofillHints.username, AutofillHints.email],
                       textInputAction: _pidePassword ? TextInputAction.next : TextInputAction.done,
                       onSubmitted: (_) => _pidePassword ? _passwordFocus.requestFocus() : (_loading ? null : _continuar()),
-                      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                      decoration: _fieldDecoration(
-                        theme,
-                        isDark,
-                        "tucorreo@ohmsafe.com",
-                        Icons.mail_outline_rounded,
-                      ).copyWith(
+                      style: theme.textTheme.bodyLarge,
+                      decoration: InputDecoration(
+                        hintText: "tucorreo@ohmsafe.com",
+                        prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
                         suffixIcon: _pidePassword
                             ? TextButton(
                                 onPressed: () => setState(() {
@@ -245,72 +222,57 @@ class _LoginScreenState extends State<LoginScreen> {
                                   _passwordController.clear();
                                   _error = null;
                                 }),
+                                style: TextButton.styleFrom(foregroundColor: cs.onSurface, minimumSize: const Size(48, 44)),
                                 child: const Text('Cambiar'),
                               )
                             : null,
                       ),
                     ),
                     if (_pidePassword) ...[
-                    const SizedBox(height: 16),
-
-                    Text("Contraseña", style: _labelStyle(theme, isDark)),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _passwordController,
-                      focusNode: _passwordFocus,
-                      obscureText: _obscure,
-                      // El gestor de contraseñas del sistema ofrece guardar/rellenar.
-                      autofillHints: const [AutofillHints.password],
-                      textInputAction: TextInputAction.done,
-                      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                      onSubmitted: (_) => _loading ? null : _login(),
-                      decoration:
-                          _fieldDecoration(
-                            theme,
-                            isDark,
-                            "••••••••",
-                            Icons.lock_outline_rounded,
-                          ).copyWith(
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_off_rounded
-                                    : Icons.visibility_rounded,
-                                size: 20,
-                              ),
-                              onPressed: () =>
-                                  setState(() => _obscure = !_obscure),
-                            ),
+                      const SizedBox(height: 20),
+                      const EtiquetaSeccion("Contraseña"),
+                      TextField(
+                        controller: _passwordController,
+                        focusNode: _passwordFocus,
+                        obscureText: _obscure,
+                        // El gestor de contraseñas del sistema ofrece guardar/rellenar.
+                        autofillHints: const [AutofillHints.password],
+                        textInputAction: TextInputAction.done,
+                        style: theme.textTheme.bodyLarge,
+                        onSubmitted: (_) => _loading ? null : _login(),
+                        decoration: InputDecoration(
+                          hintText: "••••••••",
+                          prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                          suffixIcon: IconButton(
+                            tooltip: _obscure ? 'Mostrar contraseña' : 'Ocultar contraseña',
+                            icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
+                            onPressed: () => setState(() => _obscure = !_obscure),
                           ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _loading ? null : () => _continuar(olvide: true),
-                        child: const Text('¿Olvidaste tu contraseña?'),
+                        ),
                       ),
-                    ),
-                    ],
-
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _loading ? null : () => _continuar(olvide: true),
+                          style: TextButton.styleFrom(foregroundColor: cs.onSurface, minimumSize: const Size(48, 44)),
+                          child: const Text('¿Olvidaste tu contraseña?'),
                         ),
                       ),
                     ],
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
+                    if (_error != null)
+                      Semantics(
+                        liveRegion: true,
+                        child: esAviso
+                            ? MensajeFlujo(icono: Icons.info_outline_rounded, color: context.ohm.info, titulo: _error!)
+                            : MensajeFlujo(icono: Icons.error_outline_rounded, color: cs.error, titulo: _error!),
+                      ),
                     OhmGradientButton(
                       label: _pidePassword ? "Iniciar sesión" : "Continuar",
                       icon: _pidePassword ? Icons.login_rounded : Icons.arrow_forward_rounded,
                       loading: _loading,
-                      loadingLabel: 'Entrando…',
+                      loadingLabel: _pidePassword ? 'Entrando…' : 'Revisando tu correo…',
                       onPressed: _pidePassword ? _login : _continuar,
                     ),
                     if (!_pidePassword && !_leyendoCorreo) ...[
@@ -318,7 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         '¿Primera vez? Escribe el correo que registró OhmSafe y te enviaremos un código para activar tu cuenta.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12.5, height: 1.4, color: cs.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall,
                       ),
                     ],
                   ],
@@ -330,31 +292,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
-  TextStyle _labelStyle(ThemeData theme, bool isDark) => TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.bold,
-    color: theme.colorScheme.onSurfaceVariant,
-  );
-
-  InputDecoration _fieldDecoration(
-    ThemeData theme,
-    bool isDark,
-    String hint,
-    IconData icon,
-  ) => InputDecoration(
-    hintText: hint,
-    prefixIcon: Icon(icon, size: 20),
-    filled: true,
-    fillColor: theme.extension<OhmColors>()!.surfaceContainer,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide.none,
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
-    ),
-    contentPadding: const EdgeInsets.symmetric(vertical: 14),
-  );
 }

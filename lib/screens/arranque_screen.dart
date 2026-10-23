@@ -62,8 +62,26 @@ class _ArranqueScreenState extends State<ArranqueScreen> {
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => pantalla), (_) => false);
   }
 
+  /// Nunca un círculo mudo (v2, 2026-10-23): dice qué está pasando mientras decide a dónde ir.
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: Center(
+        child: Semantics(
+          liveRegion: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: theme.colorScheme.primary)),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text('Revisando tu sesión…', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -7,6 +7,8 @@ import '../core/di/injection_container.dart';
 import '../core/error/exceptions.dart';
 import '../core/push/push_service.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
+import '../widgets/ayuda.dart';
+import '../widgets/ohm_gradient_button.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 
@@ -33,6 +35,9 @@ class _BloqueoScreenState extends State<BloqueoScreen> {
   bool _ocupado = false;
   String? _error;
 
+  /// Qué está pasando mientras [_ocupado]: primero la biometría, luego abrir la sesión.
+  String _cargandoTexto = 'Esperando…';
+
   @override
   void initState() {
     super.initState();
@@ -51,16 +56,18 @@ class _BloqueoScreenState extends State<BloqueoScreen> {
     setState(() {
       _ocupado = true;
       _error = null;
+      _cargandoTexto = 'Esperando tu $_nombre…';
     });
     final ok = await sl.get<BiometriaService>().autenticar('Desbloquea OhmSafe Instaladores');
     if (!mounted) return;
     if (!ok) {
       setState(() {
         _ocupado = false;
-        _error = 'No se reconoció tu $_nombre. Inténtalo de nuevo o usa tu contraseña.';
+        _error = 'No se reconoció tu $_nombre. Vuelve a intentar o usa tu contraseña.';
       });
       return;
     }
+    setState(() => _cargandoTexto = 'Abriendo tu sesión…');
     await _entrar();
   }
 
@@ -79,15 +86,12 @@ class _BloqueoScreenState extends State<BloqueoScreen> {
         widget.alDesbloquear!();
         return;
       }
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme)),
-        (_) => false,
-      );
+      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => HomeScreen(onToggleTheme: widget.onToggleTheme)), (_) => false);
     } on NetworkException {
       if (!mounted) return;
       setState(() {
         _ocupado = false;
-        _error = 'Sin conexión. Revisa tu red e inténtalo de nuevo.';
+        _error = 'Sin conexión. Revisa tu red y vuelve a intentar.';
       });
     }
   }
@@ -100,58 +104,58 @@ class _BloqueoScreenState extends State<BloqueoScreen> {
 
   void _irAlLogin({String? mensaje}) {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => LoginScreen(onToggleTheme: widget.onToggleTheme, aviso: mensaje)),
+      MaterialPageRoute<void>(
+        builder: (_) => LoginScreen(onToggleTheme: widget.onToggleTheme, aviso: mensaje),
+      ),
       (_) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final esCara = _nombre == 'Face ID';
     return PopScope(
       canPop: false,
       child: Scaffold(
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Spacer(),
                 Icon(Icons.lock_outline_rounded, size: 56, color: cs.onSurfaceVariant),
                 const SizedBox(height: 16),
-                Text('Sesión protegida', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                Semantics(
+                  header: true,
+                  child: Text('Sesión protegida', textAlign: TextAlign.center, style: theme.textTheme.displayMedium),
+                ),
                 if (_email != null && _email!.isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  Text(_email!, style: TextStyle(color: cs.onSurfaceVariant)),
+                  Text(
+                    _email!,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                  ),
                 ],
-                const SizedBox(height: 28),
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: cs.error)),
-                  ),
                 const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _ocupado ? null : _desbloquear,
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                    icon: _ocupado
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                        : Icon(esCara ? Icons.face_retouching_natural : Icons.fingerprint),
-                    label: Text('Desbloquear con $_nombre', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                // Lo que pasó va junto al botón (v2, 2026-10-23).
+                if (_error != null)
+                  Semantics(
+                    liveRegion: true,
+                    child: MensajeFlujo(icono: Icons.error_outline_rounded, color: cs.error, titulo: _error!),
                   ),
+                OhmGradientButton(
+                  label: 'Desbloquear con $_nombre',
+                  icon: esCara ? Icons.face_rounded : Icons.fingerprint_rounded,
+                  loading: _ocupado,
+                  loadingLabel: _cargandoTexto,
+                  onPressed: _desbloquear,
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: _ocupado ? null : _usarContrasena,
-                    style: TextButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    child: const Text('Usar contraseña', style: TextStyle(fontSize: 16)),
-                  ),
-                ),
+                const SizedBox(height: 12),
+                BotonSecundario(etiqueta: 'Usar contraseña', onPressed: _ocupado ? null : _usarContrasena),
               ],
             ),
           ),

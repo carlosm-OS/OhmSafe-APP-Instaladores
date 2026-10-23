@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../controllers/app_state_provider.dart';
 import '../widgets/app_bottom_nav.dart';
-import '../widgets/notification_bell.dart';
+import '../widgets/ayuda.dart';
 import '../core/theme/app_theme_extension.dart';
 
-/// Historial de tickets completados (instalaciones y reparaciones).
+/// Historial de instalaciones completadas y canceladas (instalaciones y reparaciones).
 /// Permite buscar por texto y filtrar por rango: última semana, último
 /// mes o todo el histórico.
+/// v2 (2026-10-23): raíz de pestaña con el encabezado de todos, filtro segmentado, lista agrupada con
+/// el número («i67») en cada fila, y carga / error / vacío con frase.
 class HistorialScreen extends StatefulWidget {
   const HistorialScreen({super.key});
 
@@ -21,13 +23,21 @@ class _HistorialScreenState extends State<HistorialScreen> {
   String _query = '';
   _Rango _rango = _Rango.todo;
 
+  /// Mientras llega la primera respuesta del backend (la frase «Cargando tu historial…»).
+  bool _cargando = true;
+
   @override
   void initState() {
     super.initState();
     // El historial vive en el backend (completadas y canceladas en sitio).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) AppStateProvider.of(context).cargarHistorial();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _cargar());
+  }
+
+  Future<void> _cargar() async {
+    if (!mounted) return;
+    setState(() => _cargando = true);
+    await AppStateProvider.of(context).cargarHistorial();
+    if (mounted) setState(() => _cargando = false);
   }
 
   bool _esCancelada(Map<String, dynamic> t) => (t['status']?.toString().toLowerCase() ?? '') == 'cancelada';
@@ -79,11 +89,28 @@ class _HistorialScreenState extends State<HistorialScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
     final state = AppStateProvider.of(context);
 
     final tickets = state.history.where((t) => _dentroDeRango(t['completedAt'] as DateTime?)).where(_coincideBusqueda).toList();
+    // Sin respuesta del backend: si no hay nada que mostrar, se dice qué pasó (antes: «Aún no hay historial»).
+    final fallo = !_cargando && !state.historialCargado;
+
+    final Widget contenido;
+    if (_cargando && state.history.isEmpty) {
+      contenido = _cargandoFila(theme);
+    } else if (fallo && state.history.isEmpty) {
+      contenido = MensajeFlujo(
+        icono: Icons.error_outline_rounded,
+        color: cs.error,
+        titulo: 'No se pudo cargar tu historial',
+        texto: 'Revisa tu señal y vuelve a intentar.',
+        accion: TextButton(onPressed: _cargar, child: const Text('Volver a intentar')),
+      );
+    } else if (tickets.isEmpty) {
+      contenido = _emptyState(theme);
+    } else {
+      contenido = GrupoFilas(children: [for (final t in tickets) _ticketCard(theme, t)]);
+    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -94,125 +121,60 @@ class _HistorialScreenState extends State<HistorialScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "OHM",
-                              style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color),
-                            ),
-                            Text(
-                              "SAFE",
-                              style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Align(alignment: Alignment.centerRight, child: const NotificationBell()),
-                    ],
-                  ),
-                ),
-
-                // Back + title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
+                const EncabezadoFlujo(titulo: 'Historial', volver: false),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _cargar,
+                    color: cs.primary,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                       children: [
-                        Container(
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: Text(
-                            "Historial",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.textTheme.titleLarge?.color),
+                        TextField(
+                          controller: _searchController,
+                          style: theme.textTheme.bodyLarge,
+                          onChanged: (v) => setState(() => _query = v),
+                          decoration: InputDecoration(
+                            hintText: "Busca por cliente, dirección o número",
+                            prefixIcon: const Icon(Icons.search_rounded, size: 22),
+                            suffixIcon: _query.isNotEmpty
+                                ? IconButton(
+                                    tooltip: 'Borrar búsqueda',
+                                    icon: const Icon(Icons.close_rounded, size: 20),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _query = '');
+                                    },
+                                  )
+                                : null,
                           ),
                         ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(padding: const EdgeInsets.all(6), shape: const CircleBorder()),
-                            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.iconTheme.color),
+                        const SizedBox(height: 12),
+                        // Control segmentado al estilo iPhone: gris con el periodo elegido en blanco.
+                        SegmentedButton<_Rango>(
+                          showSelectedIcon: false,
+                          style: ButtonStyle(
+                            minimumSize: const WidgetStatePropertyAll(Size(0, 44)),
+                            backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? cs.surface : cs.surfaceContainerHighest),
+                            foregroundColor: WidgetStatePropertyAll(cs.onSurface),
+                            side: WidgetStatePropertyAll(BorderSide(color: cs.surfaceContainerHighest, width: 2)),
+                            textStyle: WidgetStatePropertyAll(theme.textTheme.labelMedium),
+                            shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                           ),
+                          segments: const [
+                            ButtonSegment(value: _Rango.semana, label: Text('Última semana')),
+                            ButtonSegment(value: _Rango.mes, label: Text('Último mes')),
+                            ButtonSegment(value: _Rango.todo, label: Text('Todo')),
+                          ],
+                          selected: {_rango},
+                          onSelectionChanged: (s) => setState(() => _rango = s.first),
                         ),
+                        const SizedBox(height: 20),
+                        if (tickets.isNotEmpty) EtiquetaSeccion("${tickets.length} ${tickets.length == 1 ? 'instalación' : 'instalaciones'}"),
+                        contenido,
                       ],
                     ),
                   ),
-                ),
-
-                // Search field
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                  child: TextField(
-                    controller: _searchController,
-                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                    onChanged: (v) => setState(() => _query = v),
-                    decoration: InputDecoration(
-                      hintText: "Buscar por cliente, dirección o ticket...",
-                      prefixIcon: const Icon(Icons.search_rounded, size: 22),
-                      suffixIcon: _query.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 20),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _query = '');
-                              },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: ohm.surfaceContainer,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                    ),
-                  ),
-                ),
-
-                // Filter chips
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                  child: Row(
-                    children: [
-                      _filtroChip("Última semana", _Rango.semana),
-                      const SizedBox(width: 8),
-                      _filtroChip("Último mes", _Rango.mes),
-                      const SizedBox(width: 8),
-                      _filtroChip("Todo", _Rango.todo),
-                    ],
-                  ),
-                ),
-
-                // Count
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                  child: Text(
-                    "${tickets.length} ${tickets.length == 1 ? 'ticket' : 'tickets'}",
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
-                  ),
-                ),
-
-                // List
-                Expanded(
-                  child: tickets.isEmpty
-                      ? _emptyState(theme)
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: tickets.length,
-                          itemBuilder: (context, i) => _ticketCard(theme, isDark, tickets[i]),
-                        ),
                 ),
               ],
             ),
@@ -224,35 +186,22 @@ class _HistorialScreenState extends State<HistorialScreen> {
     );
   }
 
-  Widget _filtroChip(String label, _Rango value) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final selected = _rango == value;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _rango = value),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? cs.primary : ohm.surfaceContainer,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: selected ? cs.primary : theme.dividerColor),
+  Widget _cargandoFila(ThemeData theme) => Padding(
+    padding: const EdgeInsets.only(top: 24),
+    child: Semantics(
+      liveRegion: true,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: theme.colorScheme.primary)),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text('Cargando tu historial…', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: selected ? Colors.white : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-            ),
-          ),
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 
   /// Número de intervención («i67»): el mismo de la lista de instalaciones y de Odoo (Carlos, 2026-10-20).
   static String _numero(Map<String, dynamic> t) {
@@ -260,7 +209,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
     return RegExp(r'^i\d+$').hasMatch(id) ? id : '';
   }
 
-  Widget _ticketCard(ThemeData theme, bool isDark, Map<String, dynamic> t) {
+  Widget _ticketCard(ThemeData theme, Map<String, dynamic> t) {
     final cs = theme.colorScheme;
     final numero = _numero(t);
     final ohm = context.ohm;
@@ -269,73 +218,43 @@ class _HistorialScreenState extends State<HistorialScreen> {
     final details = (t['details'] as Map?)?.cast<String, dynamic>() ?? {};
     final fecha = _fecha(t['completedAt'] as DateTime?);
     final motivo = t['motivo']?.toString() ?? '';
+    final apoyo = theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant);
 
-    final badgeColor = cancelada ? cs.error : (esRep ? ohm.info : cs.primary);
+    final estadoColor = cancelada ? cs.error : (esRep ? ohm.info : ohm.success);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.2),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  t['title']?.toString() ?? 'Ticket',
-                  style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, height: 1.3, color: theme.textTheme.bodyLarge?.color),
-                ),
-              ),
+              Expanded(child: Text(t['title']?.toString() ?? 'Instalación', style: theme.textTheme.titleMedium)),
               if (numero.isNotEmpty) ...[
                 const SizedBox(width: 8),
                 Semantics(
-                  label: 'Intervención $numero',
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-                    child: Text(
-                      numero,
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: cs.primary, letterSpacing: 0.2),
-                    ),
-                  ),
+                  label: 'Instalación $numero',
+                  excludeSemantics: true,
+                  child: Text(numero, style: apoyo),
                 ),
               ],
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-                child: Text(
-                  cancelada ? "Cancelada" : (esRep ? "Reparación" : "Instalación"),
-                  style: TextStyle(color: badgeColor, fontSize: 11, fontWeight: FontWeight.w700),
-                ),
-              ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
+          EstadoPunto(cancelada ? "Cancelada" : (esRep ? "Reparación" : "Instalación"), color: estadoColor),
+          const SizedBox(height: 6),
           if (cancelada) ...[
-            _infoRow(theme, Icons.cancel_outlined, cs.error, "Cancelada el $fecha"),
-            if (motivo.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              _infoRow(theme, Icons.notes_rounded, theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), "Motivo: $motivo"),
-            ],
+            _infoRow(theme, Icons.cancel_rounded, "Cancelada el $fecha"),
+            if (motivo.isNotEmpty) ...[const SizedBox(height: 4), _infoRow(theme, Icons.notes_rounded, "Motivo: $motivo")],
           ] else
-            _infoRow(theme, Icons.check_circle_outline_rounded, ohm.success, "Completado el $fecha"),
-          if ((t['user']?.toString() ?? '').isNotEmpty) ...[
-            const SizedBox(height: 6),
-            _infoRow(theme, Icons.person_outline_rounded, theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), t['user'].toString()),
-          ],
+            _infoRow(theme, Icons.check_circle_outline_rounded, "Completada el $fecha"),
+          if ((t['user']?.toString() ?? '').isNotEmpty) ...[const SizedBox(height: 4), _infoRow(theme, Icons.person_outline_rounded, t['user'].toString())],
           if ((details['direccion']?.toString() ?? '').isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             _infoRow(
               theme,
-              Icons.location_on_outlined,
-              theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+              Icons.location_on_rounded,
               "${details['direccion']}${(details['ciudad']?.toString() ?? '').isNotEmpty ? ', ${details['ciudad']}' : ''}",
             ),
           ],
@@ -344,39 +263,46 @@ class _HistorialScreenState extends State<HistorialScreen> {
     );
   }
 
-  Widget _infoRow(ThemeData theme, IconData icon, Color? color, String text) {
+  Widget _infoRow(ThemeData theme, IconData icon, String text) {
+    final cs = theme.colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 15, color: color),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, size: 16, color: cs.onSurfaceVariant),
+        ),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(text, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8))),
+          child: Text(text, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
         ),
       ],
     );
   }
 
+  /// Vacío v2: qué es, por qué está vacío y cómo seguir.
   Widget _emptyState(ThemeData theme) {
+    final cs = theme.colorScheme;
     final hayHistorial = AppStateProvider.of(context).history.isNotEmpty;
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
-          const SizedBox(height: 12),
-          Text(
-            hayHistorial ? "Sin resultados" : "Aún no hay historial",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(color: cs.surfaceContainerHighest, shape: BoxShape.circle),
+            child: Icon(hayHistorial ? Icons.search_off_rounded : Icons.history_rounded, size: 32, color: cs.onSurfaceVariant),
           ),
+          const SizedBox(height: 16),
+          Text(hayHistorial ? "Sin resultados" : "Aún no hay historial", textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
           const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0),
-            child: Text(
-              hayHistorial ? "Ajusta la búsqueda o el filtro de fechas." : "Los tickets que completes o canceles aparecerán aquí.",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
-            ),
+          Text(
+            hayHistorial
+                ? "Ninguna instalación coincide con tu búsqueda en este periodo. Cambia lo que escribiste o elige «Todo»."
+                : "Aquí aparecen las instalaciones que terminas o cancelas. Cuando cierres la primera, la verás aquí.",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
         ],
       ),

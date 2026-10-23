@@ -1,173 +1,62 @@
 import 'package:flutter/material.dart';
-import '../core/theme/app_theme_extension.dart';
 
-class MenuItemTile extends StatefulWidget {
+import '../core/theme/app_motion.dart';
+import '../core/theme/app_theme_extension.dart';
+import 'ayuda.dart';
+
+/// Fila del menú de Home (v2, 2026-10-23): ícono en mosaico de 32 a color suave, título, contador
+/// naranja y chevron. Va dentro de un [GrupoFilas]; sin sombra ni tarjeta propia.
+class MenuItemTile extends StatelessWidget {
   final String label;
   final int count;
   final VoidCallback onTap;
 
-  const MenuItemTile({
-    super.key,
-    required this.label,
-    required this.count,
-    required this.onTap,
-  });
-
-  @override
-  State<MenuItemTile> createState() => _MenuItemTileState();
-}
-
-class _MenuItemTileState extends State<MenuItemTile> with SingleTickerProviderStateMixin {
-  late AnimationController _pressController;
-  late double _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _pressController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-      lowerBound: 0.0,
-      upperBound: 0.02,
-    )..addListener(() {
-        setState(() {});
-      });
-  }
-
-  @override
-  void dispose() {
-    _pressController.dispose();
-    super.dispose();
-  }
-
-  void _onTapDown(TapDownDetails details) {
-    _pressController.forward();
-  }
-
-  void _onTapUp(TapUpDetails details) {
-    _pressController.reverse();
-    widget.onTap();
-  }
-
-  void _onTapCancel() {
-    _pressController.reverse();
-  }
+  const MenuItemTile({super.key, required this.label, required this.count, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs = Theme.of(context).colorScheme;
     final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
-    _scale = 1.0 - _pressController.value;
 
-    // Soft background and icon configuration matching the screenshot
-    late Color iconBgColor;
-    late Color iconColor;
-    late IconData iconData;
+    final (Color color, IconData icono) = switch (label) {
+      'Instalaciones' => (cs.primary, Icons.construction_rounded),
+      'Reparaciones' => (ohm.info, Icons.build_rounded),
+      'Mantenimientos' => (ohm.success, Icons.settings_suggest_rounded),
+      'Reemplazo de equipo' => (ohm.info, Icons.cached_rounded),
+      'Reportar incidencias' => (cs.error, Icons.warning_amber_rounded),
+      _ => (cs.onSurfaceVariant, Icons.arrow_right_alt_rounded),
+    };
 
-    switch (widget.label) {
-      case "Instalaciones":
-        iconBgColor = cs.primaryContainer;
-        iconColor = cs.primary;
-        iconData = Icons.construction_rounded;
-        break;
-      case "Reparaciones":
-        iconBgColor = ohm.infoContainer;
-        iconColor = ohm.info;
-        iconData = Icons.build_outlined;
-        break;
-      case "Mantenimientos":
-        iconBgColor = ohm.successContainer;
-        iconColor = ohm.success;
-        iconData = Icons.settings_suggest_rounded;
-        break;
-      case "Reemplazo de equipo":
-        iconBgColor = ohm.accentContainer;
-        iconColor = ohm.accent;
-        iconData = Icons.cached_rounded;
-        break;
-      case "Reportar incidencias":
-        iconBgColor = cs.errorContainer;
-        iconColor = cs.error;
-        iconData = Icons.warning_amber_rounded;
-        break;
-      default:
-        iconBgColor = ohm.surfaceContainer;
-        iconColor = cs.onSurfaceVariant;
-        iconData = Icons.arrow_right_alt_rounded;
-    }
-
-    return Transform.scale(
-      scale: _scale,
-      child: GestureDetector(
-        onTapDown: _onTapDown,
-        onTapUp: _onTapUp,
-        onTapCancel: _onTapCancel,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
-            border: Border.all(
-              color: isDark ? cs.outline.withValues(alpha: 0.5) : cs.outlineVariant.withValues(alpha: 0.4),
-            ),
-          ),
-          child: Row(
-            children: [
-              // Colored icon background container
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: iconBgColor,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  iconData,
-                  color: iconColor,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-
-              // Title label
-              Expanded(
-                child: Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
-                  ),
-                ),
-              ),
-
-              // Badge & Chevron Right
-              Row(
-                children: [
-                  if (widget.count > 0) ...[
-                    _AnimatedBadge(count: widget.count),
-                    const SizedBox(width: 16),
-                  ],
-                  Icon(
-                    Icons.chevron_right,
-                    size: 22,
-                    color: Colors.grey.shade400,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+    return FilaFlujo(
+      titulo: label,
+      onTap: onTap,
+      leading: MosaicoIcono(icono: icono, color: color),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (count > 0) ...[_AnimatedBadge(count: count), const SizedBox(width: 8)],
+          Icon(Icons.chevron_right_rounded, size: 22, color: cs.onSurfaceVariant),
+        ],
       ),
+    );
+  }
+}
+
+/// Ícono en mosaico de 32 con el color al 12 % de fondo (v2: filas de lista agrupada).
+class MosaicoIcono extends StatelessWidget {
+  const MosaicoIcono({super.key, required this.icono, required this.color});
+
+  final IconData icono;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(9)),
+      child: Icon(icono, size: 18, color: color),
     );
   }
 }
@@ -182,31 +71,25 @@ class _AnimatedBadge extends StatefulWidget {
 }
 
 class _AnimatedBadgeState extends State<_AnimatedBadge> with SingleTickerProviderStateMixin {
-  late AnimationController _badgePopController;
-  late Animation<double> _popAnimation;
+  late final AnimationController _badgePopController = AnimationController(vsync: this, duration: AppDurations.base);
+
+  // v2: sin rebote elástico; entra con un leve sobrepaso y con «Reducir movimiento» aparece sin animar.
+  late final Animation<double> _popAnimation = CurvedAnimation(parent: _badgePopController, curve: AppCurves.confirm);
 
   @override
-  void initState() {
-    super.initState();
-    _badgePopController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
-    );
-    
-    _popAnimation = CurvedAnimation(
-      parent: _badgePopController,
-      curve: Curves.elasticOut,
-    );
-
-    _badgePopController.forward();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _badgePopController.duration = AppMotion.of(context, AppDurations.base);
+    if (_badgePopController.value == 0) _badgePopController.forward();
   }
 
   @override
   void didUpdateWidget(covariant _AnimatedBadge oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.count != widget.count) {
-      _badgePopController.reset();
-      _badgePopController.forward();
+      _badgePopController
+        ..reset()
+        ..forward();
     }
   }
 
@@ -218,32 +101,20 @@ class _AnimatedBadgeState extends State<_AnimatedBadge> with SingleTickerProvide
 
   @override
   Widget build(BuildContext context) {
-    final accentOrange = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return ScaleTransition(
       scale: _popAnimation,
       child: Container(
-        width: 26,
+        constraints: const BoxConstraints(minWidth: 26),
         height: 26,
-        decoration: BoxDecoration(
-          color: accentOrange,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: accentOrange.withValues(alpha: 0.3),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            )
-          ],
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 7),
+        decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(13)),
         alignment: Alignment.center,
         child: Text(
-          "${widget.count}",
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
+          '${widget.count}',
+          style: theme.textTheme.bodySmall?.copyWith(color: cs.onPrimary, fontWeight: FontWeight.w700, height: 1.1),
         ),
       ),
     );
