@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/notification_bell.dart';
-import '../core/theme/app_theme_extension.dart';
+import '../widgets/ayuda.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/cancellation_flow.dart';
 import '../core/di/injection_container.dart';
@@ -16,14 +15,7 @@ class FenceInstallationScreen extends StatefulWidget {
 
 class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
   // Counters for materials with default initial values matching the mock image (5, 5, 5, 5, 1, 3)
-  final Map<String, int> _materials = {
-    'Postes esquina': 5,
-    'Postes de paso': 5,
-    'Líneas': 5,
-    'Abanicos': 5,
-    'Letrero Ohmsafe': 1,
-    'Letrero Precaución': 3,
-  };
+  final Map<String, int> _materials = {'Postes esquina': 5, 'Postes de paso': 5, 'Líneas': 5, 'Abanicos': 5, 'Letrero Ohmsafe': 1, 'Letrero Precaución': 3};
 
   /// Metros que manda el servidor (el real de la inspección si ya se midió; si no, el agendado).
   /// La copia de la orden que trae la pantalla puede venir de la lista cargada ANTES de la
@@ -69,12 +61,21 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
 
   bool _isSending = false;
 
+  /// Mensaje humano del repositorio si no se pudo guardar; va junto al botón (v2).
+  String? _error;
+
+  /// Nombre visible de cada material. La llave del mapa es la que ya guarda el servidor y no cambia.
+  static const Map<String, String> _nombreVisible = {'Letrero Ohmsafe': 'Letrero OhmSafe'};
+
   /// Envía el registro de instalación al backend: los conteos con columna propia
   /// en Odoo (postes/abanicos) más el desglose completo de materiales. Solo si
   /// tiene éxito regresa 'installation_completed' para avanzar el flujo.
   Future<void> _guardarInstalacion() async {
     if (_isSending) return;
-    setState(() => _isSending = true);
+    setState(() {
+      _isSending = true;
+      _error = null;
+    });
     final registro = <String, dynamic>{
       'postesEsquina': _materials['Postes esquina'],
       'postesPaso': _materials['Postes de paso'],
@@ -86,12 +87,10 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
     if (!mounted) return;
     result.fold(
       (_) => Navigator.pop(context, 'installation_completed'),
-      (failure) {
-        setState(() => _isSending = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo guardar la instalación: ${failure.message}')),
-        );
-      },
+      (failure) => setState(() {
+        _isSending = false;
+        _error = failure.message;
+      }),
     );
   }
 
@@ -99,348 +98,112 @@ class _FenceInstallationScreenState extends State<FenceInstallationScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final details = widget.ticket["details"] as Map<String, String>;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header (Logo centrado, icono notificaciones derecha)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "OHM",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: theme.textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            Text(
-                              "SAFE",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: cs.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Back arrow and Centered Title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: Text(
-                            "Instalación de cerca eléctrica",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.titleLarge?.color,
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Main scrollable list
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      // Client info card
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        decoration: BoxDecoration(
-                          color: cs.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: theme.dividerColor.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Cliente:  ",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color,
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.person_outline_rounded,
-                                  size: 16,
-                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  widget.ticket["user"] ?? "Cliente",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Metros a instalar:  ",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color,
-                                  ),
-                                ),
-                                Text(
-                                  _metrosServidor ?? details["metraje"] ?? "0m",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Section Title
-                      Text(
-                        "CONTEO DE MATERIALES",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Materials Counter Cards
-                      ..._materials.keys.map((material) {
-                        final val = _materials[material] ?? 0;
-                        return _buildMaterialRow(material, val);
-                      }),
-
-                      const SizedBox(height: 32),
-
-                      // Submit: Completar instalación
-                      OhmGradientButton(
-                        label: "Completar instalación",
-                        icon: Icons.arrow_forward,
-                        loading: _isSending,
-                        loadingLabel: "Guardando la cerca…",
-                        onPressed: _guardarInstalacion,
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Cancel button calling shared sheet
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () => showCancellationFlow(context, widget.ticket),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: theme.textTheme.bodyLarge?.color,
-                            side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            "Cancelar instalación",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Shared bottom navigation bar
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMaterialRow(String name, int value) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      color: isDark ? cs.surface.withValues(alpha: 0.5) : cs.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: theme.dividerColor.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Name
+            // v2 (2026-10-23): encabezado único.
+            EncabezadoFlujo(titulo: "Cerca eléctrica", subtitulo: widget.ticket["user"] ?? "Cliente", alVolver: () => Navigator.pop(context)),
             Expanded(
-              child: Text(
-                name,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textTheme.bodyLarge?.color,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Custom premium segmented counter
-            Container(
-              height: 38,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: isDark ? Colors.white24 : Colors.black12,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                physics: const BouncingScrollPhysics(),
                 children: [
-                  // Minus Button
-                  GestureDetector(
-                    onTap: value > 0 ? () => _decrement(name) : null,
-                    child: Container(
-                      width: 32,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: ohm.surfaceContainer,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(7),
-                          bottomLeft: Radius.circular(7),
+                  const EtiquetaSeccion("Medidas"),
+                  GrupoFilas(
+                    children: [
+                      FilaFlujo(
+                        titulo: "Metros a instalar",
+                        subtitulo: "El real que mediste en la inspección",
+                        trailing: Text(
+                          _metrosServidor ?? details["metraje"] ?? "0 m",
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                         ),
                       ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "-",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: value > 0
-                              ? (isDark ? Colors.white : Colors.black87)
-                              : (isDark ? Colors.white30 : Colors.black26),
-                        ),
-                      ),
-                    ),
+                    ],
                   ),
-                  // Value
-                  Container(
-                    width: 44,
-                    alignment: Alignment.center,
-                    child: Text(
-                      "$value",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
-                    ),
+                  const EtiquetaSeccion("Conteo de materiales"),
+                  GrupoFilas(
+                    pie: "Los contadores traen números de inicio: corrígelos con lo que realmente instalaste.",
+                    children: [for (final material in _materials.keys) _buildMaterialRow(material, _materials[material] ?? 0)],
                   ),
-                  // Plus Button
-                  GestureDetector(
-                    onTap: () => _increment(name),
-                    child: Container(
-                      width: 32,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: cs.primary,
-                        borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(7),
-                          bottomRight: Radius.circular(7),
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        "+",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+
+                  // Lo que pasa, pasa junto al botón (v2).
+                  if (_error != null)
+                    MensajeFlujo(icono: Icons.error_outline_rounded, color: cs.error, titulo: "No pudimos guardar las medidas de la cerca", texto: _error),
+                  OhmGradientButton(
+                    label: "Guardar medidas de la cerca",
+                    loading: _isSending,
+                    loadingLabel: "Guardando la cerca…",
+                    onPressed: _guardarInstalacion,
                   ),
+                  const SizedBox(height: 12),
+                  BotonSecundario(etiqueta: "Cancelar instalación", peligro: true, onPressed: () => showCancellationFlow(context, widget.ticket)),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMaterialRow(String name, int value) {
+    return FilaFlujo(
+      titulo: _nombreVisible[name] ?? name,
+      trailing: Contador(valor: '$value', alQuitar: value > 0 ? () => _decrement(name) : null, alAgregar: () => _increment(name)),
+    );
+  }
+}
+
+/// Contador − n + (v2): dos píldoras [BotonFila] de 44 de alto como mínimo, con nombre para el lector
+/// de pantalla («Quitar uno», «Agregar uno»). Lo usan la cerca y la reparación.
+class Contador extends StatelessWidget {
+  const Contador({super.key, required this.valor, required this.alQuitar, required this.alAgregar, this.sufijo = ''});
+
+  final String valor;
+  final VoidCallback? alQuitar;
+  final VoidCallback? alAgregar;
+
+  /// «m» para los metros de un hilo.
+  final String sufijo;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          button: true,
+          enabled: alQuitar != null,
+          label: 'Quitar uno',
+          onTap: alQuitar,
+          excludeSemantics: true,
+          child: BotonFila(etiqueta: '−', onPressed: alQuitar),
+        ),
+        ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 44),
+          child: Text(
+            '$valor$sufijo',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        Semantics(
+          button: true,
+          enabled: alAgregar != null,
+          label: 'Agregar uno',
+          onTap: alAgregar,
+          excludeSemantics: true,
+          child: BotonFila(etiqueta: '+', onPressed: alAgregar),
+        ),
+      ],
     );
   }
 }

@@ -20,7 +20,6 @@ import 'package:ohmsafe_app/core/network/result.dart';
 import 'package:ohmsafe_app/core/theme/app_theme.dart';
 import 'package:ohmsafe_app/features/notificaciones/data/notificaciones_repository.dart';
 import 'package:ohmsafe_app/features/ordenes/domain/entities/orden.dart';
-import 'package:ohmsafe_app/features/ordenes/domain/entities/tarifas.dart';
 import 'package:ohmsafe_app/features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'package:ohmsafe_app/screens/instalaciones_screen.dart';
 

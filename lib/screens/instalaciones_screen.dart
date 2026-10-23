@@ -346,7 +346,8 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   Widget _buildTiraSemana(ThemeData theme) {
     return SizedBox(
       key: const ValueKey('tira-semana'),
-      height: 72,
+      // Crece con la letra grande del teléfono (accesibilidad): 72 con la letra normal.
+      height: 30 + MediaQuery.textScalerOf(context).scale(42),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -805,16 +806,21 @@ class AgendaCargando extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Semantics(
-        liveRegion: true,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: theme.colorScheme.primary)),
-            const SizedBox(width: 12),
-            Text(frase, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Center(
+        child: Semantics(
+          liveRegion: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: theme.colorScheme.primary)),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(frase, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              ),
+            ],
+          ),
         ),
       ),
     );
