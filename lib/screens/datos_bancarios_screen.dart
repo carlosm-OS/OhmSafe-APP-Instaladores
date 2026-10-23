@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import '../widgets/notification_bell.dart';
+import 'package:flutter/services.dart';
 import '../controllers/app_state_provider.dart';
-import '../core/theme/app_theme_extension.dart';
-import '../widgets/app_bottom_nav.dart';
+import '../widgets/ayuda.dart';
 import '../widgets/ohm_gradient_button.dart';
 
+/// Mi cuenta › Datos bancarios (v2, 2026-10-23): encabezado de todos, campos con su error debajo
+/// (nada de SnackBar rojo) y CLABE de 18 dígitos. Ojo: hoy los datos sólo se guardan en la memoria de
+/// la app (`AppState.updateBankInfo`); no viajan a OhmSafe. El mensaje de éxito lo dice tal cual.
 class DatosBancariosScreen extends StatefulWidget {
   const DatosBancariosScreen({super.key});
 
@@ -16,9 +18,14 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
   late TextEditingController _holderController;
   late TextEditingController _clabeController;
   late TextEditingController _accountController;
-  
+
   String? _selectedBank;
   bool _initialized = false;
+
+  // Errores por campo (v2: debajo del campo, con qué arreglar).
+  String? _errorTitular;
+  String? _errorClabe;
+  String? _errorCuenta;
 
   // Catalog of Mexican banks with their CLABE codes
   static const Map<String, String> _bankCatalog = {
@@ -44,7 +51,7 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
       _holderController = TextEditingController(text: state.bankHolder);
       _clabeController = TextEditingController(text: state.bankClabe);
       _accountController = TextEditingController(text: state.bankAccount);
-      
+
       // Determine initial selected bank
       final initialBank = state.bankName.toUpperCase();
       if (_bankCatalog.values.contains(initialBank)) {
@@ -83,298 +90,138 @@ class _DatosBancariosScreenState extends State<DatosBancariosScreen> {
     super.dispose();
   }
 
+  void _guardar() {
+    final holder = _holderController.text.trim();
+    final clabe = _clabeController.text.trim();
+    final name = _selectedBank ?? "";
+    final account = _accountController.text.trim();
+
+    setState(() {
+      _errorTitular = holder.isEmpty ? 'Escribe el nombre como aparece en tu cuenta.' : null;
+      _errorClabe = clabe.length != 18 ? 'La CLABE tiene 18 dígitos; llevas ${clabe.length}.' : null;
+      _errorCuenta = account.isEmpty ? 'Escribe tu número de cuenta.' : null;
+    });
+    if (_errorTitular != null || _errorClabe != null || _errorCuenta != null || name.isEmpty) return;
+
+    AppStateProvider.of(context).updateBankInfo(holder: holder, clabe: clabe, name: name, account: account);
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Listo. Se guardaron en este teléfono.')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
-    final state = AppStateProvider.of(context);
-
-    // Styling constants matching the screenshot
-    final labelColor = cs.onSurfaceVariant;
-    final fillColor = ohm.surfaceContainer;
-
-    final labelStyle = TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.bold,
-      letterSpacing: 0.8,
-      color: labelColor,
-    );
-
-    final inputStyle = TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-      color: theme.textTheme.bodyLarge?.color,
-    );
 
     // Get unique list of bank names for dropdown items
     final bankOptions = _bankCatalog.values.toSet().toList();
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Top Header: Logo and Notification Bell
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "OHM",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: theme.textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            Text(
-                              "SAFE",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: cs.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Stack(
-                          alignment: Alignment.topRight,
-                          children: [
-                            const NotificationBell(),
-                          ],
-                        ),
-                      ),
-                    ],
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const EncabezadoFlujo(titulo: 'Datos bancarios', subtitulo: 'Donde recibes tus pagos'),
+            Expanded(
+              child: ListView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                children: [
+                  _campo(
+                    etiqueta: 'Nombre del titular de la cuenta',
+                    controller: _holderController,
+                    error: _errorTitular,
+                    alCambiar: () => _errorTitular = null,
+                    autofill: const [AutofillHints.name],
+                    capitalizacion: TextCapitalization.words,
                   ),
-                ),
-
-                // Back chevron and Centered Title Row
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: Text(
-                            "Perfil",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.titleLarge?.color,
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
-                            ),
-                          ),
-                        ),
-                      ],
+                  _campo(
+                    etiqueta: 'CLABE',
+                    controller: _clabeController,
+                    error: _errorClabe,
+                    alCambiar: () => _errorClabe = null,
+                    teclado: TextInputType.number,
+                    formatos: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(18)],
+                    ayuda: '18 dígitos. El banco se elige solo con los 3 primeros.',
+                  ),
+                  const EtiquetaSeccion('Banco'),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _selectedBank,
+                      // La CLABE elige el banco: la llave hace que el campo muestre el nuevo valor.
+                      key: ValueKey(_selectedBank),
+                      style: theme.textTheme.bodyLarge,
+                      dropdownColor: cs.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      icon: Icon(Icons.keyboard_arrow_down_rounded, color: cs.onSurfaceVariant),
+                      items: bankOptions.map((bank) => DropdownMenuItem<String>(value: bank, child: Text(bank))).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedBank = value;
+                        });
+                      },
                     ),
                   ),
-                ),
-
-                // Scrollable Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 110),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Subtitle: Datos Bancarios
-                        Center(
-                          child: Text(
-                            "Datos Bancarios",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Form fields
-                        _buildField(
-                          label: "NOMBRE DEL TITULAR DE LA CUENTA",
-                          controller: _holderController,
-                          labelStyle: labelStyle,
-                          inputStyle: inputStyle,
-                          fillColor: fillColor,
-                        ),
-                        _buildField(
-                          label: "NÚMERO CLABE",
-                          controller: _clabeController,
-                          labelStyle: labelStyle,
-                          inputStyle: inputStyle,
-                          fillColor: fillColor,
-                          keyboardType: TextInputType.number,
-                        ),
-
-                        // Banco Dropdown Menu
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "BANCO",
-                              style: labelStyle,
-                            ),
-                            const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              value: _selectedBank,
-                              style: inputStyle,
-                              dropdownColor: cs.surface,
-                              icon: Icon(Icons.keyboard_arrow_down_rounded, color: labelColor),
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: fillColor,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                              ),
-                              items: bankOptions.map((bank) {
-                                return DropdownMenuItem<String>(
-                                  value: bank,
-                                  child: Text(bank),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedBank = value;
-                                });
-                              },
-                            ),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
-
-                        _buildField(
-                          label: "NÚMERO DE CUENTA",
-                          controller: _accountController,
-                          labelStyle: labelStyle,
-                          inputStyle: inputStyle,
-                          fillColor: fillColor,
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Save Button
-                        OhmGradientButton(
-                          label: "Guardar",
-                          onPressed: () {
-                            final holder = _holderController.text.trim();
-                            final clabe = _clabeController.text.trim();
-                            final name = _selectedBank ?? "";
-                            final account = _accountController.text.trim();
-
-                            if (holder.isEmpty || clabe.isEmpty || name.isEmpty || account.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Por favor, llena todos los campos"),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              );
-                              return;
-                            }
-
-                            state.updateBankInfo(
-                              holder: holder,
-                              clabe: clabe,
-                              name: name,
-                              account: account,
-                            );
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                  "Datos bancarios guardados correctamente",
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                backgroundColor: cs.primary,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                  _campo(
+                    etiqueta: 'Número de cuenta',
+                    controller: _accountController,
+                    error: _errorCuenta,
+                    alCambiar: () => _errorCuenta = null,
+                    teclado: TextInputType.number,
+                    formatos: [FilteringTextInputFormatter.digitsOnly],
+                  ),
+                  const SizedBox(height: 4),
+                  OhmGradientButton(label: 'Guardar datos bancarios', onPressed: _guardar),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'Por ahora se quedan en este teléfono y no se envían a OhmSafe. Si cambia la cuenta donde recibes tus pagos, avísanos desde Ayuda.',
+                      style: theme.textTheme.bodySmall,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-
-          // Shared bottom navigation bar overlay
-          const AppBottomNav(currentTab: "Perfil"),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildField({
-    required String label,
+  Widget _campo({
+    required String etiqueta,
     required TextEditingController controller,
-    required TextStyle labelStyle,
-    required TextStyle inputStyle,
-    required Color fillColor,
-    TextInputType keyboardType = TextInputType.text,
+    required String? error,
+    required VoidCallback alCambiar,
+    TextInputType teclado = TextInputType.text,
+    List<TextInputFormatter>? formatos,
+    List<String>? autofill,
+    TextCapitalization capitalizacion = TextCapitalization.none,
+    String? ayuda,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: labelStyle,
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          style: inputStyle,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: fillColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          EtiquetaSeccion(etiqueta),
+          TextField(
+            controller: controller,
+            keyboardType: teclado,
+            inputFormatters: formatos,
+            autofillHints: autofill,
+            textCapitalization: capitalizacion,
+            style: Theme.of(context).textTheme.bodyLarge,
+            onChanged: (_) {
+              if (error != null) setState(alCambiar);
+            },
+            decoration: InputDecoration(errorText: error, helperText: error == null ? ayuda : null, errorMaxLines: 2, helperMaxLines: 2),
           ),
-        ),
-        const SizedBox(height: 20),
-      ],
+        ],
+      ),
     );
   }
 }

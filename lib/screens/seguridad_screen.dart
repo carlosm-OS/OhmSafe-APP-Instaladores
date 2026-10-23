@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../core/auth/biometria.dart';
 import '../core/auth/session_manager.dart';
 import '../core/di/injection_container.dart';
-import '../widgets/notification_bell.dart';
+import '../core/theme/app_theme_extension.dart';
+import '../widgets/ayuda.dart';
+import '../widgets/menu_item_tile.dart';
 
 /// Perfil › Seguridad: activar o apagar la entrada con Face ID. Apagarla
 /// también pide biometría (o el código del teléfono) para que nadie la quite
@@ -20,6 +22,9 @@ class _SeguridadScreenState extends State<SeguridadScreen> {
   bool _activada = false;
   bool _cargando = true;
   String _nombre = 'biometría';
+
+  /// No se pudo confirmar el cambio: aviso en la pantalla, no en SnackBar (v2).
+  String? _error;
 
   @override
   void initState() {
@@ -43,11 +48,12 @@ class _SeguridadScreenState extends State<SeguridadScreen> {
   }
 
   Future<void> _cambiar(bool valor) async {
+    setState(() => _error = null);
     final bio = sl.get<BiometriaService>();
     final ok = await bio.autenticar(valor ? 'Confirma para entrar con $_nombre' : 'Confirma para dejar de usar $_nombre');
     if (!mounted) return;
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo confirmar. No se hicieron cambios.')));
+      setState(() => _error = 'No se pudo confirmar con $_nombre');
       return;
     }
     await sl.get<SessionManager>().setBiometriaActivada(valor);
@@ -57,32 +63,63 @@ class _SeguridadScreenState extends State<SeguridadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Seguridad'), actions: const [NotificationBell(), SizedBox(width: 8)]),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                SwitchListTile(
-                  value: _activada && _disponible,
-                  onChanged: _disponible ? _cambiar : null,
-                  title: Text('Entrar con $_nombre', style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(
-                    _disponible
-                        ? 'Desbloquea tu sesión sin escribir la contraseña. Se vuelve a pedir tras 15 minutos en segundo plano.'
-                        : 'Este teléfono no tiene $_nombre configurado. Actívalo en los ajustes del sistema.',
-                  ),
-                  secondary: Icon(_nombre == 'Face ID' ? Icons.face_retouching_natural : Icons.fingerprint, color: cs.primary),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Tu sesión queda guardada de forma segura en este teléfono. Al cambiar tu contraseña se cierran las sesiones de tus otros dispositivos.',
-                  style: TextStyle(color: cs.onSurfaceVariant, height: 1.4),
-                ),
-              ],
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const EncabezadoFlujo(titulo: 'Seguridad'),
+            Expanded(
+              child: _cargando
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 32),
+                      child: Semantics(
+                        liveRegion: true,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: cs.primary)),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: Text('Revisando tu teléfono…', style: theme.textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      children: [
+                        if (_error != null)
+                          MensajeFlujo(
+                            icono: Icons.error_outline_rounded,
+                            color: cs.error,
+                            titulo: _error!,
+                            texto: 'No se hicieron cambios. Vuelve a intentar.',
+                          ),
+                        GrupoFilas(
+                          pie:
+                              'Tu sesión queda guardada de forma segura en este teléfono. Al cambiar tu contraseña se cierran las sesiones de tus otros dispositivos.',
+                          children: [
+                            FilaFlujo(
+                              leading: MosaicoIcono(icono: _nombre == 'Face ID' ? Icons.face_rounded : Icons.fingerprint_rounded, color: context.ohm.info),
+                              titulo: 'Entrar con $_nombre',
+                              subtitulo: _disponible
+                                  ? 'Desbloquea tu sesión sin escribir la contraseña. Se vuelve a pedir tras 15 minutos en segundo plano.'
+                                  : 'Este teléfono no tiene $_nombre configurado. Actívalo en los ajustes del sistema.',
+                              trailing: Switch.adaptive(value: _activada && _disponible, onChanged: _disponible ? _cambiar : null),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
             ),
+          ],
+        ),
+      ),
     );
   }
 }
