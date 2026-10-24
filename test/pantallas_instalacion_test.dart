@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ohmsafe_app/controllers/app_state.dart';
 import 'package:ohmsafe_app/controllers/app_state_provider.dart';
+import 'package:ohmsafe_app/core/config/marcas_camara.dart';
 import 'package:ohmsafe_app/core/di/injection_container.dart';
 import 'package:ohmsafe_app/core/teclado/teclado.dart';
 import 'package:ohmsafe_app/core/theme/app_theme.dart';
@@ -18,6 +19,7 @@ import 'package:ohmsafe_app/screens/agregar_dispositivos_screen.dart';
 import 'package:ohmsafe_app/screens/conectar_imou_screen.dart';
 import 'package:ohmsafe_app/screens/prueba_energizador_screen.dart';
 import 'package:ohmsafe_app/widgets/aprender_rf_sheet.dart';
+import 'package:ohmsafe_app/widgets/ayuda.dart';
 import 'package:ohmsafe_app/widgets/destino_equipo_confirmacion.dart';
 
 final _lista = find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
@@ -78,7 +80,12 @@ Future<void> _pantallaAbierta(WidgetTester t) async {
 }
 
 void main() {
-  setUp(() => sl.registerSingleton<OrdenesRepository>(OrdenesRepositoryImpl(dataSource: OrdenesMockDataSource())));
+  setUp(() {
+    sl.registerSingleton<OrdenesRepository>(OrdenesRepositoryImpl(dataSource: OrdenesMockDataSource()));
+    // Las pantallas de EZVIZ/Imou siguen en el repo apagadas (2026-10-20): aquí se encienden para probarlas.
+    MarcasCamara.habilitadas = MarcasCamara.todas;
+  });
+  tearDown(() => MarcasCamara.habilitadas = MarcasCamara.desde('tuya'));
 
   for (final tamano in const [Size(1206, 2622), Size(1080, 1920)]) {
     final nombre = '${tamano.width.toInt()}x${tamano.height.toInt()}';
@@ -89,7 +96,7 @@ void main() {
         await t.pump(const Duration(seconds: 1));
         expect(find.textContaining('TIEMPO DE PRUEBA'), findsNothing, reason: 'sin reloj visible');
         await _ver(t, find.text('Encender la cerca'));
-        await _ver(t, find.textContaining('MUÉSTRALE AL CLIENTE'));
+        await _ver(t, find.text('Muéstrale al cliente'));
         await _ver(t, find.text('Terminar prueba'));
       });
     });
@@ -98,47 +105,40 @@ void main() {
       await _sinErrores(t, tamano, () async {
         await t.pumpWidget(_app(const AgregarDispositivosScreen(ticket: {'id': 'i69'})));
         await t.pump(const Duration(seconds: 2));
-        for (final seccion in ['SENSORES CABLEADOS', 'SIRENA', 'SALIDAS AUXILIARES', 'SENSORES INALÁMBRICOS', 'CÁMARAS', 'AGREGAR OTRO ENERGIZADOR']) {
-          await _ver(t, find.textContaining(seccion));
+        // Build 54: el energizador es la primera sección (opcional); «otro OhmBox» y «Probar» viven ahí.
+        // Energizadores de la casa: información de sólo lectura (serie, «Principal», estado), sin botón.
+        // v2 (2026-10-23): estado con punto y palabra («En línea · principal»); etiquetas en tipo oración.
+        await _ver(t, find.textContaining('principal'));
+        expect(find.text('OS-PRUEBA-0001'), findsOneWidget);
+        expect(find.textContaining('En línea'), findsWidgets);
+        await _ver(t, find.widgetWithText(EtiquetaSeccion, 'Energizador'));
+        await _ver(t, find.text('Prueba del energizador'));
+        for (final seccion in ['Sensores cableados', 'Sirena', 'Salidas de 12 V', 'Sensores inalámbricos', 'Cámaras']) {
+          await _ver(t, find.widgetWithText(EtiquetaSeccion, seccion));
         }
         // Sensores Wi‑Fi apagados por ahora (_wifiHabilitado): ni sección ni «Agregar».
-        expect(find.textContaining('SENSORES WI'), findsNothing);
+        expect(find.widgetWithText(EtiquetaSeccion, 'Sensores Wi‑Fi'), findsNothing);
         expect(find.text('Sensor Wi‑Fi'), findsNothing);
-        // Energizadores de la casa: información de sólo lectura (serie, «Principal», estado), sin botón.
-        await _ver(t, find.text('Principal'));
-        expect(find.text('OS-PRUEBA-0001'), findsOneWidget);
-        expect(find.text('En línea'), findsWidgets);
         // «Cámara ya conectada» ya no es diálogo: abre la pantalla de registro (2026-10-19).
         t.state<ScrollableState>(_lista).position.jumpTo(0);
         await t.pump(const Duration(milliseconds: 600));
-        final camara = find.text('Cámara ya conectada');
+        // v2: las filas «+ Agregar …» se tocan completas (sin píldora «Agregar»).
+        final camara = find.text('Registrar cámara ya conectada');
         await _ver(t, camara);
-        await _tocar(
-          t,
-          find.descendant(
-            of: find.ancestor(of: camara, matching: find.byType(Row)).first,
-            matching: find.text('Agregar'),
-          ),
-        );
+        await _tocar(t, camara);
         await _pantallaAbierta(t);
         expect(find.byType(ConectarImouScreen), findsOneWidget);
         expect(find.text('Registrar la cámara'), findsOneWidget);
         Navigator.of(t.element(find.byType(ConectarImouScreen))).pop(false);
         await _pantallaAbierta(t);
         expect(find.byType(ConectarImouScreen), findsNothing);
-        for (final titulo in ['Agregar otro OhmBox', 'Sensor inalámbrico']) {
+        for (final titulo in ['Agregar otro energizador', 'Agregar sensor o control']) {
           // Cada «Agregar» abre su diálogo u hoja; se busca desde arriba de la lista.
           t.state<ScrollableState>(_lista).position.jumpTo(0); // la lista rebota (como los pasos 1-3)
           await t.pump(const Duration(milliseconds: 600));
           final tarjeta = find.text(titulo);
           await _ver(t, tarjeta);
-          await _tocar(
-            t,
-            find.descendant(
-              of: find.ancestor(of: tarjeta, matching: find.byType(Row)).first,
-              matching: find.text('Agregar'),
-            ),
-          );
+          await _tocar(t, tarjeta);
           await t.pump(const Duration(milliseconds: 600));
           expect(find.byType(Dialog).evaluate().isNotEmpty || find.byType(BottomSheet).evaluate().isNotEmpty, isTrue, reason: titulo);
           await t.tapAt(const Offset(5, 5)); // cierra tocando fuera
@@ -157,12 +157,17 @@ void main() {
       await t.tap(infos.first);
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Sensores cableados'), findsOneWidget);
+      // La primera ⓘ es la de la Wi‑Fi de la casa (build 57); la sección de arriba se puede volver a abrir.
+      expect(find.text('Wi‑Fi de la casa'), findsWidgets);
+      expect(find.textContaining('La contraseña se queda sólo en este teléfono'), findsOneWidget);
       await t.tapAt(const Offset(200, 120)); // fuera de la hoja
       await t.pump();
       await t.pump(const Duration(milliseconds: 600));
       await t.pump(const Duration(milliseconds: 600));
-      expect(find.text('Sensores cableados'), findsNothing);
+      expect(find.textContaining('La contraseña se queda sólo en este teléfono'), findsNothing);
+      // Zona de estado gris «OPCIONAL» (propuesta A, 2026-10-23): sin Wi‑Fi no es un error aquí.
+      expect(find.text('OPCIONAL'), findsWidgets);
+      expect(find.text('Agregar Wi‑Fi de la casa'), findsWidgets);
     });
   });
 
@@ -183,15 +188,9 @@ void main() {
           ),
         );
         await t.pump(const Duration(seconds: 2));
-        final tarjeta = find.text('Cámara ya conectada');
+        final tarjeta = find.text('Registrar cámara ya conectada');
         await _ver(t, tarjeta);
-        await _tocar(
-          t,
-          find.descendant(
-            of: find.ancestor(of: tarjeta, matching: find.byType(Row)).first,
-            matching: find.text('Agregar'),
-          ),
-        );
+        await _tocar(t, tarjeta);
         await _pantallaAbierta(t);
         // Pantalla completa (2026-10-19): los campos se desplazan con el teclado y el botón sigue abajo.
         final campos = find.descendant(of: find.byType(ConectarImouScreen), matching: find.byType(TextField));
@@ -256,9 +255,10 @@ void main() {
             final campos = find.descendant(of: find.byType(Dialog), matching: find.byType(TextField));
             await t.ensureVisible(campos.last);
             await t.pump(const Duration(milliseconds: 300));
+            // v2: el secundario también es FilledButton (gris relleno); basta con que estén.
             expect(
               find.descendant(of: find.byType(Dialog), matching: find.byType(FilledButton)),
-              findsOneWidget,
+              findsWidgets,
               reason: cual,
             );
             t.view.viewInsets = FakeViewPadding.zero;
@@ -276,21 +276,23 @@ void main() {
             );
           }
 
-          // Salida: Probar → «¿Se encendió?» Sí → «¿Qué conectaste a la salida 1?»
+          // Salida: Probar → en la fila «¿Encendió…?» «Sí, encendió» → «¿Qué conectaste a la salida 1?» (v2).
           await abrirPantalla();
           await tocarEnFila('Salida 1', 'Probar');
           await t.pump(const Duration(milliseconds: 800));
-          await t.tap(find.text('Sí'));
+          await _tocar(t, find.text('Sí, encendió'));
           await conTeclado('salida');
 
           await abrirPantalla();
-          await tocarEnFila('Agregar otro OhmBox', 'Agregar');
-          await conTeclado('Agregar otro OhmBox');
+          await _ver(t, find.text('Agregar otro energizador'));
+          await _tocar(t, find.text('Agregar otro energizador'));
+          await conTeclado('Agregar otro energizador');
 
           // «Cámara ya conectada» es pantalla completa (2026-10-19): con el teclado abierto el último
           // campo se alcanza desplazando y el botón «Registrar la cámara» sigue disponible.
           await abrirPantalla();
-          await tocarEnFila('Cámara ya conectada', 'Agregar');
+          await _ver(t, find.text('Registrar cámara ya conectada'));
+          await _tocar(t, find.text('Registrar cámara ya conectada'));
           await _pantallaAbierta(t);
           expect(find.byType(ConectarImouScreen), findsOneWidget);
           t.view.viewInsets = FakeViewPadding(bottom: tel.teclado * 3);
@@ -351,6 +353,7 @@ void main() {
       expect(find.text('¿Estás instalando en esta dirección?'), findsOneWidget);
       expect(find.text('Nueva'), findsOneWidget);
       expect(find.text('Sí, vincular aquí'), findsOneWidget);
+      await t.pump(const Duration(milliseconds: 600)); // la hoja termina de subir antes de tocar
       await t.tap(find.text('No es esta dirección'));
       await t.pump(const Duration(seconds: 1));
     });
@@ -378,7 +381,39 @@ void main() {
       }
       await t.pump(const Duration(seconds: 1)); // el mock avanza la sesión hasta «Aprendido»
       expect(find.text('Aprendido'), findsOneWidget);
-      expect(find.text('Guardar'), findsOneWidget);
+      expect(find.text('Guardar sensor'), findsOneWidget); // v2: botón con verbo y objeto
+      await t.tap(find.text('Cerrar'));
+      await t.pump(const Duration(seconds: 1));
+    });
+  });
+
+  testWidgets('Control remoto 433: está en la lista, pide cada botón y explica sus funciones', (t) async {
+    expect(tiposRf.map((e) => e.id), contains('fob'));
+    await _sinErrores(t, const Size(1206, 2622), () async {
+      await t.pumpWidget(
+        _app(
+          Builder(
+            builder: (ctx) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed: () => aprenderSensorRf(ctx, ordenId: 'i69', tipo: 'fob', etiqueta: 'Control remoto'),
+                  child: const Text('rf'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await t.tap(find.text('rf'));
+      await t.pump(const Duration(seconds: 1));
+      await t.pump(const Duration(seconds: 1));
+      expect(find.textContaining('Mantén presionado el botón 1 del control'), findsOneWidget);
+      for (var i = 0; i < 6; i++) {
+        await t.pump(const Duration(seconds: 1));
+      }
+      expect(find.text('Aprendido'), findsOneWidget);
+      expect(find.textContaining('Botón 1: enciende y apaga la cerca. Botón 2: pánico.'), findsOneWidget);
+      expect(find.text('Nombre del control'), findsOneWidget);
       await t.tap(find.text('Cerrar'));
       await t.pump(const Duration(seconds: 1));
     });

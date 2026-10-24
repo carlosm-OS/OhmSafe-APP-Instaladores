@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_dimens.dart';
+import '../core/theme/app_motion.dart';
+import 'movimiento.dart';
+import 'ohm_gradient_button.dart';
+
 import 'notification_bell.dart';
 
 // =============================================================================
@@ -11,72 +16,61 @@ import 'notification_bell.dart';
 // en acciones. Carlos, 2026-10-15: «no está en la línea que venía trabajando».
 // =============================================================================
 
-/// Logo + campana y, debajo, flecha de regreso + título centrado (como «Inspección del perímetro»).
+/// Encabezado v2 (lienzo «Sistema v2», 2026-10-23): arriba la flecha naranja para regresar y la
+/// campana; abajo el título grande a la izquierda, como en iPhone. [subtitulo] dice de qué casa u
+/// orden se trata. Sin [alVolver] regresa con `Navigator.maybePop` (respeta `PopScope`).
 class EncabezadoFlujo extends StatelessWidget {
-  const EncabezadoFlujo({super.key, required this.titulo, this.alVolver});
+  const EncabezadoFlujo({super.key, required this.titulo, this.alVolver, this.subtitulo, this.volver = true, this.campana = true});
 
   final String titulo;
+  final String? subtitulo;
 
-  /// Por defecto, `Navigator.pop`.
+  /// Por defecto, `Navigator.maybePop`.
   final VoidCallback? alVolver;
+
+  /// Raíz de pestaña (Mi cuenta, Historial): sin flecha.
+  final bool volver;
+  final bool campana;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Stack(
-            alignment: Alignment.center,
+        SizedBox(
+          height: 52,
+          child: Row(
             children: [
-              Image.asset(
-                isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                height: 28,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('OHM', style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                    Text('SAFE', style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
-                  ],
+              const SizedBox(width: 4),
+              if (volver)
+                IconButton(
+                  tooltip: 'Regresar',
+                  onPressed: alVolver ?? () => Navigator.maybePop(context),
+                  constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                  icon: Icon(Icons.chevron_left_rounded, size: 34, color: cs.primary),
                 ),
-              ),
-              const Align(alignment: Alignment.centerRight, child: NotificationBell()),
+              const Spacer(),
+              if (campana) const NotificationBell(),
+              const SizedBox(width: 8),
             ],
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: SizedBox(
-            height: 48,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 44),
-                  child: Text(
-                    titulo,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textTheme.titleLarge?.color),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    tooltip: 'Regresar',
-                    onPressed: alVolver ?? () => Navigator.maybePop(context),
-                    style: IconButton.styleFrom(padding: const EdgeInsets.all(6), shape: const CircleBorder()),
-                    icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.iconTheme.color),
-                  ),
-                ),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(titulo, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.displayMedium),
+              ),
+              if (subtitulo != null && subtitulo!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(subtitulo!, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
               ],
-            ),
+            ],
           ),
         ),
       ],
@@ -84,29 +78,99 @@ class EncabezadoFlujo extends StatelessWidget {
   }
 }
 
-/// Tarjeta blanca con borde tenue y sin sombra (la del cliente y metraje del paso 2).
+/// Grupo blanco sobre el gris de fondo, sin borde ni sombra (v2).
 class TarjetaFlujo extends StatelessWidget {
-  const TarjetaFlujo({super.key, required this.child, this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 16)});
+  const TarjetaFlujo({super.key, required this.child, this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 14)});
 
   final Widget child;
   final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
       padding: padding,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
-      ),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(14)),
       child: child,
     );
   }
 }
 
-/// «OBSTÁCULOS EN EL TERRENO»: etiqueta de sección. Con [ayuda], un ⓘ discreto del mismo gris.
+/// Filas de lista juntas en un solo grupo blanco, separadas por una línea fina (lista agrupada v2).
+/// Las [FilaFlujo] de adentro pierden su fondo y margen propios.
+class GrupoFilas extends StatelessWidget {
+  const GrupoFilas({super.key, required this.children, this.pie});
+
+  final List<Widget> children;
+
+  /// Nota corta debajo del grupo (13, gris), como en Ajustes de iPhone.
+  final String? pie;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final filas = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      if (i > 0) filas.add(Divider(height: 0.5, thickness: 0.5, indent: 16, color: cs.outlineVariant));
+      filas.add(children[i]);
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: ColoredBox(
+              color: cs.surface,
+              child: _DentroDeGrupo(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: filas)),
+            ),
+          ),
+          if (pie != null) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(pie!, style: theme.textTheme.bodySmall),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DentroDeGrupo extends InheritedWidget {
+  const _DentroDeGrupo({required super.child});
+
+  static bool en(BuildContext context) => context.dependOnInheritedWidgetOfExactType<_DentroDeGrupo>() != null;
+
+  @override
+  bool updateShouldNotify(_DentroDeGrupo oldWidget) => false;
+}
+
+/// Estado como un punto de color y una palabra (v2): «En línea», «Sin probar», «No respondió».
+class EstadoPunto extends StatelessWidget {
+  const EstadoPunto(this.texto, {super.key, required this.color});
+
+  final String texto;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Flexible(child: Text(texto, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
+      ],
+    );
+  }
+}
+
+/// Nombre de un grupo («Sensores cableados»): 13, gris de apoyo, en tipo oración (v2: adiós a las
+/// MAYÚSCULAS grises, que además daban 2.4:1). Con [ayuda], un ⓘ al lado.
 class EtiquetaSeccion extends StatelessWidget {
   const EtiquetaSeccion(this.texto, {super.key, this.ayuda, this.tituloAyuda});
 
@@ -116,11 +180,12 @@ class EtiquetaSeccion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.4);
-    final etiqueta = Text(texto, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.5));
-    if (ayuda == null) return Padding(padding: const EdgeInsets.only(bottom: 12), child: etiqueta);
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    final etiqueta = Text(texto, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color));
+    if (ayuda == null) return Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: etiqueta);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(left: 16),
       child: Row(
         children: [
           Flexible(child: etiqueta),
@@ -144,7 +209,7 @@ class InfoAyuda extends StatelessWidget {
     return IconButton(
       tooltip: 'Ayuda: $titulo',
       visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 44),
       icon: Icon(Icons.info_outline_rounded, size: 18, color: color ?? Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
       onPressed: () => mostrarAyuda(context, titulo: titulo, puntos: puntos),
     );
@@ -166,7 +231,7 @@ Future<void> mostrarAyuda(BuildContext context, {required String titulo, require
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(titulo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(titulo, style: theme.textTheme.headlineSmall),
               const SizedBox(height: 12),
               for (final p in puntos)
                 Padding(
@@ -181,55 +246,76 @@ Future<void> mostrarAyuda(BuildContext context, {required String titulo, require
   );
 }
 
-/// Fila de lista como «Postes esquina» (paso 3): nombre a la izquierda, control a la derecha.
-/// [marcada] usa el estado elegido de los obstáculos del paso 2 (borde y texto naranja).
+/// Fila de lista v2: título (17) y apoyo (15, gris) a la izquierda, control a la derecha. Sola es un
+/// grupo blanco; dentro de [GrupoFilas] comparte el grupo y se separa con una línea fina.
+/// [marcada] = elegida o lista: fondo naranja claro y texto naranja oscuro (7:1).
 class FilaFlujo extends StatelessWidget {
-  const FilaFlujo({super.key, required this.titulo, this.subtitulo, this.trailing, this.marcada = false, this.colorSubtitulo});
+  const FilaFlujo({super.key, required this.titulo, this.subtitulo, this.trailing, this.marcada = false, this.colorSubtitulo, this.leading, this.onTap, this.detalle});
 
   final String titulo;
   final String? subtitulo;
   final Widget? trailing;
+  final Widget? leading;
   final bool marcada;
   final Color? colorSubtitulo;
+  final VoidCallback? onTap;
+
+  /// Debajo del título en lugar de [subtitulo]: p. ej. un [EstadoPunto].
+  final Widget? detalle;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        color: marcada ? (isDark ? cs.primary.withValues(alpha: 0.2) : cs.primaryContainer) : (isDark ? cs.surface.withValues(alpha: 0.5) : cs.surface),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: marcada ? cs.primary : theme.dividerColor.withValues(alpha: 0.3), width: marcada ? 1.5 : 1),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: marcada ? FontWeight.w700 : FontWeight.w500,
-                    color: marcada ? cs.primary : theme.textTheme.bodyLarge?.color,
-                  ),
+    final enGrupo = _DentroDeGrupo.en(context);
+    final contenido = Row(
+      children: [
+        if (leading != null) ...[leading!, const SizedBox(width: 14)],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                titulo,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: marcada ? FontWeight.w600 : FontWeight.w500,
+                  color: marcada ? cs.onPrimaryContainer : cs.onSurface,
                 ),
-                if (subtitulo != null && subtitulo!.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(subtitulo!, style: TextStyle(fontSize: 13, height: 1.35, color: colorSubtitulo ?? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6))),
-                ],
+              ),
+              if (detalle != null) ...[
+                const SizedBox(height: 2),
+                detalle!,
+              ] else if (subtitulo != null && subtitulo!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(subtitulo!, style: theme.textTheme.bodyMedium?.copyWith(color: colorSubtitulo ?? cs.onSurfaceVariant)),
               ],
-            ),
+            ],
           ),
-          if (trailing != null) ...[const SizedBox(width: 12), trailing!],
+        ),
+        if (trailing != null) ...[
+          const SizedBox(width: 12),
+          CambioSuave(
+            child: KeyedSubtree(key: ValueKey(trailing.runtimeType), child: trailing!),
+          ),
         ],
-      ),
+      ],
     );
+    // Cambios de estado en 200 ms (marcada, color) y el trailing cambia fundiendo + deslizando (GO).
+    final caja = AnimatedContainer(
+      duration: AppMotion.of(context, AppDurations.base),
+      curve: AppCurves.standard,
+      margin: enGrupo ? EdgeInsets.zero : const EdgeInsets.only(bottom: 12),
+      constraints: const BoxConstraints(minHeight: 60),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+      decoration: BoxDecoration(
+        color: marcada ? cs.primaryContainer : (enGrupo ? Colors.transparent : cs.surface),
+        borderRadius: enGrupo ? null : BorderRadius.circular(14),
+      ),
+      alignment: Alignment.centerLeft,
+      child: contenido,
+    );
+    if (onTap == null) return caja;
+    return Material(color: Colors.transparent, child: InkWell(onTap: onTap, borderRadius: enGrupo ? null : BorderRadius.circular(14), child: caja));
   }
 }
 
@@ -242,22 +328,21 @@ class CirculoCheck extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: 20,
       height: 20,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: marcado ? cs.primary : (isDark ? Colors.white30 : Colors.black12), width: 2),
+        border: Border.all(color: marcado ? cs.primary : cs.outline, width: 2),
         color: marcado ? cs.primary : Colors.transparent,
       ),
-      child: marcado ? const Icon(Icons.check, size: 12, color: Colors.white) : null,
+      child: marcado ? Icon(Icons.check_rounded, size: 13, color: cs.onPrimary) : null,
     );
   }
 }
 
-/// Botón dentro de una fila, con la forma del contador «− 5 +» del paso 3 (38 de alto, radio 8).
-/// [lleno] pinta el fondo naranja como el «+».
+/// Acción dentro de una fila (v2, opción C): píldora gris con texto en tinta, 32 de alto dentro de
+/// un área de toque de 44. [lleno] = la acción principal de la fila, en naranja.
 class BotonFila extends StatelessWidget {
   const BotonFila({super.key, required this.etiqueta, required this.onPressed, this.icono, this.lleno = false});
 
@@ -270,35 +355,37 @@ class BotonFila extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final activo = onPressed != null;
-    final fg = lleno ? Colors.white : (activo ? cs.primary : theme.disabledColor);
+    final fg = lleno ? cs.onPrimary : cs.onSurface;
     return Semantics(
       button: true,
       enabled: activo,
       label: etiqueta,
-      child: Opacity(
-        opacity: activo ? 1 : 0.45,
-        child: Material(
-          color: lleno ? cs.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          child: InkWell(
+      excludeSemantics: true,
+      child: Presionable(
+        activo: activo,
+        child: AnimatedOpacity(
+          duration: AppMotion.of(context, AppDurations.base),
+          opacity: activo ? 1 : 0.4,
+          child: GestureDetector(
             onTap: onPressed,
-            borderRadius: BorderRadius.circular(8),
+            behavior: HitTestBehavior.opaque,
             child: Container(
-              height: 38,
-              constraints: const BoxConstraints(minWidth: 44),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: lleno ? null : Border.all(color: isDark ? Colors.white24 : Colors.black12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icono != null) ...[Icon(icono, size: 18, color: fg), const SizedBox(width: 6)],
-                  Text(etiqueta, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg)),
-                ],
+              constraints: const BoxConstraints(minHeight: 44, minWidth: 48),
+              alignment: Alignment.center,
+              child: Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(color: lleno ? cs.primary : cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icono != null) ...[Icon(icono, size: 16, color: fg), const SizedBox(width: 6)],
+                    Flexible(
+                      child: Text(etiqueta, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: fg)),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -308,29 +395,34 @@ class BotonFila extends StatelessWidget {
   }
 }
 
-/// Botón secundario de ancho completo como «Cancelar instalación» (borde gris, texto oscuro).
+/// Botón secundario v2: gris relleno con tinta, mismo alto y radio que el principal.
 class BotonSecundario extends StatelessWidget {
-  const BotonSecundario({super.key, required this.etiqueta, required this.onPressed, this.icono});
+  const BotonSecundario({super.key, required this.etiqueta, required this.onPressed, this.icono, this.peligro = false});
 
   final String etiqueta;
   final VoidCallback? onPressed;
   final IconData? icono;
 
+  /// Salir pierde trabajo («Cancelar instalación»): texto en rojo.
+  final bool peligro;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = OutlinedButton.styleFrom(
-      foregroundColor: theme.textTheme.bodyLarge?.color,
-      side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    final cs = theme.colorScheme;
+    final style = FilledButton.styleFrom(
+      backgroundColor: cs.surfaceContainerHighest,
+      foregroundColor: peligro ? cs.error : cs.onSurface,
+      disabledBackgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.6),
+      minimumSize: const Size.fromHeight(52),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      textStyle: theme.textTheme.labelLarge,
     );
-    const texto = TextStyle(fontSize: 16, fontWeight: FontWeight.bold);
     return SizedBox(
       width: double.infinity,
       child: icono == null
-          ? OutlinedButton(onPressed: onPressed, style: style, child: Text(etiqueta, style: texto))
-          : OutlinedButton.icon(onPressed: onPressed, style: style, icon: Icon(icono, size: 20), label: Text(etiqueta, style: texto)),
+          ? FilledButton(onPressed: onPressed, style: style, child: Text(etiqueta))
+          : FilledButton.icon(onPressed: onPressed, style: style, icon: Icon(icono, size: 20), label: Text(etiqueta)),
     );
   }
 }
@@ -364,10 +456,13 @@ class MensajeFlujo extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(titulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
+                  Text(
+                    titulo,
+                    style: theme.textTheme.titleSmall,
+                  ),
                   if (texto != null) ...[
                     const SizedBox(height: 2),
-                    Text(texto!, style: TextStyle(fontSize: 13, height: 1.35, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
+                    Text(texto!, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   ],
                   if (accion != null) ...[const SizedBox(height: 10), accion!],
                 ],
@@ -385,7 +480,7 @@ class MensajeFlujo extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        decoration: BoxDecoration(color: AvisoRojo.fondo, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(color: AvisoRojo.fondo, borderRadius: BorderRadius.circular(14)),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -395,11 +490,11 @@ class MensajeFlujo extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(titulo, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: blanco)),
-                  if (texto != null) ...[
-                    const SizedBox(height: 2),
-                    Text(texto!, style: const TextStyle(fontSize: 13, height: 1.35, color: blanco)),
-                  ],
+                  Text(
+                    titulo,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: blanco),
+                  ),
+                  if (texto != null) ...[const SizedBox(height: 2), Text(texto!, style: const TextStyle(fontSize: 15, height: 1.4, color: blanco))],
                   if (accion != null) ...[
                     const SizedBox(height: 10),
                     // La acción (p. ej. «Intentar de nuevo») va en blanco sobre el rojo.
@@ -408,7 +503,10 @@ class MensajeFlujo extends StatelessWidget {
                         colorScheme: Theme.of(context).colorScheme.copyWith(primary: blanco),
                         disabledColor: blanco.withValues(alpha: 0.6),
                       ),
-                      child: DefaultTextStyle.merge(style: const TextStyle(color: blanco), child: accion!),
+                      child: DefaultTextStyle.merge(
+                        style: const TextStyle(color: blanco),
+                        child: accion!,
+                      ),
                     ),
                   ],
                 ],
@@ -416,78 +514,6 @@ class MensajeFlujo extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Ficha oscura del energizador (lienzo de Carlos, 2026-10-15): fondo tinta, «OHMBOX» arriba y los
-/// datos en blanco; «En línea» y «Encendida» en naranja. Con [serieDestacada] la serie va en una
-/// píldora blanca («Número de serie»), como en la prueba; sin ella, como un renglón más (vincular).
-class FichaEquipo extends StatelessWidget {
-  const FichaEquipo({super.key, required this.datos, this.serieDestacada, this.centrado = true, this.pie});
-
-  /// Renglones «Etiqueta: valor»; un color null pinta el valor en blanco.
-  final List<({String etiqueta, String valor, Color? color, Key? key})> datos;
-  final String? serieDestacada;
-  final bool centrado;
-
-  /// Línea chica al final (p. ej. MAC y firmware).
-  final String? pie;
-
-  /// Colores de los valores sobre el fondo oscuro.
-  static const Color enLinea = Color(0xFFFF8421);
-  static const Color encendida = Color(0xFFFF5A00);
-  static const Color sinSenal = Color(0xFFF87171);
-
-  /// Fondo fijo (también en modo oscuro: ahí `inverseSurface` es claro y el texto blanco no se leería).
-  static const Color fondo = Color(0xFF14202E);
-
-  @override
-  Widget build(BuildContext context) {
-    const blanco = Colors.white;
-    const tinta = fondo;
-    final alineacion = centrado ? CrossAxisAlignment.center : CrossAxisAlignment.stretch;
-    Widget renglon(String etiqueta, String valor, Color? color, {Key? key}) => Padding(
-      key: key,
-      padding: const EdgeInsets.only(top: 10),
-      child: Text.rich(
-        TextSpan(children: [
-          TextSpan(text: '$etiqueta:  ', style: const TextStyle(fontWeight: FontWeight.bold)),
-          TextSpan(text: valor, style: TextStyle(fontWeight: FontWeight.w500, color: color ?? blanco)),
-        ]),
-        textAlign: centrado ? TextAlign.center : TextAlign.start,
-        style: const TextStyle(fontSize: 14, color: blanco),
-      ),
-    );
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
-      decoration: BoxDecoration(color: tinta, borderRadius: BorderRadius.circular(20)),
-      child: Column(
-        crossAxisAlignment: alineacion,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Text('OHMBOX', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: blanco)),
-          ),
-          if (serieDestacada != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: blanco, borderRadius: BorderRadius.circular(10)),
-              child: Text.rich(
-                TextSpan(children: [
-                  const TextSpan(text: 'Número de serie:  ', style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextSpan(text: serieDestacada, style: const TextStyle(fontWeight: FontWeight.w500)),
-                ]),
-                style: const TextStyle(fontSize: 14, color: tinta),
-              ),
-            ),
-          for (final d in datos) renglon(d.etiqueta, d.valor, d.color, key: d.key),
-          if (pie != null) ...[
-            const SizedBox(height: 8),
-            Text(pie!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: blanco)),
-          ],
-        ],
       ),
     );
   }
@@ -516,7 +542,10 @@ class DatoFlujo extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('$etiqueta:  ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.bodyLarge?.color)),
+          Text(
+            '$etiqueta:  ',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.bodyLarge?.color),
+          ),
           Flexible(
             child: Text(
               valor,
@@ -558,7 +587,12 @@ class EsperandoSenal extends StatelessWidget {
               children: [
                 Icon(Icons.wifi_tethering_rounded, size: 20, color: cs.primary),
                 const SizedBox(width: 12),
-                Expanded(child: Text(titulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color))),
+                Expanded(
+                  child: Text(
+                    titulo,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -574,6 +608,206 @@ class EsperandoSenal extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Estado de un requisito en una [ZonaEstado].
+enum EstadoZona { enOrden, falta, opcional }
+
+/// Zona de estado de un requisito (propuesta A del lienzo, Carlos 2026-10-23): verde «EN ORDEN»,
+/// rojo «FALTA» o gris «OPCIONAL». Nunca sólo color: ícono ✓/✕ + etiqueta + una frase que dice qué
+/// hacer, y la acción dentro de la zona. Rojo sólo para lo que impide seguir; lo opcional va en gris.
+class ZonaEstado extends StatelessWidget {
+  const ZonaEstado({
+    super.key,
+    required this.estado,
+    required this.titulo,
+    required this.detalle,
+    this.accionEtiqueta,
+    this.alAccion,
+    this.accionPrincipal = false,
+    this.accionIcono,
+    this.ocupado = false,
+  });
+
+  final EstadoZona estado;
+  final String titulo;
+  final String detalle;
+
+  /// Sin etiqueta no hay acción. [accionPrincipal] la pinta como botón naranja de ancho completo
+  /// (para resolver un «FALTA»); si no, es un enlace del color de la zona («Cambiar red»).
+  final String? accionEtiqueta;
+  final VoidCallback? alAccion;
+  final bool accionPrincipal;
+  final IconData? accionIcono;
+
+  /// La acción está en curso: el botón lo dice y no se puede volver a tocar.
+  final bool ocupado;
+
+  static const _verde = Color(0xFF166534);
+  static const _gris = Color(0xFF64748B);
+
+  ({Color fondo, Color borde, Color texto, Color marca, String etiqueta}) _colores(BuildContext context) {
+    final theme = Theme.of(context);
+    final oscuro = theme.brightness == Brightness.dark;
+    return switch (estado) {
+      EstadoZona.enOrden => (
+        fondo: oscuro ? _verde.withValues(alpha: 0.28) : const Color(0xFFDCFCE7),
+        borde: oscuro ? const Color(0xFF22C55E) : _verde,
+        texto: oscuro ? const Color(0xFFBBF7D0) : const Color(0xFF14532D),
+        marca: _verde,
+        etiqueta: 'EN ORDEN',
+      ),
+      EstadoZona.falta => (
+        fondo: oscuro ? AvisoRojo.fondo.withValues(alpha: 0.24) : const Color(0xFFFEE2E2),
+        borde: oscuro ? const Color(0xFFF87171) : AvisoRojo.fondo,
+        texto: oscuro ? const Color(0xFFFECACA) : const Color(0xFF991B1B),
+        marca: AvisoRojo.fondo,
+        etiqueta: 'FALTA',
+      ),
+      EstadoZona.opcional => (
+        fondo: oscuro ? theme.colorScheme.surface.withValues(alpha: 0.5) : theme.colorScheme.surface,
+        borde: theme.dividerColor.withValues(alpha: 0.45),
+        texto: theme.textTheme.bodyLarge?.color ?? (oscuro ? Colors.white : Colors.black87),
+        marca: _gris,
+        etiqueta: 'OPCIONAL',
+      ),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _colores(context);
+    final ok = estado == EstadoZona.enOrden;
+    final marca = estado == EstadoZona.opcional
+        ? Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: c.marca, width: 2),
+            ),
+            child: Icon(Icons.remove_rounded, size: 18, color: c.marca),
+          )
+        : Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: c.marca),
+            child: Icon(ok ? Icons.check_rounded : Icons.close_rounded, size: 20, color: Colors.white),
+          );
+    final etiqueta = accionEtiqueta;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AnimatedContainer(
+        duration: AppMotion.of(context, AppDurations.base),
+        curve: AppCurves.standard,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: c.fondo,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.borde, width: estado == EstadoZona.opcional ? 1 : 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              container: true,
+              label: '${c.etiqueta}: $titulo. $detalle',
+              child: ExcludeSemantics(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CambioSuave(
+                      alineacion: Alignment.center,
+                      child: KeyedSubtree(key: ValueKey(estado), child: marca),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                titulo,
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.texto),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(color: c.marca, borderRadius: BorderRadius.circular(999)),
+                                child: Text(
+                                  c.etiqueta,
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(detalle, style: TextStyle(fontSize: 15, height: 1.4, color: c.texto)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (etiqueta != null) ...[
+              const SizedBox(height: 10),
+              if (accionPrincipal)
+                OhmGradientButton(label: etiqueta, icon: accionIcono, height: AppTouch.min, loading: ocupado, onPressed: alAccion)
+              else
+                // v2 (opción C): la acción secundaria de la zona es la píldora gris de las filas.
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ocupado
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                              const SizedBox(width: 10),
+                              Text(etiqueta, style: Theme.of(context).textTheme.bodyMedium),
+                            ],
+                          ),
+                        )
+                      : BotonFila(etiqueta: etiqueta, icono: accionIcono, onPressed: alAccion),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Renglón rojo bajo un botón apagado: qué falta para seguir (no sólo el botón gris).
+class FaltaParaSeguir extends StatelessWidget {
+  const FaltaParaSeguir(this.faltantes, {super.key});
+
+  final List<String> faltantes;
+
+  @override
+  Widget build(BuildContext context) {
+    final oscuro = Theme.of(context).brightness == Brightness.dark;
+    final color = oscuro ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B);
+    final lista = faltantes.length < 2 ? faltantes.join() : '${faltantes.sublist(0, faltantes.length - 1).join(', ')} y ${faltantes.last}';
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.error_outline_rounded, size: 16, color: oscuro ? const Color(0xFFF87171) : AvisoRojo.fondo),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            'Para seguir falta: $lista.',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, height: 1.35, color: color),
+          ),
+        ),
+      ],
     );
   }
 }

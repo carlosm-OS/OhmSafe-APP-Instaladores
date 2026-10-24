@@ -37,6 +37,7 @@ abstract class OrdenesDataSource {
   Future<Map<String, dynamic>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono});
   Future<Map<String, dynamic>> cableadoProbarSirena(String id);
   Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono});
+  Future<Map<String, dynamic>> cableadoSirena(String id, {required bool encender});
   Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index);
   Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
   /// OhmBox adicional en la misma casa (2026-10-14): `GET/POST /instalador/ordenes/:id/ohmbox`.
@@ -44,7 +45,7 @@ abstract class OrdenesDataSource {
   Future<Map<String, dynamic>> ohmboxAgregar(String id, {required String serie, String? mac});
   /// Sensores 433, Wi‑Fi y cámaras (2026-10-14): `/instalador/ordenes/:id/{dispositivos,rf/aprender…,sensores-wifi,camaras}`.
   Future<Map<String, dynamic>> dispositivosEstado(String id);
-  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre});
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre, int? botones});
   Future<Map<String, dynamic>> rfSesion(String id, String sid);
   Future<Map<String, dynamic>> rfTerminar(String id, String sid, {required String nombre});
   Future<Map<String, dynamic>> rfCancelar(String id, String sid);
@@ -57,7 +58,7 @@ abstract class OrdenesDataSource {
   /// Tuya (2026-10-17): token de emparejamiento de la casa (`modo` EZ|AP|BLE) y qué equipos entraron con él.
   Future<Map<String, dynamic>> tuyaToken(String id, {required String modo, String? zonaHoraria});
   Future<Map<String, dynamic>> tuyaTokenResultado(String id, String token);
-  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category});
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie});
   Future<Map<String, dynamic>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
   /// Historial del instalador: intervenciones completadas y canceladas en sitio
@@ -69,4 +70,6 @@ abstract class OrdenesDataSource {
   /// Sube UNA foto de evidencia y devuelve su fileKey en Odoo.
   Future<String> subirEvidencia(String id, String categoria, String imagenBase64);
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre);
+  Future<Map<String, dynamic>> wifiCasaGuardar(String id, {String? red, bool omitir = false});
+  Future<Map<String, dynamic>> ohmboxWifi(String id, {required String red, String? contrasena});
 }

@@ -1,6 +1,8 @@
 package com.ohmsafe.instalador
 
 import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import android.net.wifi.WifiManager
 import android.os.Handler
 import android.os.Looper
@@ -53,6 +55,17 @@ class TuyaPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     if (call.method == "currentSsid") {
       result.success(currentSsid())
+      return
+    }
+    // Modo punto de acceso (2026-10-22): el instalador se une a la red del equipo desde los ajustes.
+    if (call.method == "openWifiSettings") {
+      val ok = try {
+        context?.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context != null
+      } catch (t: Throwable) {
+        false
+      }
+      result.success(ok)
       return
     }
     val bridge = this.bridge
@@ -123,4 +136,13 @@ class TuyaEventSink : EventChannel.StreamHandler {
   fun pairDone(devId: String, name: String, productId: String, category: String) =
     send(mapOf("type" to "pairDone", "devId" to devId, "name" to name, "productId" to productId, "category" to category))
   fun pairError(code: String, message: String) = send(mapOf("type" to "pairError", "code" to code, "message" to message))
+
+  // Bluetooth (2026-10-22): `bleFound {uuid, productId, mac, combo, rssi?}` · `bleScanEnd` · `bleState {poweredOn}`.
+  fun bleFound(uuid: String, productId: String, mac: String, combo: Boolean, rssi: Int?) {
+    val payload = mutableMapOf<String, Any?>("type" to "bleFound", "uuid" to uuid, "productId" to productId, "mac" to mac, "combo" to combo)
+    if (rssi != null && rssi < 0) payload["rssi"] = rssi
+    send(payload)
+  }
+  fun bleScanEnd() = send(mapOf("type" to "bleScanEnd"))
+  fun bleState(poweredOn: Boolean) = send(mapOf("type" to "bleState", "poweredOn" to poweredOn))
 }

@@ -1,5 +1,5 @@
 /// Perfil del instalador (proveedor en Odoo). Todos sus datos los carga el equipo
-/// de OhmSafe en Odoo (2026-09-26); en la app sólo el RFC es editable. La
+/// de OhmSafe en Odoo (2026-09-26); desde 2026-10-20 el RFC también es de sólo lectura (Carlos). La
 /// constancia fiscal es de uso interno: vive sólo en Odoo y no llega a la app. `estado` lo decide OhmSafe (activo /
 /// no_disponible / suspendido; vacío = sin decidir).
 class Perfil {

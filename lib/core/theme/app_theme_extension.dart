@@ -89,7 +89,7 @@ class OhmColors extends ThemeExtension<OhmColors> {
     brandGradient: LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [OhmBrand.orange, OhmBrand.orangeSoft],
+      colors: [OhmBrand.orange, OhmBrand.orange], // v2: naranja sólido (sin degradado)
     ),
   );
 
@@ -115,7 +115,7 @@ class OhmColors extends ThemeExtension<OhmColors> {
     brandGradient: LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [OhmBrand.orangeBright, OhmBrand.orangeSoft],
+      colors: [OhmBrand.orangeBright, OhmBrand.orangeBright], // v2: naranja sólido
     ),
   );
 

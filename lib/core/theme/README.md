@@ -26,16 +26,13 @@ Container(padding: const EdgeInsets.all(AppSpacing.lg), ...);
 - **Botón primario 56px**, icon 48px, filas accionables 64px.
 - **Foco 2px naranja** en inputs (visible con guantes/sol).
 - **Motion funcional**: 200ms `easeOutCubic`; confirmaciones con `easeOutBack` corto.
+- **Movimiento de GO (2026-10-20)**: `lib/widgets/movimiento.dart` — `Presionable` (escala 0.96 al presionar, 100 ms), `CambioSuave` (cambio de contenido: fundido + 3 % desde la derecha, 220 ms, entra `easeOutCubic` / sale `easeInCubic`), `EntradaSuave` (filas y tarjetas: fundido + sube 8 px, 260 ms, escalonado 40 ms por índice); y `OhmPageTransitionsBuilder` en `app_motion.dart` registrado en el tema para TODAS las pantallas (fundido + 3 % desde la derecha). Todo colapsa a cero con «Reducir movimiento».
 
-## Tipografía — ACTIVA: Lexend (títulos) + Inter (cuerpo)
-Ambas son **fuentes variables OFL** empaquetadas en `assets/fonts/` (Lexend.ttf, Inter.ttf) — **sin red**, offline-safe. Al ser variables, Flutter mapea `fontWeight` (400–800) al eje `wght`; no hay que declarar pesos por archivo. Licencias en `assets/fonts/OFL-*.txt`.
-
-- Declaradas en `pubspec.yaml` → `flutter: fonts:`.
-- Activadas en `app_theme.dart` → `AppTypography.displayFamily = 'Lexend'`, `bodyFamily = 'Inter'`.
-
-**Volver a la fuente del sistema:** poner ambas constantes en `null` (son `String?` a propósito).
-
-Lexend está diseñada para mejorar la fluidez de lectura y baja visión — ideal para exterior. Para actualizar las fuentes, re-descargar los `.ttf` variables del repo oficial `google/fonts` (`ofl/inter`, `ofl/lexend`) y reemplazar en `assets/fonts/`.
+## Tipografía — Sistema v2 (2026-10-23): Inter estática + InterDisplay
+- Archivos ESTÁTICOS por peso en `assets/fonts/` (Inter-Regular/Medium/SemiBold/Bold e InterDisplay-SemiBold/Bold), de la versión oficial 4.0 de rsms/inter (licencia en `OFL-Inter.txt`). Se declaran con `weight:` en `pubspec.yaml`.
+- Por qué: la Inter variable anterior venía cortada (tabla `gvar` truncada) y en iPhone no engrosaba; por eso las pantallas fijaban la letra a mano.
+- Escala: 34/30/28/26/22/20 títulos (InterDisplay, espaciado negativo), 17 cuerpo y filas, 15 apoyo, 13 notas, 12 etiquetas.
+- Lexend se retiró.
 
 ## Migración pendiente
 `main.dart` ya usa el sistema. Quedan ~25 pantallas con `Color(0xFF…)` hardcodeado; migrarlas a tokens de forma incremental (buscar `Color(0xFF` en `lib/`).

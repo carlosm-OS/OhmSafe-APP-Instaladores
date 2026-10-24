@@ -20,7 +20,7 @@ class HomeRepositoryImpl implements HomeRepository {
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -34,7 +34,7 @@ class HomeRepositoryImpl implements HomeRepository {
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 }

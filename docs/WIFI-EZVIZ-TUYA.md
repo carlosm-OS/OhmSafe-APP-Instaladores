@@ -108,6 +108,36 @@ el proyecto de nube. La contraseña Tuya de la casa nunca sale del servidor.
 | Android | `TuyaPlugin.kt` (común) + `src/tuyaOn|tuyaOff/…/TuyaBridgeFactory.kt` (`ActivatorBuilder().setToken(token)`), `thingsmart:7.8.0` + `security-algorithm*.aar` fuera del repo |
 | Pruebas | `test/tuya_wifi_test.dart` |
 
+## Serie de etiqueta y «Equipo conectado» (2026-10-22)
+
+Pedido de Carlos: identificar qué unidad física quedó en la casa. El emparejamiento no necesita la
+serie (la nube devuelve el `devId`), pero sin ella no hay rastro para inventario ni garantía, y en
+modo rápido podría entrar otro equipo cercano que estuviera en emparejamiento.
+
+- `ConectarTuyaWifiScreen`: campo **«Número de serie (opcional)»** con escáner
+  (`EscanearSerieScreen(leer: serieDeEtiqueta)`). `serieDeEtiqueta` (core/utils/serie_qr.dart) acepta
+  la serie sola o un enlace con `?sn=` / `serial=` / `serie=` / `uuid=` / `id=` o con la serie al final.
+- `EmparejadorTuya.empezar(serie:)` la manda en `POST …/dispositivos-wifi` como `serie` **sólo si hay**:
+  el esquema del backend es estricto y uno sin Back-#156 rechazaría el campo. **Desplegar el backend antes
+  que la app.**
+- Al terminar, en vez de un aviso y salir, la pantalla muestra la tarjeta **«Equipo conectado»**: qué es,
+  modelo (nombre de fábrica que da la nube), serie, ID del equipo (`devId`) y red. «Listo» sale;
+  «No es este equipo» explica que hay que avisar a operaciones con el ID.
+- Backend: columna `serial_number` en `wifi_sensors` y `cameras`, `pairing.serial` en los DTO, acta y
+  reporte de servicio. Dashboard: «· serie …» en la línea del equipo (Dashboard-#16).
+- Pruebas: `test/tuya_wifi_test.dart`.
+
+## Selector de redes Wi‑Fi (2026-10-20)
+
+`lib/widgets/campo_red_wifi.dart` (`CampoRedWifi`) + `lib/core/wifi/redes_wifi.dart`, recorte del
+`wifi_networks.dart` de GO. Android escanea con `wifi_scan` (exige ubicación; el manifiesto ya no
+lleva `neverForLocation` en `NEARBY_WIFI_DEVICES`, igual que GO): hoja con las redes cercanas, 2.4 GHz
+primero y por señal, 5/6 GHz apagadas; la misma SSID en dos bandas se queda con la de 2.4. iOS no
+puede listar redes (Apple no da la API): el campo relee la red conectada al volver al frente
+(`didChangeAppLifecycleState`) y con el icono. `bandaPorNombre` avisa (no bloquea) cuando el nombre
+huele a 5 GHz. Android frena a 4 escaneos / 2 min: se leen los resultados en caché. Pruebas en
+`test/redes_wifi_test.dart` con un `ListadorRedes` falso.
+
 ## Llaves y paquetes (nunca en git)
 
 - Cuenta de Tuya de OhmSafe (`admin@ohmsafe.com`): app «OhmSafe Installer» (Smart Life App SDK 7.8.0,
@@ -133,3 +163,144 @@ el proyecto de nube. La contraseña Tuya de la casa nunca sale del servidor.
   cliente) para que Tuya no llame a un OpenSSL ajeno.
 - Pendiente de probar con un sensor real: GO aún no existe en la cuenta nueva de Tuya (el bundle
   `com.ohmSafe` sigue en la cuenta de Dan).
+
+---
+
+# Retirada de EZVIZ e Imou de la app de instaladores (2026-10-20)
+
+**Decisión de Carlos (20-oct):** la app de instaladores ofrece **sólo Tuya**. Motivo: varias marcas
+complican tablas, procesos y peso, y el SDK de Imou nunca llegó a conectarse. Modo: **apagar, no
+borrar** — el código, los puentes nativos y los SDKs siguen en el repo; lo que cambia es un
+interruptor en la app. En GO y en el backend la retirada la lleva la sesión OS‑Product
+(`docs/IMOU-RETIRADO.md` del backend; `IMOU_ENABLED=false`); EZVIZ sigue en el backend por ahora.
+
+## Interruptor
+
+`lib/core/config/marcas_camara.dart` → `MarcasCamara.habilitadas`, por omisión `{tuya}`; se compila
+con `--dart-define=MARCAS_CAMARA=tuya,ezviz,imou` para reabrir marcas. Lo que apaga:
+
+| Con la marca apagada | Qué pasa |
+|---|---|
+| EZVIZ | No aparece «Conectar cámara a la Wi‑Fi» aunque el backend diga `wifi.emparejar.ezviz`. |
+| Imou | No aparece «Conectar cámara Imou». |
+| EZVIZ e Imou | No aparece «Cámara ya conectada» (registro por serie + código); las Tuya se registran al emparejarlas. Las ayudas de la sección Cámaras no mencionan la marca. |
+| (siempre) | Las cámaras y sensores YA registrados de cualquier marca se siguen listando con su marca. |
+
+No se tocan: `ConectarCamaraWifiScreen`, `ConectarImouScreen`, `EmparejadorEzviz`, `EzvizPuente`,
+`EzvizPlugin.swift/.kt`. Las pruebas de esas pantallas encienden todas las marcas en `setUp`.
+
+## El SDK de EZVIZ sale de la build (peso)
+
+Igual que en GO: el SDK de EZVIZ (unos 40 MB de librerías nativas) queda **fuera por omisión**, sin
+borrar nada.
+
+| Plataforma | Por omisión | Para reincorporarlo |
+|---|---|---|
+| iOS | `Podfile`: `OHMSAFE_EZVIZ_LINKED = ENV['OHMSAFE_EZVIZ'] == '1'` → sin `EZOpenSDK`; `EzvizPlugin.swift` ya compila sin el módulo (`#if canImport`) y contesta `EZVIZ_NOT_LINKED`. | `OHMSAFE_EZVIZ=1 pod install` |
+| Android | `android/build.gradle.kts`: `ohmsafeEzvizLinked` → sin `ezviz-sdk`, okhttp ni gson; se compila `src/ezvizOff` (stub `EZVIZ_NOT_LINKED`, `currentSsid` sigue funcionando). La implementación real está en `src/ezvizOn/…/EzvizBridgeFactory.kt` (patrón de Tuya). | `-PohmsafeEzviz=true` (o `ORG_GRADLE_PROJECT_ohmsafeEzviz=true`) u `OHMSAFE_EZVIZ=1` |
+
+La actividad `com.videogo.main.EzvizWebViewActivity` sigue declarada en el manifiesto y las reglas
+de R8 de `com.videogo.**` en `proguard-rules.pro`: sin el SDK no hacen nada y así la reincorporación
+es sólo volver a enlazar. Para una build con EZVIZ hace falta además `MARCAS_CAMARA` con `ezviz`.
+
+## Lo que queda guardado para reincorporar Imou
+
+- **SDK de Imou en la app (build 52, detenida):** rama `CarlosClaudDev-imou-sdk` y PR #4 (borrador,
+  «NO fusionar») de `carlosm-OS/OhmSafe-APP-Instaladores`: puente `ohmsafe/imou` (Dart + Kotlin,
+  `src/imouOn|imouOff`), `EmparejadorImou`, `conectar_imou_wifi_screen.dart` (modos rápido y por
+  hotspot), repo `imouSesion/imouSondeo`, pruebas, docs. El AAR vive en `~/dev/ohmsafe/keys/imou-sdk/`
+  (Android y el framework de iOS), fuera de git. iOS nunca se integró.
+- **Backend:** `POST …/wifi/imou/sesion` y `…/sondeo` (Back-#133) quedan en main; se apagan con
+  `IMOU_ENABLED=false` y contestan 503 `PROVIDER_NOT_CONFIGURED`.
+- **Apple:** solicitud del entitlement *Multicast Networking* **QN7AHWA6RR** (20-oct, cuenta Ohm Safe)
+  para `com.ohmsafe.instalador`. Si Apple lo aprueba, sólo sirve si Imou vuelve.
+- **Cuenta Imou institucional** (`admin@ohmsafe.com`, AppId `lc4b2fe6…`) sigue existiendo; las llaves
+  quedan en api-dev/prod aunque `IMOU_ENABLED` esté apagado.
+
+Para volver: fusionar `CarlosClaudDev-imou-sdk` sobre `dev`, compilar con `MARCAS_CAMARA` incluyendo
+`imou`, encender `IMOU_ENABLED` en el backend y repetir la prueba con una cámara real.
+
+## Paso «Wi‑Fi de la casa» (2026-10-22)
+
+Pedido de Carlos: un paso antes de «Agregar dispositivos» para capturar la Wi‑Fi de la casa una
+vez, que se puede omitir y al que se puede volver. Contraseña: **opción A, sólo en el teléfono**.
+
+- `WifiCasaScreen` (paso 4; «Agregar dispositivos» pasa a 5 y el cierre a 6). Guarda en el servidor
+  sólo el nombre (`PUT …/wifi-casa`, Back-#157) y la contraseña en `WifiCasaLocal` (llavero del
+  teléfono, por intervención, vence a las 24 h y se borra al «Terminar instalación»).
+- La lista de pasos habilita «Agregar dispositivos» y el cierre cuando el paso queda listo u omitido.
+- «Agregar dispositivos» muestra arriba la sección «WI‑FI DE LA CASA» (Agregar / Cambiar → vuelve al
+  paso) y, con OhmBox, la fila «Segunda conexión por Wi‑Fi» (`POST …/ohmbox/wifi`); al vincular un
+  OhmBox con Wi‑Fi ya capturada la app ofrece conectarlo.
+- `ConectarTuyaWifiScreen` precarga red y contraseña desde `WifiCasaLocal`.
+- Pruebas: `test/wifi_casa_test.dart`.
+
+## Bluetooth (2026-10-22)
+
+Lo tenía Dan en GO (escaneo BLE → activación multimodo, luego EZ, luego AP). En Installer se adaptó
+al **token de la casa que da el backend** (sin sesión en Tuya):
+
+- Dart: `TuyaPuente.buscarBluetooth` (`bleScanStart`), `detenerBusqueda` (`bleScanStop`),
+  `emparejarBluetooth` (`pairStartBle {uuid, productId, ssid, password, token, homeId}`); eventos
+  `bleFound {uuid, combo…}` y `bleScanEnd`. `EmparejadorTuya` con modo `BLE`: pide el token con
+  `modo: BLE`, busca 20 s, empareja el primer equipo **combo** (Bluetooth + Wi‑Fi) y, si no hay permiso,
+  no aparece ninguno o el SDK no arranca, pide un token `EZ` y sigue en modo rápido (`modoUsado`).
+- Android (`src/tuyaOn`): `ThingHomeSdk.getBleOperator().startLeScan` + `newMultiModeActivator()` con
+  `MultiModeActivatorBean.token` = token de la casa. Manifiesto: BLUETOOTH (≤30), BLUETOOTH_SCAN
+  (`neverForLocation`), BLUETOOTH_CONNECT; permisos en tiempo de ejecución con `permission_handler`.
+- iOS: `ThingSmartBLEManager` para buscar y `ThingSmartBLEWifiActivator.pairDevice(withUUID:token:ssid:pwd:timeout:)`
+  (la variante con token; la de GO usa la sesión). `NSBluetoothAlwaysUsageDescription` ya estaba.
+- Sin probar con hardware: los equipos sólo Bluetooth (no combo) se ignoran; los Wi‑Fi sin Bluetooth
+  caen al modo rápido.
+- Pruebas: `test/tuya_wifi_test.dart` (combo encontrado, respaldo a rápido, sin permiso).
+
+## Modo punto de acceso con pausa y sondeo largo (2026-10-22, caso de Nahum en i77)
+
+Evidencia: cámara GN-PT307-W600 en modo AP; tokens EZ (imposible) y AP que sondearon 50–85 s y nunca
+llegó el alta. Cambios en la app (build 58):
+
+1. **Pausa AP:** `EmparejadorTuya` pide el token AP con internet de la casa y queda en
+   `EtapaTuya.esperandoRedEquipo`; la pantalla muestra «Conecta el teléfono a la red del equipo» con
+   «Abrir ajustes de Wi‑Fi» (`openWifiSettings`: Android `ACTION_WIFI_SETTINGS`; iOS ajustes de la app).
+   `continuarAP()` revisa `currentSsid` (`esRedDeEquipo`: prefijo `smartlife`) y entonces arranca el SDK;
+   al volver a la app (`AppLifecycleState.resumed`) se llama sola; «Seguir de todos modos» la fuerza.
+   Si el token está por vencer (< 45 s) pide empezar de nuevo.
+2. **Sondeo:** `_plazoSondeo()` dura hasta `expiresAt` del token (≈5 min), nunca menos que el tope del SDK.
+3. **Sugerir modo:** en Android, si el escaneo ve una red del equipo, la pantalla elige «Punto de acceso»
+   (salvo que el instalador ya haya tocado el selector) y lo explica con el nombre de esa red.
+
+Pendiente: conectar desde la app con `WifiNetworkSpecifier` (Android 10+) y el modo QR.
+
+## Conectar en 4 pasos y «siempre decir qué está pasando» (2026-10-22, regla de oro de Carlos)
+
+**Por qué:** en el video de Nahum (i77, modo punto de acceso) la app se quedó minutos en
+«pasándole la red de la casa…» con un spinner y todo el formulario abajo; no se sabía si avanzaba,
+en qué iba ni qué seguía. (El fallo real era del servidor: el sondeo no leía `{ success, failed }`
+de Tuya, Back-#167.) Regla de oro desde ese día: **todo botón dice qué está pasando, con frases
+que avanzan y sensación de progreso, y los procesos largos van en pasos consecutivos**.
+
+**`ConectarTuyaWifiScreen` ahora es un flujo de 4 pasos** con «PASO N DE 4 · título» y barra
+segmentada (`IndicadorPasos`); la flecha de regreso va un paso atrás:
+
+1. **Datos** — qué es (sensor), nombre, serie opcional (escanear) y la Wi‑Fi del paso 4 (o «Ir a
+   Wi‑Fi de la casa»). «Siguiente» se habilita con nombre + Wi‑Fi; si falta algo, una nota dice qué.
+2. **Prepara el equipo** — resumen de lo capturado con «Editar» (no se re-muestra el formulario),
+   los 3 puntos según el modo y «Cómo se va a conectar» como tres opciones con su explicación
+   (antes un `SegmentedButton` que partía «Bluetooth» en dos líneas). La sugerencia de punto de
+   acceso (si el teléfono ve `SmartLife-*`) vive aquí.
+3. **Conectando** — `TarjetaProceso` + `LineaProgreso` con las etapas: pedir el permiso de la casa
+   → (punto de acceso) unir el teléfono a la red del equipo, con sus botones dentro → pasarle la red
+   → esperar a que avise a la nube → guardar en la casa. Cada etapa sale hecha / en curso /
+   pendiente / con error. La etapa en curso rota frases cada 5 s y muestra «Llevamos m:ss de 5:00
+   como máximo» con una barra contra el vencimiento del permiso (`venceToken`). «Pasarle la red»
+   pasa a «esperar la nube» cuando el SDK lo dice (texto con «nube»/«recibió») o a los 20 s.
+   Si falla, la etapa queda en rojo con el mensaje y «Volver a intentar» / «Cambiar el modo o los
+   datos» (regresa al paso 2). «Cancelar» pide confirmación y regresa al paso 2.
+4. **Listo** — la tarjeta «Equipo conectado» de siempre (con «No es este equipo») y vibración corta.
+
+**Piezas reutilizables** (`lib/widgets/progreso_flujo.dart`): `IndicadorPasos`, `LineaProgreso`
+(con `EtapaProgreso` y `EstadoEtapa`) y `TarjetaProceso`. Accesibles: cada etapa es un nodo con
+«título, estado. frase» y la etapa en curso es región viva. Respetan «Reducir movimiento».
+
+**La lógica no cambió:** `EmparejadorTuya` es el mismo (etapas, sondeo, Bluetooth → rápido,
+pausa de punto de acceso). Pruebas nuevas en `test/tuya_wifi_test.dart` («regla de oro: …»).

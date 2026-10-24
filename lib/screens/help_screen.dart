@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
-import '../widgets/notification_bell.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../features/incidencias/domain/incidencia.dart';
+import '../widgets/ayuda.dart';
+import '../widgets/menu_item_tile.dart';
 import 'incidencias_screen.dart';
 
-class HelpScreen extends StatelessWidget {
+/// Ayuda (v2, 2026-10-23): raíz de pestaña con el encabezado de todos y la lista agrupada de iPhone.
+/// Si algo no abre (teléfono, WhatsApp, Academia), el aviso queda en la pantalla con el número a mano.
+class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
 
+  @override
+  State<HelpScreen> createState() => _HelpScreenState();
+}
+
+class _HelpScreenState extends State<HelpScreen> {
+  /// Qué no se pudo abrir («la llamada», «WhatsApp», «la Academia»).
+  String? _noAbrio;
+
   // Helper method to launch URLs safely
-  Future<void> _launchURL(BuildContext context, String urlString) async {
+  Future<void> _launchURL(String urlString, String que) async {
+    setState(() => _noAbrio = null);
     final Uri url = Uri.parse(urlString);
     try {
       if (await canLaunchUrl(url)) {
@@ -20,14 +32,7 @@ class HelpScreen extends StatelessWidget {
       }
     } catch (e) {
       debugPrint('Error launching URL: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No se pudo abrir el enlace: $urlString'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
+      if (mounted) setState(() => _noAbrio = que);
     }
   }
 
@@ -39,14 +44,10 @@ class HelpScreen extends StatelessWidget {
   /// «Reportar incidencias» abre la pantalla real de incidencias: el reporte
   /// crea un ticket en el Helpdesk de Odoo («Incidencias de campo»). Antes era
   /// un formulario que sólo escribía en consola y decía «Reporte enviado».
-  Future<void> _reportarIncidencia(BuildContext context) async {
-    final creada = await Navigator.of(context).push<Incidencia>(
-      MaterialPageRoute(builder: (_) => const NuevaIncidenciaScreen()),
-    );
-    if (creada != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Incidencia ${creada.referencia} enviada a operaciones')),
-      );
+  Future<void> _reportarIncidencia() async {
+    final creada = await Navigator.of(context).push<Incidencia>(MaterialPageRoute(builder: (_) => const NuevaIncidenciaScreen()));
+    if (creada != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Incidencia ${creada.referencia} enviada a operaciones')));
     }
   }
 
@@ -55,16 +56,7 @@ class HelpScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Harmonious Colors
-    final labelColor = cs.onSurfaceVariant;
-    final cardBgColor = ohm.surfaceContainer;
-    final textStyle = TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-      color: theme.textTheme.bodyLarge?.color,
-    );
+    final chevron = Icon(Icons.chevron_right_rounded, size: 22, color: cs.onSurfaceVariant);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -75,253 +67,62 @@ class HelpScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top Header: Logo and Notification Bell
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
+                const EncabezadoFlujo(titulo: 'Ayuda', subtitulo: 'Contáctanos', volver: false),
+                Expanded(
+                  child: ListView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
                     children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "OHM",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: theme.textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            Text(
-                              "SAFE",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: cs.primary,
-                              ),
-                            ),
-                          ],
+                      if (_noAbrio != null)
+                        MensajeFlujo(
+                          icono: Icons.error_outline_rounded,
+                          color: cs.error,
+                          titulo: 'No se pudo abrir $_noAbrio',
+                          texto: 'Marca desde tu teléfono al $_telefonoVisible; ahí también tenemos WhatsApp.',
                         ),
+                      const EtiquetaSeccion('Contacto directo'),
+                      GrupoFilas(
+                        children: [
+                          FilaFlujo(
+                            leading: MosaicoIcono(icono: Icons.phone_rounded, color: ohm.success),
+                            titulo: 'Llamar a soporte',
+                            subtitulo: _telefonoVisible,
+                            trailing: chevron,
+                            onTap: () => _launchURL(_telefonoUrl, 'la llamada'),
+                          ),
+                          FilaFlujo(
+                            leading: MosaicoIcono(icono: Icons.chat_bubble_outline_rounded, color: ohm.success),
+                            titulo: 'WhatsApp',
+                            subtitulo: _telefonoVisible,
+                            trailing: chevron,
+                            onTap: () => _launchURL(_whatsappUrl, 'WhatsApp'),
+                          ),
+                        ],
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
+                      const EtiquetaSeccion('¿Algo salió mal en sitio?'),
+                      GrupoFilas(
+                        pie: 'Operaciones lo recibe y te responde por la campana.',
+                        children: [
+                          FilaFlujo(
+                            leading: MosaicoIcono(icono: Icons.warning_amber_rounded, color: cs.error),
+                            titulo: 'Reportar incidencias',
+                            trailing: chevron,
+                            onTap: _reportarIncidencia,
+                          ),
+                        ],
+                      ),
+                      const EtiquetaSeccion('Recursos'),
+                      GrupoFilas(
+                        children: [
+                          FilaFlujo(
+                            leading: MosaicoIcono(icono: Icons.school_rounded, color: ohm.info),
+                            titulo: 'Academia OhmSafe',
+                            trailing: Icon(Icons.open_in_new_rounded, size: 20, color: cs.onSurfaceVariant),
+                            onTap: () => _launchURL('https://academia.ohmsafe.com', 'la Academia'),
+                          ),
+                        ],
                       ),
                     ],
-                  ),
-                ),
-
-                // Back chevron and Centered Title Row
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: Text(
-                            "Ayuda",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.titleLarge?.color,
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Scrollable Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 110),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Subtitle
-                        Center(
-                          child: Text(
-                            "Contáctanos",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Direct Contact Section
-                        Text(
-                          "CONTACTO DIRECTO",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
-                            color: labelColor,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _launchURL(context, _telefonoUrl),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Ink(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                              decoration: BoxDecoration(
-                                color: cardBgColor,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.phone,
-                                    color: isDark ? Colors.white70 : Colors.black87,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Text(
-                                    _telefonoVisible,
-                                    style: textStyle,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // WhatsApp Section
-                        Text(
-                          "WHATSAPP",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
-                            color: labelColor,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _launchURL(context, _whatsappUrl),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Ink(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                              decoration: BoxDecoration(
-                                color: cardBgColor,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.chat_bubble_outline_rounded,
-                                    color: isDark ? Colors.white70 : Colors.black87,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Text(
-                                    _telefonoVisible,
-                                    style: textStyle,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-
-                        // Report Incident Button
-                        OutlinedButton(
-                          onPressed: () => _reportarIncidencia(context),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: theme.textTheme.bodyLarge?.color,
-                            side: BorderSide(
-                              color: isDark ? Colors.white30 : Colors.black,
-                              width: 1.2,
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            "Reportar incidencias",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-
-                        // Resources Section
-                        Text(
-                          "RECURSOS",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
-                            color: labelColor,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _launchURL(context, 'https://academia.ohmsafe.com'),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Ink(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                              decoration: BoxDecoration(
-                                color: cardBgColor,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    "Academia OhmSafe",
-                                    style: textStyle,
-                                  ),
-                                  Icon(
-                                    Icons.arrow_forward_rounded,
-                                    color: isDark ? Colors.white60 : Colors.black87,
-                                    size: 20,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ],

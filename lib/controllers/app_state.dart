@@ -59,6 +59,10 @@ class AppState extends ChangeNotifier {
   String _installerCurp = '';
   String get installerCurp => _installerCurp;
 
+  /// RFC del instalador (Odoo `vat`): sólo lectura en la app desde 2026-10-20 (Carlos).
+  String _installerRfc = '';
+  String get installerRfc => _installerRfc;
+
   String _bankHolder = "Juan Mora";
   String get bankHolder => _bankHolder;
 
@@ -198,6 +202,7 @@ class AppState extends ChangeNotifier {
     _installerPhone = p.telefono;
     _installerEmail = p.email;
     _installerCurp = p.curp;
+    _installerRfc = p.rfc;
     _fotoBase64 = p.fotoBase64;
     _calificacion = p.calificacion;
     _respuestasEncuesta = p.respuestasEncuesta;
@@ -238,6 +243,7 @@ class AppState extends ChangeNotifier {
     _installerPhone = '';
     _installerEmail = '';
     _installerCurp = '';
+    _installerRfc = '';
     notifyListeners();
   }
   int get mantenimientosCount => _mantenimientosCount;

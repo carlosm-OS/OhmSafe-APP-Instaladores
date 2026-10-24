@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../core/utils/observaciones_cierre.dart';
-import '../widgets/notification_bell.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../core/error/failures.dart';
@@ -10,14 +9,13 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../widgets/ayuda.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/theme/app_motion.dart';
 import '../core/theme/app_theme_extension.dart';
-import '../widgets/botones_dialogo.dart';
+import '../widgets/hoja_decision.dart';
 
 class CierreInstalacionScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -31,6 +29,13 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   int _currentStep = 1;
   bool _isLoading = false;
 
+  /// Envío en curso desde el PRIMER toque (auditoría 2026-10-23: firma y GPS tardan hasta 4 s antes
+  /// del overlay y en ese hueco «Terminar» se podía tocar otra vez y mandar el cierre doble).
+  bool _enviando = false;
+
+  /// Qué está pasando, para el botón y el overlay (regla de oro).
+  String _fase = 'Enviando el cierre…';
+
   // Reference coordinates for anti-fraud location verification
   // (Centred in Mexico City - Juarez/Roma area, where our mock installer is operating)
   // La validación de ubicación vive en el backend: compara la posición del
@@ -38,10 +43,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Step 1 State: Photos, Metadatas and Anomaly Justifications
   final List<String> _categories = [
-    'Perfil izquierdo',
-    'Perfil derecho',
+    // Carlos (2026-10-20): «Foto cerca 1 y 2» en vez de «Perfil izquierdo/derecho».
+    'Foto cerca 1',
+    'Foto cerca 2',
     'Energizador',
-    'Letrero OhmSafe'
+    'Letrero OhmSafe',
   ];
   final Map<String, String?> _photoPaths = {};
   final Map<String, Position?> _photoLocations = {};
@@ -55,9 +61,11 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   String? _capturingCategory;
 
   final _photoCommentsController = TextEditingController();
+
   /// fileKey que devolvió el backend por cada foto ya subida. Es lo que viaja
   /// en el cierre; la ruta local del teléfono no le sirve al servidor.
   final Map<String, String> _photoFileKeys = {};
+
   /// Estado de la subida por foto. Se muestra en la tarjeta: sin esto una
   /// foto que falló al subir se veía igual que una subida y el instalador
   /// solo se enteraba al intentar firmar.
@@ -71,17 +79,14 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   int _repairPhotoCounter = 1;
 
   // Step 2 State: confirmación de entrega del equipo (checks, sin foto/serie).
-  bool _controlEntregado = false;        // Entregué el control remoto funcional
+  bool _controlEntregado = false; // Entregué el control remoto funcional
   // Addons del servicio. null = sin responder; el técnico debe decir si los
   // instaló o si el servicio no los incluye. No se infiere del plan porque
   // hoy el ticket no trae los addons contratados.
-  String? _camaras;                      // 'instaladas' | 'no_aplica'
-  String? _sensores;                     // 'instaladas' | 'no_aplica'
-  String? _sirena;                       // 'instaladas' | 'no_aplica' — sólo el check; telemetría en el futuro (Carlos, 2026-10-09)
-  bool _entregaConAnomalias = false;     // false = todo funcional; true = hubo anomalías
-  bool _anomFisica = false;              // Daño físico
-  bool _anomFuncionamiento = false;      // Falla de funcionamiento
-  bool _anomControl = false;             // El control remoto no funcionó
+  bool _entregaConAnomalias = false; // false = todo funcional; true = hubo anomalías
+  bool _anomFisica = false; // Daño físico
+  bool _anomFuncionamiento = false; // Falla de funcionamiento
+  bool _anomControl = false; // El control remoto no funcionó
   final _step2CommentsController = TextEditingController();
   String? _step2Error;
 
@@ -128,11 +133,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_rounded),
-              title: const Text('Tomar foto'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
+            ListTile(leading: const Icon(Icons.photo_camera_rounded), title: const Text('Tomar foto'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
             ListTile(
               leading: const Icon(Icons.photo_library_rounded),
               title: const Text('Elegir de la galería'),
@@ -153,12 +154,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     });
 
     try {
-      final XFile? foto = await _picker.pickImage(
-        source: origen,
-        imageQuality: 70,
-        maxWidth: 1600,
-        maxHeight: 1600,
-      );
+      final XFile? foto = await _picker.pickImage(source: origen, imageQuality: 70, maxWidth: 1600, maxHeight: 1600);
       if (!mounted) return;
       if (foto == null) {
         setState(() => _capturingCategory = null);
@@ -187,7 +183,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       if (!mounted) return;
       setState(() {
         _capturingCategory = null;
-        _step1Error = "No se pudo tomar la foto: $e";
+        debugPrint("Cámara del cierre: $e");
+        _step1Error = "No se pudo abrir la cámara. Vuelve a intentar; si sigue, reinicia la app.";
       });
     }
   }
@@ -201,13 +198,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (path == null) return;
     setState(() => _subidaFotos[category] = _EstadoSubida.subiendo);
 
-    final ticketId =
-        (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
+    final ticketId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     try {
       final bytes = await File(path).readAsBytes();
-      final subida = await sl
-          .get<OrdenesRepository>()
-          .subirEvidencia(ticketId, category, base64Encode(bytes));
+      final subida = await sl.get<OrdenesRepository>().subirEvidencia(ticketId, category, base64Encode(bytes));
       if (!mounted) return;
       subida.fold(
         (fileKey) => setState(() {
@@ -223,24 +217,18 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   }
 
   /// Fotos tomadas que aún no tienen fileKey (fallaron o siguen subiendo).
-  List<String> get _fotosSinSubir => _photoPaths.entries
-      .where((e) => e.value != null && !_photoFileKeys.containsKey(e.key))
-      .map((e) => e.key)
-      .toList();
+  List<String> get _fotosSinSubir => _photoPaths.entries.where((e) => e.value != null && !_photoFileKeys.containsKey(e.key)).map((e) => e.key).toList();
 
   /// Antes de cerrar se reintentan solas las subidas pendientes: el
   /// instalador no debe volver al paso 1 por un corte de red momentáneo.
   Future<void> _reintentarSubidasPendientes() async {
-    final pendientes = _fotosSinSubir
-        .where((c) => _subidaFotos[c] != _EstadoSubida.subiendo)
-        .toList();
+    final pendientes = _fotosSinSubir.where((c) => _subidaFotos[c] != _EstadoSubida.subiendo).toList();
     await Future.wait(pendientes.map(_subirFoto));
   }
 
   // ----- Firma: captura de trazos y rasterizado -----
 
-  RenderBox? get _signatureBox =>
-      _signatureCanvasKey.currentContext?.findRenderObject() as RenderBox?;
+  RenderBox? get _signatureBox => _signatureCanvasKey.currentContext?.findRenderObject() as RenderBox?;
 
   /// Agrega un punto del trazo, en coordenadas locales del lienzo y recortado
   /// a su área (un arrastre puede salirse del recuadro).
@@ -249,10 +237,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (box == null) return;
     final local = box.globalToLocal(globalPosition);
     final size = box.size;
-    final clamped = Offset(
-      local.dx.clamp(0.0, size.width),
-      local.dy.clamp(0.0, size.height),
-    );
+    final clamped = Offset(local.dx.clamp(0.0, size.width), local.dy.clamp(0.0, size.height));
     setState(() {
       _signaturePoints = List.from(_signaturePoints)..add(clamped);
     });
@@ -278,14 +263,8 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (size.width <= 0 || size.height <= 0) return null;
 
     final recorder = ui.PictureRecorder();
-    final canvas = Canvas(
-      recorder,
-      Rect.fromLTWH(0, 0, size.width, size.height),
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..color = const Color(0xFFFFFFFF),
-    );
+    final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = const Color(0xFFFFFFFF));
     SignaturePainter(_signaturePoints, const Color(0xFF111111)).paint(canvas, size);
 
     final picture = recorder.endRecording();
@@ -305,29 +284,35 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   // Submit all details and complete installation
   Future<void> _submitCierreInstalacion({bool confirmarUbicacion = false}) async {
+    if (_enviando) return;
+    setState(() {
+      _enviando = true;
+      _fase = 'Revisando las fotos…';
+    });
+    try {
+      await _enviarCierre(confirmarUbicacion: confirmarUbicacion);
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  Future<void> _enviarCierre({required bool confirmarUbicacion}) async {
     // Compile JSON Payload
     final Map<String, dynamic> geoJson = {};
     _photoLocations.forEach((category, pos) {
       if (pos != null) {
-        geoJson[category] = {
-          "lat": pos.latitude,
-          "lng": pos.longitude,
-          "timestamp": _photoTimestamps[category]?.toIso8601String(),
-        };
+        geoJson[category] = {"lat": pos.latitude, "lng": pos.longitude, "timestamp": _photoTimestamps[category]?.toIso8601String()};
       }
     });
 
-    final anomalias = <String>[
-      if (_anomFisica) 'daño_fisico',
-      if (_anomFuncionamiento) 'falla_funcionamiento',
-      if (_anomControl) 'control_no_funciona',
-    ];
+    final anomalias = <String>[if (_anomFisica) 'daño_fisico', if (_anomFuncionamiento) 'falla_funcionamiento', if (_anomControl) 'control_no_funciona'];
 
     // Una foto capturada pero no subida no llega a la orden de servicio. Antes
     // de avisar se reintenta la subida: casi siempre fue un corte momentáneo.
     if (_fotosSinSubir.isNotEmpty) {
       setState(() {
         _step3Error = null;
+        _fase = 'Subiendo las fotos…';
         _isLoading = true;
       });
       await _reintentarSubidasPendientes();
@@ -336,20 +321,23 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     }
     final sinSubir = _fotosSinSubir;
     if (sinSubir.isNotEmpty) {
-      setState(() => _step3Error =
-          "No se pudo subir ${sinSubir.length == 1 ? 'la foto' : 'las fotos'} de ${sinSubir.join(', ')}. Revisa tu conexión y toca «Reintentar» en el paso 1.");
+      setState(
+        () => _step3Error =
+            "No se pudo subir ${sinSubir.length == 1 ? 'la foto' : 'las fotos'} de ${sinSubir.join(', ')}. Revisa la señal y toca «Volver a intentar» en las fotos.",
+      );
       return;
     }
 
     // La firma se rasteriza ANTES de mostrar el overlay de carga: el lienzo
     // debe seguir montado para poder medirlo.
+    setState(() => _fase = 'Preparando la firma…');
     final firmaBase64 = await _firmaPngBase64();
     if (!mounted) return;
+    setState(() => _fase = 'Tomando tu ubicación…');
     final ubicacionCierre = ubicacionJson(await _getCurrentLocation());
     if (!mounted) return;
     if (firmaBase64 == null) {
-      setState(() => _step3Error =
-          "No se pudo capturar la firma. Pide al cliente que firme de nuevo.");
+      setState(() => _step3Error = "No se pudo capturar la firma. Pide al cliente que firme de nuevo.");
       return;
     }
 
@@ -357,8 +345,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     // snake_case, Zod las descartaba en silencio y el cierre se guardaba vacío.
     final payload = {
       "evidencias": [
-        for (final entry in _photoFileKeys.entries)
-          {"fileKey": entry.value, "categoria": entry.key},
+        for (final entry in _photoFileKeys.entries) {"fileKey": entry.value, "categoria": entry.key},
       ],
       "geolocalizacion": geoJson,
       "entregaEquipo": {
@@ -366,69 +353,48 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
         "entregaFuncional": !_entregaConAnomalias,
         "anomalias": anomalias,
         "comentarios": _step2CommentsController.text.trim(),
-        if (_camaras != null) "camaras": _camaras,
-        if (_sensores != null) "sensores": _sensores,
-        if (_sirena != null) "sirena": _sirena,
       },
       "firmaBase64": firmaBase64,
       // Posición al cerrar: el backend la compara con la de la llegada.
       if (ubicacionCierre != null) "ubicacion": ubicacionCierre,
       if (confirmarUbicacion) "confirmarUbicacion": true,
-      "comentariosGenerales": observacionesCierre(
-        paso1: _photoCommentsController.text,
-        paso2: _step2CommentsController.text,
-      ),
+      "comentariosGenerales": observacionesCierre(paso1: _photoCommentsController.text, paso2: _step2CommentsController.text),
     };
 
     // Enviar al backend vía repositorio (Mock o Api según EnvConfig.useMock).
     setState(() {
       _step3Error = null;
+      _fase = 'Enviando el cierre…';
       _isLoading = true;
     });
     final repo = sl.get<OrdenesRepository>();
     final ticketId = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     final result = await repo.guardarCierre(ticketId, payload);
     if (!mounted) return;
-    result.fold(
-      (_) => Navigator.pop(context, 'cierre_completed'),
-      (failure) {
-        setState(() => _isLoading = false);
-        if (failure is ServerFailure && failure.code == 'FUERA_DE_SITIO') {
-          _confirmarCierreLejos(failure);
-          return;
-        }
-        setState(() => _step3Error = "No se pudo enviar el cierre: ${failure.message}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("No se pudo enviar el cierre: ${failure.message}")),
-        );
-      },
-    );
+    result.fold((_) => Navigator.pop(context, 'cierre_completed'), (failure) {
+      setState(() => _isLoading = false);
+      if (failure is ServerFailure && failure.code == 'FUERA_DE_SITIO') {
+        _confirmarCierreLejos(failure);
+        return;
+      }
+      // Un solo aviso, junto al botón (antes también salía repetido abajo).
+      setState(() => _step3Error = "No se envió el cierre. Tus fotos y la firma siguen guardadas: revisa la señal y vuelve a intentar.");
+    });
   }
 
   /// El backend detectó que el cierre está a más de 300 m de la llegada. El
   /// instalador puede confirmar; la confirmación queda en el chatter de Odoo.
+  /// v2 (2026-10-23): es una decisión, así que va en hoja desde abajo y no en un diálogo al centro.
   Future<void> _confirmarCierreLejos(ServerFailure failure) async {
     final distancia = failure.details['distanciaM'];
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        // Con el teclado abierto el contenido se desplaza en vez de desbordarse (franja amarilla).
-        scrollable: true,
-        title: const Text('Estás lejos del sitio'),
-        content: Text(
-          distancia != null
-              ? 'Estás a $distancia m del punto donde marcaste la llegada. ¿Confirmas que estás cerrando la instalación en el sitio correcto?'
-              : failure.message,
-        ),
-        actions: [
-          BotonesDialogo(
-            secundario: 'Revisar',
-            onSecundario: () => Navigator.pop(ctx, false),
-            primario: 'Sí, cerrar aquí',
-            onPrimario: () => Navigator.pop(ctx, true),
-          ),
-        ],
-      ),
+    final confirmar = await mostrarHojaDecision(
+      context,
+      titulo: '¿Cerrar lejos del domicilio?',
+      texto: distancia != null
+          ? 'Estás a $distancia m de donde marcaste la llegada. Si de verdad estás en el domicilio del cliente, cierra aquí; queda anotado que lo confirmaste.'
+          : failure.message,
+      seguir: 'Cerrar aquí',
+      salir: 'Revisar antes de cerrar',
     );
     if (confirmar == true && mounted) await _submitCierreInstalacion(confirmarUbicacion: true);
   }
@@ -437,8 +403,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   String _repairKey(int id) => 'Reparación foto $id';
 
   // Solo se puede agregar otra foto cuando todas las actuales ya se tomaron.
-  bool get _canAddRepairPhoto =>
-      _repairPhotoSlots.every((id) => _fotosCapturadas.contains(_repairKey(id)));
+  bool get _canAddRepairPhoto => _repairPhotoSlots.every((id) => _fotosCapturadas.contains(_repairKey(id)));
 
   void _addRepairPhotoSlot() {
     setState(() {
@@ -447,8 +412,18 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     });
   }
 
+  /// Quita una foto de reparación y ofrece «Deshacer» (v2, 2026-10-23: el SnackBar sólo confirma).
+  /// También olvida su subida: si no, la foto quitada seguía viajando en el cierre.
   void _removeRepairPhotoSlot(int id) {
     final key = _repairKey(id);
+    final posicion = _repairPhotoSlots.indexOf(id);
+    final path = _photoPaths[key];
+    final location = _photoLocations[key];
+    final timestamp = _photoTimestamps[key];
+    final mismatch = _geoMismatches[key];
+    final capturada = _fotosCapturadas.contains(key);
+    final fileKey = _photoFileKeys[key];
+    final subida = _subidaFotos[key];
     setState(() {
       _repairPhotoSlots.remove(id);
       _photoPaths.remove(key);
@@ -456,7 +431,32 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
       _photoTimestamps.remove(key);
       _geoMismatches.remove(key);
       _fotosCapturadas.remove(key);
+      _photoFileKeys.remove(key);
+      _subidaFotos.remove(key);
     });
+
+    void deshacer() {
+      if (!mounted || _repairPhotoSlots.contains(id)) return;
+      setState(() {
+        _repairPhotoSlots.insert(posicion.clamp(0, _repairPhotoSlots.length), id);
+        if (path != null) _photoPaths[key] = path;
+        if (location != null) _photoLocations[key] = location;
+        if (timestamp != null) _photoTimestamps[key] = timestamp;
+        if (mismatch != null) _geoMismatches[key] = mismatch;
+        if (capturada) _fotosCapturadas.add(key);
+        if (fileKey != null) _photoFileKeys[key] = fileKey;
+        if (subida != null) _subidaFotos[key] = subida;
+      });
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('Foto quitada.'),
+        action: SnackBarAction(label: 'Deshacer', onPressed: deshacer),
+      ),
+    );
   }
 
   // ¿Están cubiertas las evidencias fotográficas del paso 1?
@@ -488,9 +488,6 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
     // Debe confirmar la entrega del control remoto funcional.
     if (!_controlEntregado) return false;
-    // Y responder por los addons: instalados o no aplica. Sin respuesta no
-    // hay forma de saber si faltó algo del servicio.
-    if (_camaras == null || _sensores == null || _sirena == null) return false;
 
     // Si reporta anomalías, debe marcar al menos un tipo o describirlas.
     if (_entregaConAnomalias) {
@@ -505,10 +502,10 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
 
   /// Lo que falta para poder terminar, en palabras del instalador.
   List<String> _faltantesCierre() => [
-        if (!_evidenciasCompletas()) 'las fotos',
-        if (!_validateStep2()) 'la entrega',
-        if (_signaturePoints.isEmpty) 'la firma del cliente' else if (!_signatureConfirmed) 'tocar «Confirmar firma»',
-      ];
+    if (!_evidenciasCompletas()) 'las fotos',
+    if (!_validateStep2()) 'la entrega',
+    if (_signaturePoints.isEmpty) 'la firma del cliente' else if (!_signatureConfirmed) 'tocar «Confirmar firma»',
+  ];
 
   // Helper to validate all conditions for the final submit button
   bool _canSubmitCierre() {
@@ -537,9 +534,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     if (_currentStep == 1) {
       if (!_validateStep1()) {
         setState(() {
-          _step1Error = _isReparacion
-              ? "Falta al menos una foto de la reparación (o hay un espacio sin foto)."
-              : "Faltan fotos: toma las 4 para seguir.";
+          _step1Error = _isReparacion ? "Falta al menos una foto de la reparación (o hay un espacio sin foto)." : "Faltan fotos: toma las 4 para seguir.";
         });
         return;
       }
@@ -549,11 +544,7 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     } else if (_currentStep == 2) {
       if (!_validateStep2()) {
         setState(() {
-          _step2Error = !_controlEntregado
-            ? "Falta confirmar la entrega del control remoto."
-            : (_camaras == null || _sensores == null || _sirena == null)
-                ? "Responde cámaras, sensores y sirena (o marca «No aplica»)."
-                : "Marca qué pasó o descríbelo abajo.";
+          _step2Error = !_controlEntregado ? "Falta confirmar la entrega del control remoto." : "Marca qué pasó o descríbelo abajo.";
         });
         return;
       }
@@ -571,232 +562,165 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
     }
   }
 
+  /// La flecha y el atrás del teléfono hacen lo mismo (auditoría 2026-10-23: el del teléfono cerraba
+  /// todo el cierre y se perdían fotos, entrega y firma): regresan un subpaso y, en el primero,
+  /// preguntan antes de soltar las fotos.
+  Future<void> _regresar() async {
+    if (_enviando) return;
+    if (_currentStep > 1) {
+      _prevStep();
+      return;
+    }
+    if (_photoFileKeys.isEmpty && _signaturePoints.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    final seguir = await mostrarHojaDecision(
+      context,
+      titulo: '¿Salir del cierre?',
+      texto: 'Las fotos que tomaste no se guardan en este teléfono: al volver tendrás que tomarlas otra vez.',
+      seguir: 'Seguir con el cierre',
+      salir: 'Salir del cierre',
+      pierde: true,
+    );
+    if (seguir == false && mounted) Navigator.pop(context);
+  }
+
+  /// Título grande del subpaso actual (v2: el encabezado dice dónde estás, no el nombre de la sección).
+  String get _tituloSubpaso {
+    switch (_currentStep) {
+      case 1:
+        return _isReparacion ? 'Fotos de la reparación' : 'Fotos de la instalación';
+      case 2:
+        return _requiereEquipo ? 'Entrega al cliente' : 'Entrega del equipo';
+      default:
+        return 'Firma del cliente';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
-    // OhmSafe Color System
-    // brandDark: neutral fuerte para foreground de botones "Atrás" (el texto se
-    // sobrescribe aparte). El segmento activo usa cs.inverseSurface (pill
-    // oscuro en claro / claro en oscuro), patrón M3 theme-aware.
-    final brandDark = cs.onSurface;
-    final brandOrange = cs.secondary;
-
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Top Header Logo & Bell
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              "OHM",
-                              style: TextStyle(fontWeight: FontWeight.w900),
-                            ),
-                            Text(
-                              "SAFE",
-                              style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Back Button & Title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Text(
-                          _isReparacion ? "Reparaciones" : "Instalaciones",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () {
-                              if (_currentStep > 1) {
-                                _prevStep();
-                              } else {
-                                Navigator.pop(context);
-                              }
-                            },
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Screen Subtitle
-                Center(
-                  child: Text(
-                    _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Wizard Steps Navigation Indicator
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _regresar();
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Stack(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // v2 (2026-10-23): encabezado único, sin logo ni título hecho a mano.
+                  EncabezadoFlujo(titulo: _tituloSubpaso, subtitulo: 'Cierre · paso $_currentStep de 3', alVolver: _regresar),
+                  _buildAvance(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildStepIndicatorLabel(1, "Fotos", brandOrange),
-                          _buildStepIndicatorLabel(2, "Entrega", brandOrange),
-                          _buildStepIndicatorLabel(3, "Firma", brandOrange),
+                          if (_currentStep == 1)
+                            _buildStep1Evidence()
+                          else if (_currentStep == 2)
+                            _buildStep2Equipment()
+                          else if (_currentStep == 3)
+                            _buildStep3Signature(),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      // Progress Line
-                      Row(
-                        children: [
-                          _buildStepProgressSegment(1),
-                          const SizedBox(width: 4),
-                          _buildStepProgressSegment(2),
-                          const SizedBox(width: 4),
-                          _buildStepProgressSegment(3),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Main Wizard Page Container
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 110),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (_currentStep == 1) ...[
-                          _buildStep1Evidence(brandDark, brandOrange),
-                        ] else if (_currentStep == 2) ...[
-                          _buildStep2Equipment(brandDark, brandOrange),
-                        ] else if (_currentStep == 3) ...[
-                          _buildStep3Signature(brandDark, brandOrange),
-                        ],
-                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // Shared bottom navigation bar overlay
-          const AppBottomNav(),
-
-          // Sending loading overlay
-          if (_isLoading)
-            _buildLoadingOverlay(context),
-        ],
-      ),
-    );
-  }
-
-  /// Etiqueta de sección del cierre (su estilo de siempre) con un ⓘ discreto al lado.
-  Widget _etiqueta(String texto, {String? tituloAyuda, required List<String> ayuda}) {
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.onSurfaceVariant;
-    return Row(
-      children: [
-        Flexible(child: Text(texto, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: color))),
-        InfoAyuda(titulo: tituloAyuda ?? texto, puntos: ayuda, color: color),
-      ],
-    );
-  }
-
-  // Step Indicators helpers
-  Widget _buildStepIndicatorLabel(int step, String title, Color activeColor) {
-    final bool isActive = _currentStep == step;
-    final bool isCompleted = _currentStep > step;
-    return Text(
-      "$step. $title",
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        color: isActive 
-            ? activeColor 
-            : (isCompleted ? Colors.green : Colors.grey.shade400),
-      ),
-    );
-  }
-
-  Widget _buildStepProgressSegment(int step) {
-    final bool isActive = _currentStep == step;
-    final bool isCompleted = _currentStep > step;
-    return Expanded(
-      child: Container(
-        height: 6,
-        decoration: BoxDecoration(
-          color: isActive 
-              ? Theme.of(context).colorScheme.secondary
-              : (isCompleted ? Colors.green : Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(3),
+            // Sending loading overlay
+            if (_isLoading) _buildLoadingOverlay(context),
+          ],
         ),
       ),
     );
   }
 
-  // STEP 1 CONTENT: Evidence photos & anomaly justification
-  Widget _buildStep1Evidence(Color brandDark, Color brandOrange) {
+  /// Avance de los 3 subpasos (v2, como la barra de «Pasos»): hecho en verde, el actual en el
+  /// naranja de la marca y lo que falta en gris.
+  Widget _buildAvance() {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    const nombres = ['Fotos', 'Entrega', 'Firma'];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Row(
+        children: [
+          for (var i = 0; i < nombres.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AnimatedContainer(
+                    duration: AppMotion.of(context, AppDurations.base),
+                    curve: AppCurves.standard,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: _currentStep == i + 1 ? cs.primary : (_currentStep > i + 1 ? context.ohm.success : cs.outlineVariant),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    nombres[i],
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: _currentStep == i + 1 ? cs.onSurface : cs.onSurfaceVariant,
+                      fontWeight: _currentStep == i + 1 ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Error del subpaso, junto al botón (v2): qué pasó y cómo arreglarlo.
+  Widget _errorJuntoAlBoton(String mensaje) {
+    return Semantics(
+      liveRegion: true,
+      child: MensajeFlujo(icono: Icons.error_outline_rounded, color: Theme.of(context).colorScheme.error, titulo: mensaje),
+    );
+  }
+
+  /// Botón principal arriba y «Atrás» gris abajo (v2: arriba seguir, abajo salir).
+  Widget _navegacion(Widget principal, {Widget? debajo}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        principal,
+        if (debajo != null) ...[const SizedBox(height: 12), debajo],
+        const SizedBox(height: 12),
+        // Mientras envía no se regresa: la firma se mide en su lienzo y debe seguir montado.
+        BotonSecundario(etiqueta: 'Atrás', onPressed: _enviando ? null : _prevStep),
+      ],
+    );
+  }
+
+  // STEP 1 CONTENT: Evidence photos & anomaly justification
+  Widget _buildStep1Evidence() {
     bool anyGeoMismatch = _geoMismatches.values.contains(true);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _etiqueta(
-          _isReparacion ? "FOTOS DE LA REPARACIÓN" : "FOTOS OBLIGATORIAS",
+        EtiquetaSeccion(
+          _isReparacion ? 'Fotos de la reparación' : 'Fotos obligatorias',
           tituloAyuda: _isReparacion ? 'Fotos de la reparación' : 'Qué debe verse en cada foto',
           ayuda: _isReparacion
               ? const [
@@ -805,434 +729,216 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   'Cada foto guarda la ubicación donde la tomaste.',
                 ]
               : const [
-                  'Perfil izquierdo y derecho: la cerca vista desde cada extremo, completa.',
+                  'Foto cerca 1 y 2: la cerca vista desde cada extremo, completa.',
                   'Energizador: el equipo ya instalado, con sus cables.',
                   'Letrero OhmSafe: el letrero de advertencia colocado.',
                   'Tómalas en el domicilio: cada foto guarda su ubicación.',
                 ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          _isReparacion
-              ? "Toma al menos una foto del trabajo. Cada foto guarda su ubicación."
-              : "Toma las 4 fotos en el domicilio. Cada foto guarda su ubicación.",
-          style: TextStyle(
-            fontSize: 13,
-            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 20),
 
         // Fotos: en reparación, lista dinámica que se agrega una a una;
-        // en instalación, las 4 categorías fijas.
-        if (_isReparacion) ...[
-          ..._repairPhotoSlots.asMap().entries.map(
-                (e) => _buildRepairPhotoCard(e.value, e.key, brandDark, brandOrange),
-              ),
-          _buildAddRepairPhotoButton(brandOrange),
-        ] else
-          ..._categories.map((cat) => _buildPhotoCategoryCard(cat, brandDark, brandOrange)),
+        // en instalación, las 4 categorías fijas. Todas en un solo grupo (v2).
+        GrupoFilas(
+          pie: _isReparacion
+              ? (_canAddRepairPhoto
+                    ? 'Toma al menos una foto del trabajo. Cada foto guarda su ubicación.'
+                    : 'Toma la foto que falta para poder agregar otra. Cada foto guarda su ubicación.')
+              : 'Toma las 4 fotos en el domicilio. Cada foto guarda su ubicación.',
+          children: _isReparacion
+              ? [..._repairPhotoSlots.asMap().entries.map((e) => _buildRepairPhotoCard(e.value, e.key)), _buildAddRepairPhotoButton()]
+              : _categories.map(_buildPhotoCategoryCard).toList(),
+        ),
 
-        // Anti-fraud GPS mismatch warning banner
-        if (anyGeoMismatch) ...[
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            // Rojo relleno con texto blanco, como los demás avisos de error (lienzo de Carlos, 2026-10-15).
-            decoration: BoxDecoration(
-              color: AvisoRojo.fondo,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.white, size: 22),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Una foto no se tomó en el domicilio",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        "Explica abajo por qué (por ejemplo, no había señal de GPS).",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        // Aviso de ubicación: hoy la valida el backend al cerrar, así que casi nunca aparece.
+        if (anyGeoMismatch)
+          MensajeFlujo(
+            icono: Icons.gps_off_rounded,
+            color: context.ohm.warning,
+            titulo: 'Una foto no se tomó en el domicilio',
+            texto: 'Explica abajo por qué (por ejemplo, no había señal de GPS).',
           ),
-        ],
 
         // Anomaly Justification TextField
-        const SizedBox(height: 24),
-        Text(
-          anyGeoMismatch ? "¿POR QUÉ NO COINCIDE LA UBICACIÓN?" : "COMENTARIOS (OPCIONAL)",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 8),
+        EtiquetaSeccion(anyGeoMismatch ? '¿Por qué no coincide la ubicación?' : 'Comentarios (opcional)'),
         TextField(
           controller: _photoCommentsController,
           maxLines: 3,
-          style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+          textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(
-            hintText: anyGeoMismatch 
-              ? "Ej. no había señal de GPS, la barda da a otra calle…"
-              : "Algo que operaciones deba saber de esta instalación",
-            filled: true,
-            fillColor: context.ohm.surfaceContainer,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: anyGeoMismatch ? Colors.redAccent : brandOrange,
-                width: 1.5,
-              ),
-            ),
+            hintText: anyGeoMismatch ? 'Ej. no había señal de GPS, la barda da a otra calle…' : 'Algo que operaciones deba saber de esta instalación',
           ),
         ),
 
-        // Error message if any
-        if (_step1Error != null) ...[
-          const SizedBox(height: 16),
-          Text(
-            _step1Error!,
-            style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-        ],
-
-        // Siguiente Button
         const SizedBox(height: 32),
-        OhmGradientButton(
-          label: "Siguiente",
-          icon: Icons.arrow_forward_rounded,
-          onPressed: _nextStep,
-        ),
+        if (_step1Error != null) _errorJuntoAlBoton(_step1Error!),
+        OhmGradientButton(label: 'Siguiente: entrega', icon: Icons.arrow_forward_rounded, onPressed: _nextStep),
       ],
     );
   }
 
-  /// Estado de la subida de la foto. En error, tocarlo reintenta sin volver a
-  /// tomar la foto.
-  Widget _estadoSubidaChip(String category) {
-    final estado = _subidaFotos[category];
-    switch (estado) {
+  /// Estado de la subida de la foto, como punto y palabra (v2). En error, la acción de la fila es
+  /// «Volver a intentar» (sube otra vez sin volver a tomar la foto).
+  Widget _estadoFoto(String category) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final mismatch = _geoMismatches[category] ?? false;
+    final Widget estado;
+    switch (_subidaFotos[category]) {
       case _EstadoSubida.subiendo:
-        return Row(
-          children: const [
-            SizedBox(width: 11, height: 11, child: CircularProgressIndicator(strokeWidth: 1.6)),
-            SizedBox(width: 6),
-            Text("Subiendo…", style: TextStyle(fontSize: 11, color: Colors.grey)),
+        estado = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.6, color: cs.onSurfaceVariant)),
+            const SizedBox(width: 6),
+            Text('Subiendo…', style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
           ],
         );
       case _EstadoSubida.ok:
-        return const Row(
-          children: [
-            Icon(Icons.cloud_done_rounded, size: 13, color: Colors.green),
-            SizedBox(width: 4),
-            Text("Subida", style: TextStyle(fontSize: 11, color: Colors.green)),
-          ],
-        );
+        estado = EstadoPunto('Subida', color: context.ohm.success);
       case _EstadoSubida.error:
-        return Semantics(
-          button: true,
-          label: "Reintentar subida de $category",
-          child: InkWell(
-            onTap: () => _subirFoto(category),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              // Área táctil cómoda sin agrandar la tarjeta.
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: const [
-                  Icon(Icons.cloud_off_rounded, size: 13, color: Colors.redAccent),
-                  SizedBox(width: 4),
-                  Text(
-                    "No se subió · Toca para reintentar",
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.redAccent),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        estado = EstadoPunto('No se subió', color: cs.error);
       case null:
-        return const SizedBox.shrink();
+        estado = EstadoPunto(_photoPaths[category] == null ? 'Falta tomarla' : 'Tomada', color: cs.outline);
     }
+    if (!mismatch) return estado;
+    return Wrap(
+      spacing: 12,
+      runSpacing: 4,
+      children: [
+        estado,
+        EstadoPunto('Lejos del domicilio', color: context.ohm.warning),
+      ],
+    );
   }
 
-  Widget _buildPhotoCategoryCard(String category, Color brandDark, Color brandOrange) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
-    final path = _photoPaths[category];
-    final hasPhoto = path != null;
-    final isMismatched = _geoMismatches[category] ?? false;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isMismatched 
-            ? Colors.redAccent 
-            : (hasPhoto ? Colors.green.shade200 : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant)),
-        ),
+  /// Miniatura de la foto (o la cámara si falta), 44 × 44 con radio 9 como los íconos de fila v2.
+  Widget _miniatura(String? path) {
+    final cs = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(9),
+      child: Container(
+        width: 44,
+        height: 44,
+        color: cs.surfaceContainerHighest,
+        // Ahora que la foto es real, se muestra: es la evidencia que
+        // el instalador acaba de tomar, no un palomeo.
+        child: path != null
+            ? Image.file(
+                File(path),
+                fit: BoxFit.cover,
+                width: 44,
+                height: 44,
+                errorBuilder: (_, _, _) => Icon(Icons.image_rounded, color: cs.onSurfaceVariant, size: 22),
+              )
+            : Icon(Icons.photo_camera_rounded, color: cs.onSurfaceVariant, size: 22),
       ),
+    );
+  }
+
+  /// Acción de la fila de una foto: tomarla, volver a subirla o tomar otra.
+  Widget _accionFoto(String category) {
+    final cs = Theme.of(context).colorScheme;
+    if (_capturingCategory == category) {
+      return SizedBox(
+        width: 48,
+        height: 44,
+        child: Center(
+          child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: cs.onSurfaceVariant)),
+        ),
+      );
+    }
+    if (_subidaFotos[category] == _EstadoSubida.error) {
+      return BotonFila(etiqueta: 'Volver a intentar', onPressed: () => _subirFoto(category));
+    }
+    final ocupado = _capturingCategory != null || _subidaFotos[category] == _EstadoSubida.subiendo;
+    final hasPhoto = _photoPaths[category] != null;
+    return BotonFila(
+      etiqueta: hasPhoto ? 'Tomar otra' : 'Tomar foto',
+      icono: hasPhoto ? null : Icons.add_a_photo_rounded,
+      onPressed: ocupado ? null : () => _capturarFoto(category),
+    );
+  }
+
+  /// Fila de foto dentro del grupo: miniatura, nombre, estado y acción.
+  Widget _filaFoto({required String titulo, required String category, List<Widget> extra = const []}) {
+    final theme = Theme.of(context);
+    return Container(
+      constraints: const BoxConstraints(minHeight: 64),
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
       child: Row(
         children: [
-          // Left side: Photo thumbnail or placeholder
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 50,
-              height: 50,
-              color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
-              // Ahora que la foto es real, se muestra: es la evidencia que
-              // el instalador acaba de tomar, no un palomeo.
-              child: hasPhoto
-                  ? Image.file(
-                      File(path),
-                      fit: BoxFit.cover,
-                      width: 50,
-                      height: 50,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.check_circle,
-                        color: Theme.of(context).colorScheme.secondary,
-                        size: 28,
-                      ),
-                    )
-                  : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
-            ),
-          ),
-          const SizedBox(width: 16),
-
-          // Center info
+          _miniatura(_photoPaths[category]),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  category,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-                if (hasPhoto) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        isMismatched ? Icons.gps_off_rounded : Icons.gps_fixed_rounded,
-                        size: 13,
-                        color: isMismatched ? Colors.redAccent : Colors.green,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isMismatched ? "Lejos del domicilio" : "En el domicilio",
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isMismatched ? Colors.redAccent : Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  _estadoSubidaChip(category),
-                ],
+                Text(titulo, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 2),
+                _estadoFoto(category),
               ],
             ),
           ),
-
-          // Right button: Action
-          _capturingCategory == category
-              ? SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
-                    ),
-                  ),
-                )
-              : IconButton(
-                  onPressed: () => _capturarFoto(category),
-                  icon: Icon(
-                    hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
-                    color: hasPhoto ? Colors.green : brandOrange,
-                  ),
-                ),
+          ...extra,
+          _accionFoto(category),
         ],
       ),
     );
   }
 
-  // Tarjeta de una foto de evidencia de reparación (etiqueta "Foto N" por
+  Widget _buildPhotoCategoryCard(String category) => _filaFoto(titulo: category, category: category);
+
+  // Fila de una foto de evidencia de reparación (etiqueta "Foto N" por
   // posición; datos guardados con clave estable por id). Permite reemplazar
-  // la foto y eliminar el slot si hay más de uno.
-  Widget _buildRepairPhotoCard(int id, int index, Color brandDark, Color brandOrange) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+  // la foto y quitar la fila si hay más de una (con «Deshacer»).
+  Widget _buildRepairPhotoCard(int id, int index) {
+    final cs = Theme.of(context).colorScheme;
     final key = _repairKey(id);
-    final hasPhoto = _photoPaths[key] != null;
-    final isMismatched = _geoMismatches[key] ?? false;
-    final isCapturing = _capturingCategory == key;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isMismatched
-              ? Colors.redAccent
-              : (hasPhoto ? Colors.green.shade200 : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant)),
-        ),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 50,
-              height: 50,
-              color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
-              // Ahora que la foto es real, se muestra: es la evidencia que
-              // el instalador acaba de tomar, no un palomeo.
-              child: hasPhoto
-                  ? Image.file(
-                      File(_photoPaths[key]!),
-                      fit: BoxFit.cover,
-                      width: 50,
-                      height: 50,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.check_circle,
-                        color: Theme.of(context).colorScheme.secondary,
-                        size: 28,
-                      ),
-                    )
-                  : Icon(Icons.camera_alt_outlined, color: Colors.grey.shade400),
-            ),
+    final ocupada = _capturingCategory == key || _subidaFotos[key] == _EstadoSubida.subiendo;
+    return _filaFoto(
+      titulo: 'Foto ${index + 1}',
+      category: key,
+      extra: [
+        if (_repairPhotoSlots.length > 1)
+          IconButton(
+            tooltip: 'Quitar foto ${index + 1}',
+            onPressed: ocupada ? null : () => _removeRepairPhotoSlot(id),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            icon: Icon(Icons.close_rounded, size: 20, color: cs.onSurfaceVariant),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Foto ${index + 1}",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-                if (hasPhoto) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        isMismatched ? Icons.gps_off_rounded : Icons.gps_fixed_rounded,
-                        size: 13,
-                        color: isMismatched ? Colors.redAccent : Colors.green,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isMismatched ? "Lejos del domicilio" : "En el domicilio",
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isMismatched ? Colors.redAccent : Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else
-                  Text(
-                    "Falta tomarla",
-                    style: TextStyle(fontSize: 11, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
-                  ),
-              ],
-            ),
-          ),
-          // Eliminar slot (solo si hay más de una foto)
-          if (_repairPhotoSlots.length > 1)
-            IconButton(
-              onPressed: isCapturing ? null : () => _removeRepairPhotoSlot(id),
-              icon: const Icon(Icons.close_rounded, size: 20, color: Colors.redAccent),
-            ),
-          // Capturar / reemplazar
-          isCapturing
-              ? SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
-                    ),
-                  ),
-                )
-              : IconButton(
-                  onPressed: () => _capturarFoto(key),
-                  icon: Icon(
-                    hasPhoto ? Icons.cached_rounded : Icons.add_a_photo_rounded,
-                    color: hasPhoto ? Colors.green : brandOrange,
-                  ),
-                ),
-        ],
-      ),
+      ],
     );
   }
 
-  // Botón "Agregar foto": habilitado solo cuando todas las fotos actuales
+  // Fila "Agregar foto": habilitada solo cuando todas las fotos actuales
   // ya se tomaron (flujo de una en una).
-  Widget _buildAddRepairPhotoButton(Color brandOrange) {
+  Widget _buildAddRepairPhotoButton() {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final enabled = _canAddRepairPhoto;
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 4),
-      child: SizedBox(
-        height: 48,
-        child: OutlinedButton.icon(
-          onPressed: enabled ? _addRepairPhotoSlot : null,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: brandOrange,
-            side: BorderSide(
-              color: enabled ? brandOrange : theme.dividerColor,
-              width: 1.5,
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      child: InkWell(
+        onTap: enabled ? _addRepairPhotoSlot : null,
+        child: AnimatedOpacity(
+          duration: AppMotion.of(context, AppDurations.base),
+          opacity: enabled ? 1 : 0.4,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(color: cs.primaryContainer, shape: BoxShape.circle),
+                  child: Icon(Icons.add_rounded, size: 20, color: cs.primary),
+                ),
+                const SizedBox(width: 14),
+                Text('Agregar foto', style: theme.textTheme.titleMedium),
+              ],
             ),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-          icon: const Icon(Icons.add_a_photo_rounded, size: 18),
-          label: const Text(
-            "Agregar foto",
-            style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -1240,570 +946,205 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
   }
 
   // STEP 2 CONTENT: confirmación de entrega de equipo (checks, sin foto/serie)
-  Widget _buildStep2Equipment(Color brandDark, Color brandOrange) {
+  Widget _buildStep2Equipment() {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
 
     // Reparación sin cambio de energizador: no hay equipo que entregar.
     if (!_requiereEquipo) {
-      return _buildStep2SinEquipo(brandDark, brandOrange);
+      return _buildStep2SinEquipo();
     }
+
+    Widget opcion(String titulo, bool elegida, VoidCallback alElegir) => FilaFlujo(
+      titulo: titulo,
+      onTap: alElegir,
+      trailing: elegida ? Icon(Icons.check_rounded, color: cs.primary, size: 22) : const SizedBox(width: 22),
+    );
+
+    Widget anomalia(String titulo, bool valor, ValueChanged<bool> cambiar) => FilaFlujo(
+      titulo: titulo,
+      leading: CirculoCheck(marcado: valor),
+      onTap: () => cambiar(!valor),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          "ENTREGA AL CLIENTE",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
+          child: Text('Confirma lo que le dejaste funcionando al cliente.', style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
         ),
-        const SizedBox(height: 8),
-        Text(
-          "Confirma lo que le dejaste funcionando al cliente.",
-          style: TextStyle(
-            fontSize: 13,
-            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 20),
 
-        // Check: entrega del control remoto funcional
-        _entregaCheckTile(
-          theme,
-          isDark,
-          value: _controlEntregado,
-          label: "Le entregué el control remoto y funciona",
-          onChanged: (v) => setState(() {
-            _controlEntregado = v;
-            _step2Error = null;
-          }),
-          brandOrange: brandOrange,
-        ),
-        const SizedBox(height: 20),
-
-        // Extras del servicio: cámaras, sensores y sirena
-        _etiqueta(
-          "EXTRAS DEL SERVICIO",
-          ayuda: const [
-            '«Instalé y funciona»: lo instalaste y lo probaste con el cliente.',
-            '«No aplica»: no venía en lo que compró.',
-            'Si venía pero no lo pudiste dejar funcionando, marca «Con problemas» abajo y cuéntanos qué pasó.',
+        // Cámaras, sensores y sirena ya no se contestan a mano (Carlos, 2026-10-20, caso i76): el reporte
+        // lista lo que se registró en «Agregar dispositivos», con los datos del servidor.
+        GrupoFilas(
+          pie: 'El reporte del cliente lista sólo lo que registraste en «Agregar dispositivos» (energizador, sensores, sirena, salidas y cámaras).',
+          children: [
+            FilaFlujo(
+              titulo: 'Le entregué el control remoto y funciona',
+              onTap: () => setState(() {
+                _controlEntregado = !_controlEntregado;
+                _step2Error = null;
+              }),
+              trailing: Switch.adaptive(
+                value: _controlEntregado,
+                onChanged: (v) => setState(() {
+                  _controlEntregado = v;
+                  _step2Error = null;
+                }),
+              ),
+            ),
           ],
         ),
-        _addonRow(
-          theme,
-          brandOrange,
-          label: "Cámaras",
-          value: _camaras,
-          onChanged: (v) => setState(() {
-            _camaras = v;
-            _step2Error = null;
-          }),
-        ),
-        const SizedBox(height: 8),
-        _addonRow(
-          theme,
-          brandOrange,
-          label: "Sensores",
-          value: _sensores,
-          onChanged: (v) => setState(() {
-            _sensores = v;
-            _step2Error = null;
-          }),
-        ),
-        const SizedBox(height: 8),
-        _addonRow(
-          theme,
-          brandOrange,
-          label: "Sirena",
-          value: _sirena,
-          onChanged: (v) => setState(() {
-            _sirena = v;
-            _step2Error = null;
-          }),
-        ),
-        const SizedBox(height: 20),
 
         // Estado de la entrega
-        Text(
-          "¿CÓMO QUEDÓ TODO?",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+        const EtiquetaSeccion('¿Cómo quedó todo?'),
+        GrupoFilas(
+          children: [
+            opcion(
+              'Todo funciona',
+              !_entregaConAnomalias,
+              () => setState(() {
+                _entregaConAnomalias = false;
+                _step2Error = null;
+              }),
+            ),
+            opcion(
+              'Con problemas',
+              _entregaConAnomalias,
+              () => setState(() {
+                _entregaConAnomalias = true;
+                _step2Error = null;
+              }),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        _entregaSegmented(theme, brandDark, brandOrange),
 
         // Si hubo anomalías: tipos + descripción
         if (_entregaConAnomalias) ...[
-          const SizedBox(height: 20),
-          Text(
-            "¿QUÉ PASÓ?",
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          const EtiquetaSeccion('¿Qué pasó?'),
+          GrupoFilas(
+            children: [
+              anomalia(
+                'El equipo está dañado',
+                _anomFisica,
+                (v) => setState(() {
+                  _anomFisica = v;
+                  _step2Error = null;
+                }),
+              ),
+              anomalia(
+                'Algo no funciona',
+                _anomFuncionamiento,
+                (v) => setState(() {
+                  _anomFuncionamiento = v;
+                  _step2Error = null;
+                }),
+              ),
+              anomalia(
+                'El control remoto no funcionó',
+                _anomControl,
+                (v) => setState(() {
+                  _anomControl = v;
+                  _step2Error = null;
+                }),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          _entregaCheckTile(
-            theme,
-            isDark,
-            value: _anomFisica,
-            label: "El equipo está dañado",
-            onChanged: (v) => setState(() {
-              _anomFisica = v;
-              _step2Error = null;
-            }),
-            brandOrange: brandOrange,
-          ),
-          const SizedBox(height: 8),
-          _entregaCheckTile(
-            theme,
-            isDark,
-            value: _anomFuncionamiento,
-            label: "Algo no funciona",
-            onChanged: (v) => setState(() {
-              _anomFuncionamiento = v;
-              _step2Error = null;
-            }),
-            brandOrange: brandOrange,
-          ),
-          const SizedBox(height: 8),
-          _entregaCheckTile(
-            theme,
-            isDark,
-            value: _anomControl,
-            label: "El control remoto no funcionó",
-            onChanged: (v) => setState(() {
-              _anomControl = v;
-              _step2Error = null;
-            }),
-            brandOrange: brandOrange,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            "CUÉNTANOS QUÉ PASÓ",
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
+          const EtiquetaSeccion('Cuéntanos qué pasó'),
           TextField(
             controller: _step2CommentsController,
             maxLines: 3,
-            style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+            textCapitalization: TextCapitalization.sentences,
             onChanged: (_) => setState(() => _step2Error = null),
-            decoration: InputDecoration(
-              hintText: "Obligatorio si no marcaste nada arriba",
-              filled: true,
-              fillColor: context.ohm.surfaceContainer,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: theme.colorScheme.secondary, width: 1.5),
-              ),
-            ),
+            decoration: const InputDecoration(hintText: 'Obligatorio si no marcaste nada arriba'),
           ),
         ],
 
-        if (_step2Error != null) ...[
-          const SizedBox(height: 16),
-          Text(
-            _step2Error!,
-            style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-        ],
-
-        // Navegación
         const SizedBox(height: 32),
-        Row(
-          children: [
-            // «Siguiente» (con ícono) lleva el doble de espacio que «Atrás» para que no se trunque.
-            // Hasta el 2026-10-17 estaba al revés (Atrás flex 2): en un teléfono chico se cortaba.
-            Expanded(
-              child: SizedBox(
-                height: 52,
-                child: OutlinedButton(
-                  onPressed: _prevStep,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: brandDark,
-                    side: BorderSide(color: isDark ? Colors.white24 : Colors.black12, width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text(
-                    "Atrás",
-                    style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: OhmGradientButton(
-                label: "Siguiente",
-                icon: Icons.arrow_forward_rounded,
-                onPressed: _nextStep,
-              ),
-            ),
-          ],
-        ),
+        if (_step2Error != null) _errorJuntoAlBoton(_step2Error!),
+        _navegacion(OhmGradientButton(label: 'Siguiente: firma', icon: Icons.arrow_forward_rounded, onPressed: _nextStep)),
       ],
     );
   }
 
-  // Fila-check reutilizable (tap para alternar).
-  /// Fila de addon con dos opciones excluyentes: instalado o no aplica.
-  /// Se exige respuesta explícita (no un check que se pueda dejar vacío) para
-  /// distinguir "no lo instalé" de "el servicio no lo incluye".
-  Widget _addonRow(
-    ThemeData theme,
-    Color brandOrange, {
-    required String label,
-    required String? value,
-    required ValueChanged<String> onChanged,
-  }) {
-    Widget opcion(String v, String texto, IconData icono) {
-      final activo = value == v;
-      return Expanded(
-        child: Semantics(
-          button: true,
-          selected: activo,
-          label: "$label: $texto",
-          child: InkWell(
-            onTap: () => onChanged(v),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              // 44 de alto: mínimo táctil de la guía.
-              constraints: const BoxConstraints(minHeight: 44),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: activo ? brandOrange.withValues(alpha: 0.12) : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: activo ? brandOrange : theme.dividerColor,
-                  width: activo ? 1.6 : 1,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icono, size: 16, color: activo ? brandOrange : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      texto,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
-                        color: activo ? brandOrange : theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              opcion('instaladas', "Instalé y funciona", Icons.check_circle_outline_rounded),
-              const SizedBox(width: 8),
-              opcion('no_aplica', "No aplica", Icons.block_rounded),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _entregaCheckTile(
-    ThemeData theme,
-    bool isDark, {
-    required bool value,
-    required String label,
-    required ValueChanged<bool> onChanged,
-    required Color brandOrange,
-  }) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: value ? brandOrange : (isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant),
-            width: value ? 1.6 : 1.0,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              value ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-              color: value ? brandOrange : Colors.grey,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textTheme.bodyLarge?.color,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Segmentado: Todo funcional / Con anomalías.
-  Widget _entregaSegmented(ThemeData theme, Color brandDark, Color brandOrange) {
-    final cs = theme.colorScheme;
-    final opciones = ['Todo funciona', 'Con problemas'];
-    final selected = _entregaConAnomalias ? 1 : 0;
-    return Row(
-      children: opciones.asMap().entries.map((e) {
-        final sel = e.key == selected;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() {
-              _entregaConAnomalias = e.key == 1;
-              _step2Error = null;
-            }),
-            child: AnimatedContainer(
-              duration: AppMotion.duration(context, AppDurations.base),
-              curve: AppCurves.standard,
-              margin: EdgeInsets.only(right: e.key == 0 ? 8 : 0),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: sel ? cs.inverseSurface : theme.cardColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: sel ? cs.inverseSurface : theme.dividerColor),
-              ),
-              child: Text(
-                e.value,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: sel ? cs.onInverseSurface : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   // STEP 2 (variante): reparación sin cambio de energizador.
-  Widget _buildStep2SinEquipo(Color brandDark, Color brandOrange) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+  Widget _buildStep2SinEquipo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          "ENTREGA DE EQUIPO Y ACCESORIOS",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? theme.colorScheme.outline : theme.colorScheme.outlineVariant,
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.info_outline_rounded, color: theme.colorScheme.secondary, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Sin cambio de energizador",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "En esta reparación no se reemplazó el energizador, por lo que no se requiere registrar número de serie del control ni evidencia de equipo.",
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        height: 1.4,
-                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        MensajeFlujo(
+          icono: Icons.info_outline_rounded,
+          color: context.ohm.info,
+          titulo: 'Sin cambio de energizador',
+          texto: 'No cambiaste el energizador: no hace falta serie ni foto del equipo.',
         ),
 
         // Comentarios opcionales del equipo (no obligatorio)
-        const SizedBox(height: 24),
-        Text(
-          "COMENTARIOS DE EQUIPO (OPCIONAL)",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
+        const EtiquetaSeccion('Comentarios del equipo (opcional)'),
         TextField(
           controller: _step2CommentsController,
           maxLines: 3,
-          style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-          decoration: InputDecoration(
-            hintText: "Observaciones sobre el equipo existente (opcional)...",
-            filled: true,
-            fillColor: context.ohm.surfaceContainer,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: theme.colorScheme.secondary, width: 1.5),
-            ),
-          ),
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(hintText: 'Observaciones sobre el equipo que ya estaba (opcional)…'),
         ),
 
-        // Navegación
         const SizedBox(height: 32),
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 52,
-                child: OutlinedButton(
-                  onPressed: _prevStep,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: brandDark,
-                    side: BorderSide(color: isDark ? Colors.white24 : Colors.black12, width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text(
-                    "Atrás",
-                    style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: OhmGradientButton(
-                label: "Siguiente",
-                icon: Icons.arrow_forward_rounded,
-                onPressed: _nextStep,
-              ),
-            ),
-          ],
-        ),
+        _navegacion(OhmGradientButton(label: 'Siguiente: firma', icon: Icons.arrow_forward_rounded, onPressed: _nextStep)),
       ],
     );
   }
 
   // STEP 3 CONTENT: Signature and termination
-  Widget _buildStep3Signature(Color brandDark, Color brandOrange) {
+  Widget _buildStep3Signature() {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
+
+    // Un solo botón naranja a la vez (v2): primero «Confirmar firma» y, ya confirmada, «Terminar».
+    final principal = _signatureConfirmed
+        ? OhmGradientButton(
+            label: _isReparacion ? 'Terminar reparación' : 'Terminar instalación',
+            icon: Icons.check_circle_rounded,
+            loading: _enviando,
+            loadingLabel: _fase,
+            onPressed: _canSubmitCierre() ? _submitCierreInstalacion : null,
+          )
+        : OhmGradientButton(
+            label: 'Confirmar firma',
+            icon: Icons.check_rounded,
+            onPressed: _signaturePoints.isNotEmpty ? () => setState(() => _signatureConfirmed = true) : null,
+          );
+    final principalApagado = _signatureConfirmed ? !_canSubmitCierre() : _signaturePoints.isEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          "FIRMA DEL CLIENTE",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            color: theme.colorScheme.onSurfaceVariant,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
+          child: Text(
+            'Pide al cliente que firme con el dedo para confirmar que recibió el servicio. Luego toca «Confirmar firma».',
+            style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          "Pide al cliente que firme con el dedo para confirmar que recibió el servicio. Luego toca «Confirmar firma».",
-          
-          style: TextStyle(
-            fontSize: 13,
-            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 24),
 
         // Interactive Signature Canvas Box
         Stack(
           children: [
             Container(
-              height: 200,
+              height: 220,
               decoration: BoxDecoration(
-                color: context.ohm.surfaceContainer,
-                borderRadius: BorderRadius.circular(20),
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  // Borde oscuro para que el recuadro se vea en exteriores (lienzo de Carlos, 2026-10-15).
-                  color: _signatureConfirmed
-                    ? Colors.green
-                    : (isDark ? theme.colorScheme.outline : theme.colorScheme.onSurface),
-                  width: _signatureConfirmed ? 2.0 : 1.0,
+                  // Borde con contraste para que el recuadro se vea en exteriores (lienzo de Carlos, 2026-10-15).
+                  color: _signatureConfirmed ? ohm.success : cs.outline,
+                  width: 1.5,
                 ),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(19),
+                borderRadius: BorderRadius.circular(13),
                 // El lienzo compite con el SingleChildScrollView que lo contiene:
                 // un GestureDetector normal pierde el arrastre vertical contra el
                 // scroll y la firma sale entrecortada (solo trazos horizontales).
@@ -1814,30 +1155,19 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                   gestures: _signatureConfirmed
                       ? const <Type, GestureRecognizerFactory>{}
                       : <Type, GestureRecognizerFactory>{
-                          _FirmaPanRecognizer:
-                              GestureRecognizerFactoryWithHandlers<_FirmaPanRecognizer>(
-                            () => _FirmaPanRecognizer(),
-                            (_FirmaPanRecognizer r) {
-                              r.dragStartBehavior = DragStartBehavior.down;
-                              r.onStart = (d) => _agregarTrazo(d.globalPosition);
-                              r.onUpdate = (d) => _agregarTrazo(d.globalPosition);
-                              r.onEnd = (_) => _terminarTrazo();
-                            },
-                          ),
+                          _FirmaPanRecognizer: GestureRecognizerFactoryWithHandlers<_FirmaPanRecognizer>(() => _FirmaPanRecognizer(), (_FirmaPanRecognizer r) {
+                            r.dragStartBehavior = DragStartBehavior.down;
+                            r.onStart = (d) => _agregarTrazo(d.globalPosition);
+                            r.onUpdate = (d) => _agregarTrazo(d.globalPosition);
+                            r.onEnd = (_) => _terminarTrazo();
+                          }),
                         },
-                  child: CustomPaint(
-                    painter: SignaturePainter(
-                      _signaturePoints,
-                      _signatureConfirmed
-                          ? Colors.green
-                          : (isDark ? Colors.white : Colors.black),
-                    ),
-                    size: Size.infinite,
-                  ),
+                  // Tinta del tema: oscura en claro y clara en oscuro; verde ya confirmada.
+                  child: CustomPaint(painter: SignaturePainter(_signaturePoints, _signatureConfirmed ? ohm.success : cs.onSurface), size: Size.infinite),
                 ),
               ),
             ),
-            
+
             // Indicación dentro del recuadro vacío (no captura toques).
             if (!_signatureConfirmed && _signaturePoints.isEmpty)
               Positioned.fill(
@@ -1846,46 +1176,39 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.draw_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                        Icon(Icons.draw_rounded, size: 20, color: cs.onSurfaceVariant),
                         const SizedBox(width: 8),
-                        Text(
-                          "Firma aquí con el dedo",
-                          style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                        Flexible(
+                          child: Text('Firma aquí con el dedo', style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
-            // Signature Locked Overlay Banner
+            // Firma guardada: aviso plano, sin sombra (v2).
             if (_signatureConfirmed)
               Positioned.fill(
-                child: Container(
-                  color: Colors.green.withValues(alpha: 0.06),
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade600,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: const [
-                          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.lock_rounded, color: Colors.white, size: 16),
-                          SizedBox(width: 8),
-                          Text(
-                            "Firma guardada",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                child: IgnorePointer(
+                  child: Container(
+                    decoration: BoxDecoration(color: ohm.success.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14)),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(color: ohm.success, borderRadius: BorderRadius.circular(16)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.lock_rounded, color: ohm.onSuccess, size: 16),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Firma guardada',
+                                style: theme.textTheme.bodyMedium?.copyWith(color: ohm.onSuccess, fontWeight: FontWeight.w600),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1894,171 +1217,57 @@ class _CierreInstalacionScreenState extends State<CierreInstalacionScreen> {
           ],
         ),
 
-        // Signature Canvas Actions
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton.icon(
-              onPressed: _signatureConfirmed 
-                ? null 
-                : () {
-                    setState(() {
-                      _signaturePoints.clear();
-                    });
-                  },
-              icon: const Icon(Icons.clear_all_rounded, size: 18),
-              label: const Text("Limpiar"),
-              style: TextButton.styleFrom(
-                foregroundColor: _signatureConfirmed ? Colors.grey : brandOrange,
-              ),
-            ),
-            if (!_signatureConfirmed)
-              ElevatedButton.icon(
-                onPressed: _signaturePoints.isNotEmpty 
-                  ? () {
-                      setState(() {
-                        _signatureConfirmed = true;
-                      });
-                    }
-                  : null,
-                icon: const Icon(Icons.check_rounded, size: 16),
-                label: const Text("Confirmar firma"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade600,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  disabledForegroundColor: Colors.grey.shade600,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  // OBLIGATORIO dentro de un Row: el tema global fija
-                  // `minimumSize: Size.fromHeight(...)`, que es
-                  // Size(double.infinity, h). En un Row el ancho disponible no
-                  // esta acotado, asi que el boton pedia un ancho infinito, el
-                  // layout de ese subarbol fallaba y el boton no se pintaba ni
-                  // recibia toques: el instalador no podia confirmar la firma.
-                  // (Mismo origen que la pantalla de Facturacion en blanco.)
-                  minimumSize: const Size(150, 44),
+        // Acción del lienzo: borrar antes de confirmar o volver a firmar después.
+        Align(
+          alignment: Alignment.centerRight,
+          child: _signatureConfirmed
+              ? BotonFila(
+                  etiqueta: 'Volver a firmar',
+                  icono: Icons.lock_open_rounded,
+                  onPressed: _enviando ? null : () => setState(() => _signatureConfirmed = false),
+                )
+              : BotonFila(
+                  etiqueta: 'Borrar firma',
+                  icono: Icons.backspace_rounded,
+                  onPressed: _signaturePoints.isEmpty ? null : () => setState(() => _signaturePoints.clear()),
                 ),
-              )
-            else
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _signatureConfirmed = false;
-                  });
-                },
-                icon: const Icon(Icons.lock_open_rounded, size: 18),
-                label: const Text("Volver a firmar"),
-                style: TextButton.styleFrom(foregroundColor: brandOrange),
-              ),
-          ],
         ),
 
-        if (_step3Error != null) ...[
-          const SizedBox(height: 16),
-          Text(
-            _step3Error!,
-            style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-        ],
-
-        // Por qué el botón final sigue apagado (sin adivinar).
-        if (!_canSubmitCierre()) ...[
-          const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.info_outline_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Para terminar falta: ${_faltantesCierre().join(', ')}.",
-                  style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant, height: 1.4),
-                ),
-              ),
-            ],
-          ),
-        ],
-
-        // Final Button & Previous Step navigation
         const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 52,
-                child: OutlinedButton(
-                  onPressed: _prevStep,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: brandDark,
-                    side: BorderSide(color: isDark ? Colors.white24 : Colors.black12, width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text(
-                    "Atrás",
-                    style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 3,
-              child: OhmGradientButton(
-                label: _isReparacion ? "Terminar reparación" : "Terminar instalación",
-                icon: Icons.check_circle_rounded,
-                onPressed: _canSubmitCierre() ? _submitCierreInstalacion : null,
-              ),
-            ),
-          ],
-        ),
+        if (_step3Error != null) _errorJuntoAlBoton(_step3Error!),
+        // Debajo del botón apagado, por qué sigue apagado (sin adivinar).
+        _navegacion(principal, debajo: principalApagado ? FaltaParaSeguir(_faltantesCierre()) : null),
       ],
     );
   }
 
-  // Sending data overlay
+  // Sending data overlay (v2: tarjeta plana de radio 14, sin sombra dura).
   Widget _buildLoadingOverlay(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Container(
-      color: Colors.black.withValues(alpha: 0.6),
+      color: cs.scrim.withValues(alpha: 0.4),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           margin: const EdgeInsets.symmetric(horizontal: 40),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 20, offset: const Offset(0, 10)),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                color: cs.primary,
-                strokeWidth: 3.5,
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Enviando el cierre…",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+          decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(14)),
+          child: Semantics(
+            liveRegion: true,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: cs.primary, strokeWidth: 3),
+                const SizedBox(height: 20),
+                Text(_fase, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 6),
+                Text(
+                  'No cierres la app; tarda menos de un minuto.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                 ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                "Subiendo fotos, ubicación y firma",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

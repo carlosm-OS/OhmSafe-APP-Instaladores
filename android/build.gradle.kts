@@ -12,6 +12,12 @@ val ohmsafeTuyaLinked: Boolean = System.getenv("OHMSAFE_TUYA") != "0" &&
 extra["ohmsafeTuyaAndroidSdk"] = ohmsafeTuyaAndroidSdk
 extra["ohmsafeTuyaLinked"] = ohmsafeTuyaLinked
 
+// EZVIZ Open SDK (2026-10-20: la app solo ofrece Tuya, decision de Carlos): FUERA de la build por
+// omision (unos 40 MB de libs nativas). Se reincorpora con `-PohmsafeEzviz=true`
+// (o `ORG_GRADLE_PROJECT_ohmsafeEzviz=true`) u `OHMSAFE_EZVIZ=1`. Ver docs/WIFI-EZVIZ-TUYA.md.
+val ohmsafeEzvizLinked: Boolean = (findProperty("ohmsafeEzviz")?.toString() == "true") || System.getenv("OHMSAFE_EZVIZ") == "1"
+extra["ohmsafeEzvizLinked"] = ohmsafeEzvizLinked
+
 allprojects {
     repositories {
         google()

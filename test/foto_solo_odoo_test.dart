@@ -39,7 +39,7 @@ void main() {
       child: MaterialApp(theme: AppTheme.light, home: const ProfileMainScreen()),
     ));
     await tester.pump();
-    for (final etiqueta in ['DATOS GENERALES', 'Nombre(s)', 'Apellidos', 'Teléfono', 'Correo', 'CURP']) {
+    for (final etiqueta in ['Datos generales', 'Nombre(s)', 'Apellidos', 'Teléfono', 'Correo', 'CURP']) {
       expect(find.text(etiqueta), findsOneWidget, reason: etiqueta);
     }
     expect(find.byType(TextField), findsNothing); // sin campos de captura
@@ -48,7 +48,7 @@ void main() {
     // Sin datos de ejemplo: lo que no llegó de Odoo se muestra como «—».
     expect(find.text('juan@ohmsafe.com'), findsNothing);
     expect(find.text('55 5266 7879'), findsNothing);
-    final yDatos = tester.getTopLeft(find.text('DATOS GENERALES')).dy;
+    final yDatos = tester.getTopLeft(find.text('Datos generales')).dy;
     final yBanco = tester.getTopLeft(find.text('Datos bancarios')).dy;
     expect(yDatos, lessThan(yBanco));
   });

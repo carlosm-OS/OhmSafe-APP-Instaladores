@@ -101,10 +101,10 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
   /// Los códigos de Imou dicen poco al instalador; aquí se traducen a qué hacer.
   static String _explicar(String msg) {
     if (msg.contains('DV1002')) {
-      return 'Imou todavía no ve esta cámara en internet: no se ha conectado a la Wi‑Fi (la luz sigue parpadeando) o la serie está mal escrita.';
+      return 'Todavía no se ve esta cámara en internet: no se ha conectado a la Wi‑Fi (la luz sigue parpadeando) o la serie está mal escrita. Revisa y vuelve a intentar.';
     }
     if (msg.contains('DV1001')) {
-      return 'Esta cámara está ligada a otra cuenta de Imou. Hay que quitarla de esa app (o restablecerla de fábrica) y volver a intentar.';
+      return 'Esta cámara está registrada en otra cuenta. Hay que quitarla de su app de origen (o restablecerla de fábrica) y volver a intentar.';
     }
     if (msg.contains('DV1005') || msg.contains('DV1016') || msg.contains('DV1025') || msg.contains('VENDOR_CODE_INVALID')) {
       return 'El código de seguridad no coincide. Revisa mayúsculas y minúsculas: es el «SAFETY CODE» de la etiqueta, tal cual.';
@@ -116,7 +116,8 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final titulo = _imou ? 'Conectar cámara Imou' : 'Cámara ya conectada';
+    // v2 (2026-10-23): sin marcas en texto visible.
+    final titulo = _imou ? 'Conectar cámara con su serie' : 'Cámara ya conectada';
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
@@ -127,20 +128,19 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
             Expanded(
               // Formulario corto: se construye entero (no perezoso) para que el teclado sólo lo desplace.
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 physics: const BouncingScrollPhysics(),
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (_error != null) MensajeFlujo(icono: Icons.error_outline, color: cs.error, titulo: 'No se pudo registrar la cámara', texto: _error!),
                     if (_imou) ...[
                       const EtiquetaSeccion(
-                        'ANTES DE EMPEZAR',
-                        tituloAyuda: 'Cómo preparar la cámara Imou',
+                        'Antes de empezar',
+                        tituloAyuda: 'Cómo preparar la cámara',
                         ayuda: [
                           'Enchufa la cámara; la luz verde parpadea cuando está lista para conectarse.',
-                          'La cámara tiene que estar en internet para registrarla: conéctala a la Wi‑Fi de la casa (2.4 GHz) con la app Imou Life iniciada con la cuenta de OhmSafe. En la próxima versión este paso se hará desde aquí.',
+                          'La cámara tiene que estar en internet para registrarla: conéctala primero a la Wi‑Fi de la casa (2.4 GHz).',
                           'Si ya se usó antes, mantén RESET 10 s hasta que la luz vuelva a parpadear.',
                         ],
                       ),
@@ -154,15 +154,15 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 24),
                     ] else
                       const EtiquetaSeccion(
-                        'ANTES DE EMPEZAR',
+                        'Antes de empezar',
                         tituloAyuda: 'Cámara que ya está en internet',
-                        ayuda: ['Para una cámara conectada con la app del fabricante. Escanea su etiqueta o escribe la serie y el código.'],
+                        ayuda: ['Para una cámara conectada con su app de origen. Escanea su etiqueta o escribe la serie y el código.'],
                       ),
                     EtiquetaSeccion(
-                      'LA CÁMARA',
+                      'La cámara',
                       tituloAyuda: 'Etiqueta de la cámara',
                       ayuda: [
                         _imou
@@ -183,7 +183,7 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
                         labelText: 'Número de serie',
                         helperText: 'En la etiqueta, como S/N.',
                         suffixIcon: IconButton(
-                          tooltip: 'Escanear etiqueta',
+                          tooltip: 'Escanear la etiqueta',
                           icon: const Icon(Icons.qr_code_scanner_rounded),
                           onPressed: _ocupado ? null : _escanear,
                         ),
@@ -216,10 +216,14 @@ class _ConectarImouScreenState extends State<ConectarImouScreen> {
                       decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej. Cochera', counterText: ''),
                     ),
                     const SizedBox(height: 24),
+                    // El error va junto al botón: qué pasó y qué hacer.
+                    if (_error != null)
+                      MensajeFlujo(icono: Icons.error_outline_rounded, color: cs.error, titulo: 'No se pudo registrar la cámara', texto: _error!),
                     OhmGradientButton(
                       label: _error == null ? 'Registrar la cámara' : 'Volver a intentar',
-                      icon: Icons.videocam_outlined,
+                      icon: Icons.videocam_rounded,
                       loading: _ocupado,
+                      loadingLabel: 'Registrando la cámara…',
                       onPressed: _ocupado || !_completo ? null : _registrar,
                     ),
                   ],
@@ -240,7 +244,8 @@ class _Punto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -250,14 +255,14 @@ class _Punto extends StatelessWidget {
             width: 24,
             height: 24,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: cs.surfaceContainerHighest, shape: BoxShape.circle),
             child: Text(
               n,
-              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+              style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurface, fontWeight: FontWeight.w600),
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(texto, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.35))),
+          Expanded(child: Text(texto, style: theme.textTheme.bodyMedium)),
         ],
       ),
     );

@@ -25,6 +25,10 @@ val tuyaLinked: Boolean = rootProject.extra["ohmsafeTuyaLinked"] as Boolean
 val tuyaSecDir = rootProject.extra["ohmsafeTuyaAndroidSdk"] as java.io.File
 logger.lifecycle(if (tuyaLinked) "[ohmsafe] Tuya SDK enlazado desde $tuyaSecDir" else "[ohmsafe] Tuya SDK ausente: build sin emparejamiento Tuya (TUYA_NOT_LINKED)")
 
+// EZVIZ (2026-10-20): fuera de la build por omision; src/ezvizOn solo con ohmsafeEzviz=true / OHMSAFE_EZVIZ=1.
+val ezvizLinked: Boolean = rootProject.extra["ohmsafeEzvizLinked"] as Boolean
+logger.lifecycle(if (ezvizLinked) "[ohmsafe] EZVIZ SDK enlazado (ohmsafeEzviz=true)" else "[ohmsafe] EZVIZ SDK fuera de la build (EZVIZ_NOT_LINKED): la app solo ofrece Tuya")
+
 android {
     namespace = "com.ohmsafe.instalador"
     compileSdk = flutter.compileSdkVersion
@@ -59,7 +63,9 @@ android {
     // EZVIZ Open SDK global (2026-10-17): sin paquete privado, sale entero de Maven Central. El AAR trae
     // mbedTLS, iconv, SRT y JNA propios; hoy nada choca, la lista evita que un AAR nuevo tumbe el merge.
     packaging {
-        jniLibs.pickFirsts += listOf("**/libmbedcrypto.so", "**/libmbedtls.so", "**/libmbedx509.so", "**/libiconv.so", "**/libsrt.so", "**/libjnidispatch.so")
+        if (ezvizLinked) {
+            jniLibs.pickFirsts += listOf("**/libmbedcrypto.so", "**/libmbedtls.so", "**/libmbedx509.so", "**/libiconv.so", "**/libsrt.so", "**/libjnidispatch.so")
+        }
         if (tuyaLinked) {
             // Varios AAR de Tuya traen las mismas libs nativas (igual que en la app del cliente).
             jniLibs.pickFirsts += listOf("**/libc++_shared.so", "**/libthing*.so", "**/libtt*.so", "**/libyuv.so", "**/libopenssl*.so", "**/libcrypto*.so", "**/libssl*.so")
@@ -70,6 +76,7 @@ android {
     sourceSets {
         getByName("main") {
             java.srcDir(if (tuyaLinked) "src/tuyaOn/kotlin" else "src/tuyaOff/kotlin")
+            java.srcDir(if (ezvizLinked) "src/ezvizOn/kotlin" else "src/ezvizOff/kotlin")
         }
     }
 
@@ -98,9 +105,11 @@ flutter {
 dependencies {
     // EZVIZ Open SDK global (`com.videogo.openapi.EZGlobalSDK`). okhttp y gson los exige el SDK y su POM
     // NO los declara: sin ellos revienta en ejecución (NoClassDefFoundError), no al compilar.
-    implementation("io.github.ezviz-open:ezviz-sdk:5.32")
-    implementation("com.squareup.okhttp3:okhttp:3.12.1")
-    implementation("com.google.code.gson:gson:2.8.5")
+    if (ezvizLinked) {
+        implementation("io.github.ezviz-open:ezviz-sdk:5.32")
+        implementation("com.squareup.okhttp3:okhttp:3.12.1")
+        implementation("com.google.code.gson:gson:2.8.5")
+    }
 
     if (tuyaLinked) {
         // Paquete de seguridad propio de la app: vive FUERA del repo, se trata como el AppSecret.

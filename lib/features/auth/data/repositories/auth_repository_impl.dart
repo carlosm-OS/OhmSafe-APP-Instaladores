@@ -40,7 +40,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -76,7 +76,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 

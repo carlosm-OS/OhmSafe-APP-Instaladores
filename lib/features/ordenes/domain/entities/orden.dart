@@ -41,6 +41,11 @@ class Orden {
   /// Hoja de trabajo de Odoo: `[{nombre, etiqueta, tipo, valor}]`, vacía hasta que se llena.
   final List<Map<String, dynamic>> hojaTrabajo;
 
+  /// Paso «Wi‑Fi de la casa» (2026-10-22): pendiente | lista | omitida, y el nombre de la red si quedó
+  /// lista. La contraseña nunca viene del servidor: vive en el teléfono (ver WifiCasaLocal).
+  final String wifiCasaEstado;
+  final String wifiCasaRed;
+
   const Orden({
     required this.id,
     required this.tipo,
@@ -71,6 +76,8 @@ class Orden {
     this.origen = '',
     this.ordenVenta = '',
     this.hojaTrabajo = const [],
+    this.wifiCasaEstado = 'pendiente',
+    this.wifiCasaRed = '',
   });
 
   bool get esIntervencion => origen == 'intervencion';
@@ -116,5 +123,6 @@ class Orden {
           'ordenVenta': ordenVenta,
           'origen': origen,
         },
+        'wifiCasa': {'estado': wifiCasaEstado, 'red': wifiCasaRed},
       };
 }

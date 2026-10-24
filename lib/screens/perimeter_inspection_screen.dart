@@ -1,13 +1,10 @@
 import '../widgets/cancellation_flow.dart';
-import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
-import '../widgets/notification_bell.dart';
-import '../core/theme/app_theme_extension.dart';
-import '../widgets/app_bottom_nav.dart';
+import '../widgets/ayuda.dart';
 import '../widgets/ohm_gradient_button.dart';
+import '../core/theme/app_motion.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
-import 'instalaciones_screen.dart';
 
 class PerimeterInspectionScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -18,19 +15,8 @@ class PerimeterInspectionScreen extends StatefulWidget {
 }
 
 class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
-
   // Obstacles to display in the 2-column grid
-  final List<String> _obstacles = [
-    'Malla ciclónica',
-    'Vegetación',
-    'Concertina',
-    'Árboles',
-    'Herrería',
-    'Desniveles',
-    'Arcos',
-    'Cableado',
-    'Altura superior',
-  ];
+  final List<String> _obstacles = ['Malla ciclónica', 'Vegetación', 'Concertina', 'Árboles', 'Herrería', 'Desniveles', 'Arcos', 'Cableado', 'Altura superior'];
 
   bool _noObstaclesSelected = false;
   final Set<String> _selectedObstacles = {};
@@ -85,18 +71,24 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
 
   bool _isSending = false;
 
+  /// Mensaje humano del repositorio si no se pudo guardar; va junto al botón (v2).
+  String? _error;
+
   /// Guarda la inspección de perímetro en el backend (obstáculos + bandera
   /// "sin obstáculos") y, solo si tiene éxito, regresa 'perimeter_completed'.
   Future<void> _guardarInspeccion() async {
     if (_isSending) return;
-    setState(() => _isSending = true);
+    setState(() {
+      _isSending = true;
+      _error = null;
+    });
     final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     final result = await sl.get<OrdenesRepository>().guardarInspeccion(
-          id,
-          sinObstaculos: _noObstaclesSelected,
-          obstaculos: _selectedObstacles.toList(),
-          metrosReales: double.tryParse(_metrosController.text.trim()),
-        );
+      id,
+      sinObstaculos: _noObstaclesSelected,
+      obstaculos: _selectedObstacles.toList(),
+      metrosReales: double.tryParse(_metrosController.text.trim()),
+    );
     if (!mounted) return;
     result.fold(
       (_) {
@@ -109,12 +101,10 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
         }
         Navigator.pop(context, 'perimeter_completed');
       },
-      (failure) {
-        setState(() => _isSending = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("No se pudo guardar la inspección: ${failure.message}")),
-        );
-      },
+      (failure) => setState(() {
+        _isSending = false;
+        _error = failure.message;
+      }),
     );
   }
 
@@ -122,357 +112,100 @@ class _PerimeterInspectionScreenState extends State<PerimeterInspectionScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
     final details = widget.ticket["details"] as Map<String, String>;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header (Logo centrado, icono notificaciones derecha)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // v2 (2026-10-23): encabezado único.
+            EncabezadoFlujo(titulo: "Inspección del perímetro", subtitulo: widget.ticket["user"] ?? "Cliente", alVolver: () => Navigator.pop(context)),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  const EtiquetaSeccion("Metraje"),
+                  GrupoFilas(
+                    pie: "Corrige el real con lo que mides en sitio; el agendado se guarda aparte para comparar.",
                     children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "OHM",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: theme.textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            Text(
-                              "SAFE",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: cs.primary,
-                              ),
-                            ),
-                          ],
-                        ),
+                      FilaFlujo(
+                        titulo: "Metraje agendado",
+                        trailing: Text(details["metraje"] ?? "0 m", style: theme.textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Back arrow and Title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: Text(
-                            "Inspección del perímetro",
+                      // El metraje REAL lo mide el instalador en sitio; el agendado (arriba) queda intacto.
+                      FilaFlujo(
+                        titulo: "Metraje real",
+                        trailing: SizedBox(
+                          width: 104,
+                          child: TextField(
+                            controller: _metrosController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.titleLarge?.color,
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              suffixText: "m",
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                              filled: true,
+                              fillColor: cs.surfaceContainerHighest,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                             ),
                           ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Main Content Scrollable
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      // Client & Metraje info card
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        decoration: BoxDecoration(
-                          color: cs.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: theme.dividerColor.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Cliente:  ",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color,
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.person_outline_rounded,
-                                  size: 16,
-                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  widget.ticket["user"] ?? "Cliente",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Metraje agendado:  ",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color,
-                                  ),
-                                ),
-                                Text(
-                                  details["metraje"] ?? "0m",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            // El metraje REAL lo mide el instalador en sitio; el
-                            // agendado (arriba) queda intacto para comparar.
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Metraje real:  ",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: theme.textTheme.bodyLarge?.color,
-                                  ),
-                                ),
-                                SizedBox(
-                                  width: 96,
-                                  child: TextField(
-                                    controller: _metrosController,
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: theme.textTheme.bodyLarge?.color,
-                                    ),
-                                    decoration: InputDecoration(
-                                      isDense: true,
-                                      suffixText: "m",
-                                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                                      filled: true,
-                                      fillColor: context.ohm.surfaceContainer,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-
-                        // Section Header
-                        Text(
-                          "OBSTÁCULOS EN EL TERRENO",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Option: Perímetro sin obstáculos (Full-width top tile)
-                        _buildObstacleTile("Perímetro sin obstáculos", _noObstaclesSelected),
-                        const SizedBox(height: 12),
-
-                        // Grid of remaining obstacles (2 columns)
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 2.6,
-                          ),
-                          itemCount: _obstacles.length,
-                          itemBuilder: (context, index) {
-                            final name = _obstacles[index];
-                            final isSelected = _selectedObstacles.contains(name);
-                            return _buildObstacleTile(name, isSelected);
-                          },
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Main action: Completar perímetro
-                        OhmGradientButton(
-                          label: "Completar perímetro",
-                          onPressed: (_hasSelection && !_isSending)
-                              ? _guardarInspeccion
-                              : null,
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Cancel Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () => showCancellationFlow(context, widget.ticket),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: theme.textTheme.bodyLarge?.color,
-                              side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: const Text(
-                              "Cancelar instalación",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
 
-          // Shared Bottom Navigation Bar
-          const AppBottomNav(),
-        ],
+                  const EtiquetaSeccion("Obstáculos en el terreno"),
+                  GrupoFilas(children: [_buildObstacleTile("Perímetro sin obstáculos", _noObstaclesSelected)]),
+                  GrupoFilas(
+                    pie: "Marca todos los que haya.",
+                    children: [for (final name in _obstacles) _buildObstacleTile(name, _selectedObstacles.contains(name))],
+                  ),
+
+                  // Lo que pasa, pasa junto al botón (v2).
+                  if (_error != null)
+                    MensajeFlujo(icono: Icons.error_outline_rounded, color: cs.error, titulo: "No pudimos guardar la inspección", texto: _error),
+                  OhmGradientButton(
+                    label: "Guardar inspección",
+                    loading: _isSending,
+                    loadingLabel: "Guardando la inspección…",
+                    onPressed: _hasSelection ? _guardarInspeccion : null,
+                  ),
+                  if (!_hasSelection) ...[
+                    const SizedBox(height: 12),
+                    const FaltaParaSeguir(["marcar los obstáculos o «Perímetro sin obstáculos»"]),
+                  ],
+                  const SizedBox(height: 12),
+                  BotonSecundario(etiqueta: "Cancelar instalación", peligro: true, onPressed: () => showCancellationFlow(context, widget.ticket)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildObstacleTile(String name, bool isSelected) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Determine if this tile is disabled because "Perímetro sin obstáculos" is selected
+    // Deshabilitado mientras «Perímetro sin obstáculos» está marcado.
     final bool isDisabled = _noObstaclesSelected && name != 'Perímetro sin obstáculos';
 
-    return GestureDetector(
-      onTap: isDisabled ? null : () => _toggleObstacle(name),
-      child: Opacity(
+    return Semantics(
+      checked: isSelected,
+      enabled: !isDisabled,
+      child: AnimatedOpacity(
+        duration: AppMotion.of(context, AppDurations.base),
         opacity: isDisabled ? 0.4 : 1.0,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? (isDark ? cs.primary.withValues(alpha: 0.2) : cs.primaryContainer)
-                : (isDark ? cs.surface.withValues(alpha: 0.5) : cs.surface),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected
-                  ? cs.primary
-                  : theme.dividerColor.withValues(alpha: 0.3),
-              width: isSelected ? 1.5 : 1.0,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected
-                        ? cs.primary
-                        : theme.textTheme.bodyLarge?.color,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Circular checkbox matching the UI
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected
-                        ? cs.primary
-                        : (isDark ? Colors.white30 : Colors.black12),
-                    width: 2,
-                  ),
-                  color: isSelected ? cs.primary : Colors.transparent,
-                ),
-                child: isSelected
-                    ? const Icon(
-                        Icons.check,
-                        size: 12,
-                        color: Colors.white,
-                      )
-                    : null,
-              ),
-            ],
-          ),
+        child: FilaFlujo(
+          titulo: name,
+          trailing: CirculoCheck(marcado: isSelected),
+          onTap: isDisabled ? null : () => _toggleObstacle(name),
         ),
       ),
     );

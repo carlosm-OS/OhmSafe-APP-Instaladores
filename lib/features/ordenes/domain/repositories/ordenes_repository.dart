@@ -53,6 +53,8 @@ abstract class OrdenesRepository {
   Future<Result<Map<String, dynamic>>> cableadoRegistrarEntrada(String id, int index, {required String nombre, String? icono});
   Future<Result<Map<String, dynamic>>> cableadoProbarSirena(String id);
   Future<Result<Map<String, dynamic>>> cableadoConfirmarSirena(String id, {required bool sono});
+  /// Sirena de demostración (2026-10-20): encender/apagar varias veces; encendida se apaga sola a los 15 s.
+  Future<Result<Map<String, dynamic>>> cableadoSirena(String id, {required bool encender});
   Future<Result<Map<String, dynamic>>> cableadoProbarSalida(String id, int index);
   Future<Result<Map<String, dynamic>>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono});
   /// OhmBox adicional en la misma casa (add-on de su suscripción, 2026-10-14).
@@ -60,7 +62,7 @@ abstract class OrdenesRepository {
   Future<Result<Map<String, dynamic>>> ohmboxAgregar(String id, {required String serie, String? mac});
   /// Sensores 433, Wi‑Fi y cámaras desde «Agregar dispositivos» (2026-10-14).
   Future<Result<Map<String, dynamic>>> dispositivosEstado(String id);
-  Future<Result<Map<String, dynamic>>> rfAprender(String id, {required String tipo, String? nombre});
+  Future<Result<Map<String, dynamic>>> rfAprender(String id, {required String tipo, String? nombre, int? botones});
   Future<Result<Map<String, dynamic>>> rfSesion(String id, String sid);
   Future<Result<Map<String, dynamic>>> rfTerminar(String id, String sid, {required String nombre});
   Future<Result<Map<String, dynamic>>> rfCancelar(String id, String sid);
@@ -71,7 +73,7 @@ abstract class OrdenesRepository {
   Future<Result<Map<String, dynamic>>> ezvizSondeo(String id, String serie);
   Future<Result<Map<String, dynamic>>> tuyaToken(String id, {required String modo, String? zonaHoraria});
   Future<Result<Map<String, dynamic>>> tuyaTokenResultado(String id, String token);
-  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category});
+  Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie});
   /// Cancelación en sitio: motivo tipado (mismo catálogo que el backend), notas, foto y ubicación opcionales.
   Future<Result<Map<String, dynamic>>> cancelar(String id, {required String motivo, String? notas, String? fotoBase64, Map<String, dynamic>? ubicacion});
 
@@ -90,4 +92,9 @@ abstract class OrdenesRepository {
 
   /// Guarda el cierre del servicio (evidencias, entrega de equipo, firma).
   Future<Result<bool>> guardarCierre(String id, Map<String, dynamic> cierre);
+  /// Paso «Wi‑Fi de la casa» (2026-10-22): `red` = sólo el nombre, u `omitir`.
+  Future<Result<Map<String, dynamic>>> wifiCasaGuardar(String id, {String? red, bool omitir = false});
+
+  /// Conecta el OhmBox a la Wi‑Fi de la casa como segunda conexión. La contraseña va al equipo.
+  Future<Result<Map<String, dynamic>>> ohmboxWifi(String id, {required String red, String? contrasena});
 }

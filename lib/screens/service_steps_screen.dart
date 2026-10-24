@@ -1,18 +1,20 @@
 import '../core/utils/como_llegar.dart';
 import '../core/navigation/volver_a_listado.dart';
 import 'dart:async';
-import '../widgets/notification_bell.dart';
+import '../core/wifi/wifi_casa_local.dart';
+import 'wifi_casa_screen.dart';
 import 'package:flutter/material.dart';
-import '../core/utils/fechas_odoo.dart';
+import 'package:flutter/services.dart';
+
+import '../core/theme/app_motion.dart';
+import '../widgets/ayuda.dart';
+import '../widgets/movimiento.dart';
 import '../core/theme/app_theme_extension.dart';
-import '../widgets/app_bottom_nav.dart';
 import '../widgets/ohm_gradient_button.dart';
 import 'route_details_screen.dart';
 import 'perimeter_inspection_screen.dart';
 import 'fence_installation_screen.dart';
 import 'reparacion_screen.dart';
-import 'link_energizer_screen.dart';
-import 'prueba_energizador_screen.dart';
 import 'agregar_dispositivos_screen.dart';
 import 'instalaciones_screen.dart';
 import 'reparaciones_screen.dart';
@@ -29,58 +31,58 @@ class TruckAnimationPage extends StatefulWidget {
 }
 
 class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProviderStateMixin {
-  late AnimationController _rotationController;
-  late AnimationController _bounceController;
-  late AnimationController _scaleController;
-  late AnimationController _roadController;
+  // Ruedas, rebote y línea del camino; [_scaleController] es la salida (se encoge).
+  late final AnimationController _rotationController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+  late final AnimationController _bounceController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+  late final AnimationController _roadController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+  late final AnimationController _scaleController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+
+  Timer? _espera;
+  bool _arrancada = false;
+  bool _salio = false;
 
   @override
-  void initState() {
-    super.initState();
-    // Rotate wheels
-    _rotationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..repeat();
-
-    // Bounce truck cabin/box slightly to simulate movement
-    _bounceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    )..repeat(reverse: true);
-
-    // Animate road dashed line
-    _roadController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat();
-
-    // Scale down wipe effect (from 1.0 to 0.0)
-    _scaleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-
-    // Run animation for 2.5 seconds, then perform wipe effect and navigate
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) {
-        _scaleController.forward().then((_) {
-          Navigator.pushReplacement(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => ServiceStepsScreen(ticket: widget.ticket),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-            ),
-          );
-        });
-      }
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_arrancada) return;
+    _arrancada = true;
+    // v2 (2026-10-23): con «Reducir movimiento» va directo a los pasos.
+    if (AppMotion.reducido(context)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _seguir());
+      return;
+    }
+    _rotationController.repeat();
+    _bounceController.repeat(reverse: true);
+    _roadController.repeat();
+    // Dura como máximo 1.2 s (900 ms de camino + 300 ms de salida) y un toque la salta (antes, 3 s fijos).
+    _espera = Timer(const Duration(milliseconds: 900), () {
+      if (mounted) _scaleController.forward().then((_) => _seguir());
     });
+  }
+
+  /// Pasa a los pasos una sola vez (por tiempo o por el toque).
+  void _seguir() {
+    if (_salio || !mounted) return;
+    _salio = true;
+    _espera?.cancel();
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        transitionDuration: AppMotion.of(context, AppDurations.base),
+        pageBuilder: (context, animation, secondaryAnimation) => ServiceStepsScreen(ticket: widget.ticket),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: AppCurves.standard),
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _espera?.cancel();
     _rotationController.dispose();
     _bounceController.dispose();
     _scaleController.dispose();
@@ -93,151 +95,127 @@ class _TruckAnimationPageState extends State<TruckAnimationPage> with TickerProv
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: AnimatedBuilder(
-        animation: _scaleController,
-        builder: (context, child) {
-          // Scale down from 1.0 to 0.0 (wipe-out effect)
-          final scaleValue = 1.0 - _scaleController.value;
-          return Transform.scale(
-            scale: scaleValue,
-            child: child,
-          );
-        },
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Stylized Animated Truck
-              SizedBox(
-                width: 240,
-                height: 140,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Moving dashed road lines
-                    Positioned(
-                      bottom: 14,
-                      left: 20,
-                      right: 20,
-                      child: AnimatedBuilder(
-                        animation: _roadController,
-                        builder: (context, child) {
-                          return CustomPaint(
-                            painter: RoadPainter(
-                              progress: _roadController.value,
-                              color: theme.dividerColor,
-                            ),
-                            size: const Size(200, 2),
-                          );
-                        },
-                      ),
-                    ),
-                    // Truck Body with Bounce Animation
-                    AnimatedBuilder(
-                      animation: _bounceController,
-                      builder: (context, child) {
-                        final bounceY = _bounceController.value * -3.0; // 3px bounce
-                        return Transform.translate(
-                          offset: Offset(0, bounceY),
-                          child: child,
-                        );
-                      },
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
+    return Semantics(
+      button: true,
+      label: 'Iniciando la ruta. Toca para continuar.',
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _seguir,
+        child: Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: AnimatedBuilder(
+            animation: _scaleController,
+            builder: (context, child) {
+              // Salida: se encoge de 1 a 0.
+              final scaleValue = 1.0 - AppCurves.exit.transform(_scaleController.value);
+              return Transform.scale(scale: scaleValue, child: child);
+            },
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Camión animado
+                  SizedBox(
+                    width: 240,
+                    height: 140,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Línea del camino en movimiento
+                        Positioned(
+                          bottom: 14,
+                          left: 20,
+                          right: 20,
+                          child: AnimatedBuilder(
+                            animation: _roadController,
+                            builder: (context, child) {
+                              return CustomPaint(
+                                painter: RoadPainter(progress: _roadController.value, color: cs.outlineVariant),
+                                size: const Size(200, 2),
+                              );
+                            },
+                          ),
+                        ),
+                        // Caja y cabina con un rebote leve
+                        AnimatedBuilder(
+                          animation: _bounceController,
+                          builder: (context, child) {
+                            final bounceY = _bounceController.value * -3.0; // 3px bounce
+                            return Transform.translate(offset: Offset(0, bounceY), child: child);
+                          },
+                          child: Column(
                             mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              // Orange Cargo Body with Logo text inside
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: cs.primary, // OhmSafe Orange
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                width: 85,
-                                height: 50,
-                                child: Center(
-                                  child: Text(
-                                    "OHMSAFE",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 11,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              // Cab (cabin)
-                              Container(
-                                width: 30,
-                                height: 35,
-                                decoration: BoxDecoration(
-                                  color: cs.onSurface, // Dark slate cabin
-                                  borderRadius: const BorderRadius.only(
-                                    topRight: Radius.circular(8),
-                                    bottomRight: Radius.circular(4),
-                                  ),
-                                ),
-                                child: Stack(
-                                  children: [
-                                    Positioned(
-                                      top: 4,
-                                      right: 4,
-                                      child: Container(
-                                        width: 14,
-                                        height: 12,
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.shade100, // Window glass
-                                          borderRadius: const BorderRadius.only(
-                                            topRight: Radius.circular(4),
-                                          ),
-                                        ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  // Caja naranja con la marca
+                                  Container(
+                                    decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(8)),
+                                    width: 85,
+                                    height: 50,
+                                    child: Center(
+                                      child: Text(
+                                        "OHMSAFE",
+                                        style: theme.textTheme.bodySmall?.copyWith(color: cs.onPrimary, fontWeight: FontWeight.w800, letterSpacing: 0.5),
                                       ),
                                     ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  // Cabina
+                                  Container(
+                                    width: 30,
+                                    height: 35,
+                                    decoration: BoxDecoration(
+                                      color: cs.onSurface,
+                                      borderRadius: const BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(4)),
+                                    ),
+                                    child: Stack(
+                                      children: [
+                                        Positioned(
+                                          top: 4,
+                                          right: 4,
+                                          child: Container(
+                                            width: 14,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color: cs.surfaceContainerHighest, // vidrio
+                                              borderRadius: const BorderRadius.only(topRight: Radius.circular(4)),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // Ruedas girando
+                              const SizedBox(height: 4),
+                              SizedBox(
+                                width: 100,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                  children: [
+                                    RotationTransition(turns: _rotationController, child: const WheelWidget()),
+                                    RotationTransition(turns: _rotationController, child: const WheelWidget()),
                                   ],
                                 ),
                               ),
                             ],
                           ),
-                          // Rotating Wheels
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            width: 100,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                RotationTransition(
-                                  turns: _rotationController,
-                                  child: const WheelWidget(),
-                                ),
-                                RotationTransition(
-                                  turns: _rotationController,
-                                  child: const WheelWidget(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text("Iniciando la ruta…", style: theme.textTheme.headlineSmall),
+                  const SizedBox(height: 6),
+                  Text("Toca para continuar", style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                ],
               ),
-              const SizedBox(height: 24),
-              Text(
-                "Iniciando Ruta de servicio",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: theme.textTheme.bodyLarge?.color,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -262,17 +240,13 @@ class RoadPainter extends CustomPainter {
     const dashWidth = 14.0;
     const dashSpace = 8.0;
     final totalSpacing = dashWidth + dashSpace;
-    
+
     final offsetX = -progress * totalSpacing;
 
     double currentX = offsetX;
     while (currentX < size.width + totalSpacing) {
       if (currentX + dashWidth > 0) {
-        canvas.drawLine(
-          Offset(currentX, y),
-          Offset(currentX + dashWidth, y),
-          paint,
-        );
+        canvas.drawLine(Offset(currentX, y), Offset(currentX + dashWidth, y), paint);
       }
       currentX += totalSpacing;
     }
@@ -288,24 +262,17 @@ class WheelWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       width: 22,
       height: 22,
-      decoration: const BoxDecoration(
-        color: Colors.black87,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: cs.onSurface, shape: BoxShape.circle),
       child: Center(
         child: Container(
           width: 8,
           height: 8,
-          decoration: const BoxDecoration(
-            color: Colors.white54,
-            shape: BoxShape.circle,
-          ),
-          child: CustomPaint(
-            painter: WheelSpokesPainter(),
-          ),
+          decoration: BoxDecoration(color: cs.outlineVariant, shape: BoxShape.circle),
+          child: CustomPaint(painter: WheelSpokesPainter(color: cs.surface)),
         ),
       ),
     );
@@ -313,10 +280,13 @@ class WheelWidget extends StatelessWidget {
 }
 
 class WheelSpokesPainter extends CustomPainter {
+  WheelSpokesPainter({required this.color});
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white
+      ..color = color
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke;
 
@@ -327,7 +297,7 @@ class WheelSpokesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant WheelSpokesPainter oldDelegate) => oldDelegate.color != color;
 }
 
 // --- SERVICE STEPS SCREEN ---
@@ -350,46 +320,66 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
   bool _step1Completed = false;
   bool _step2Completed = false;
   bool _step3Completed = false;
-  bool _step4Completed = false;
-  /// Prueba del energizador (build 39): paso opcional entre vincular y cierre; no lo guarda Odoo.
-  bool _pruebaHecha = false;
+
   /// «Agregar dispositivos» (build 39): cableado con prueba en vivo; opcional, antes del cierre.
+  /// Desde la build 54 (energizador opcional, Carlos 2026-10-20) también vincular el energizador y
+  /// su prueba viven ahí dentro: una casa puede no llevar energizador.
   bool _dispositivosHechos = false;
 
   /// «Agregar dispositivos» se abre sólo al tocar el paso y al terminar regresa aquí. Queda
   /// abierto hasta el cierre: si el cliente compra algo más en sitio se vuelve a entrar (Carlos, 2026-10-14).
   Future<void> _abrirDispositivos(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => AgregarDispositivosScreen(ticket: widget.ticket)),
-    );
+    final ticket = {
+      ...widget.ticket,
+      'wifiCasa': {'estado': _wifiEstado, 'red': _wifiRed},
+    };
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => AgregarDispositivosScreen(ticket: ticket)));
     if (!mounted) return;
+    // Desde «Agregar dispositivos» también se puede capturar o cambiar la Wi‑Fi de la casa.
+    final w = await WifiCasaLocal.instancia.leer((widget.ticket['id'] ?? '').toString());
+    if (!mounted) return;
+    if (w != null) {
+      setState(() {
+        _wifiEstado = 'lista';
+        _wifiRed = w.red;
+      });
+    }
     if (result == 'dispositivos_listos') setState(() => _dispositivosHechos = true);
   }
+
   bool _step5Completed = false;
 
-  /// Prueba del energizador: se abre sola al vincular y al terminar (u omitir) regresa a la
-  /// lista de pasos; la ventana de control se cierra al salir (2026-10-14).
-  Future<void> _abrirPrueba(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => PruebaEnergizadorScreen(ticket: widget.ticket)),
-    );
+  /// Paso «Wi‑Fi de la casa» (Carlos, 2026-10-22): pendiente | lista | omitida. Va antes de
+  /// «Agregar dispositivos»; se puede omitir y volver a él hasta el cierre.
+  late String _wifiEstado = ((widget.ticket['wifiCasa'] as Map?)?['estado'] ?? 'pendiente').toString();
+  late String _wifiRed = ((widget.ticket['wifiCasa'] as Map?)?['red'] ?? '').toString();
+  bool get _wifiResuelto => _wifiEstado == 'lista' || _wifiEstado == 'omitida';
+
+  Future<void> _abrirWifiCasa(BuildContext context) async {
+    final ticket = {
+      ...widget.ticket,
+      'wifiCasa': {'estado': _wifiEstado, 'red': _wifiRed},
+    };
+    final result = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => WifiCasaScreen(ticket: ticket)));
+    if (!mounted || result == null) return;
+    final w = await WifiCasaLocal.instancia.leer((widget.ticket['id'] ?? '').toString());
     if (!mounted) return;
-    if (result == 'prueba_terminada') setState(() => _pruebaHecha = true);
+    setState(() {
+      _wifiEstado = result == 'wifi_lista' ? 'lista' : 'omitida';
+      _wifiRed = result == 'wifi_lista' ? (w?.red ?? _wifiRed) : '';
+    });
   }
 
   /// Abre el cierre (paso 5 en instalaciones, 4 en reparaciones) y marca el paso al terminar.
   Future<void> _abrirCierre(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => CierreInstalacionScreen(ticket: widget.ticket)),
-    );
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => CierreInstalacionScreen(ticket: widget.ticket)));
     if (result == 'cierre_completed' && mounted) {
       setState(() => _step5Completed = true);
+      // El cierre ya se envió en su pantalla: aquí sólo se celebra (auditoría 2026-10-23; antes había
+      // que tocar un segundo «Terminar» que fingía 2.5 s de envío sin mandar nada).
+      await _submitFinalInstallation();
     }
   }
-  bool _isSubmitting = false;
 
   /// El paso 3 es una variante: instalación de cerca por defecto, o
   /// reparación cuando el ticket es de tipo reparación. Se detecta por
@@ -401,6 +391,11 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     return title.contains('reparacion') || title.contains('reparación');
   }
 
+  Timer? _toastTimer;
+
+  /// Paso bloqueado que se acaba de tocar: debajo dice qué falta (v2, 2026-10-23).
+  String? _pasoAviso;
+
   @override
   void initState() {
     super.initState();
@@ -408,30 +403,157 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
     _step1Completed = widget.pasoInicial > 1;
     _step2Completed = widget.pasoInicial > 2;
     _step3Completed = widget.pasoInicial > 3;
-    // En reparación no hay paso de vinculación; el cierre sigue al paso 3.
-    _step4Completed = widget.pasoInicial > 4 || (_isReparacion && widget.pasoInicial > 3);
-    // Build 40: 5 = prueba pendiente, 6 = prueba hecha (dispositivos/cierre abiertos), 7 = cierre.
-    _pruebaHecha = !_isReparacion && widget.pasoInicial > 5;
-    // El aviso «Técnico en camino» sólo aplica al arrancar la ruta, no al retomar.
+    // Build 54: 4 = «Agregar dispositivos» (energizador opcional, prueba y demás), 5 = cierre.
+    // El aviso «Vas en camino» sólo aplica al arrancar la ruta, no al retomar.
     _showToast = widget.pasoInicial <= 1;
-    // Hide the toast automatically after 4 seconds
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted) {
-        setState(() {
-          _showToast = false;
-        });
-      }
+    // El aviso se va solo a los 4 segundos.
+    _toastTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _showToast = false);
     });
   }
+
+  @override
+  void dispose() {
+    _toastTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Número público («i76») si la orden viene de una intervención; vacío en tareas viejas.
+  String get _numero {
+    final details = widget.ticket['details'];
+    final origen = details is Map ? (details['origen'] ?? '').toString() : '';
+    return origen == 'intervencion' ? (widget.ticket['id'] ?? '').toString() : '';
+  }
+
+  /// Lo primero que falta para abrir un paso bloqueado, dicho como instrucción.
+  String _primeroFalta() {
+    if (!_step1Completed) return 'Primero marca tu llegada en «Ruta».';
+    if (!_step2Completed) return 'Primero termina la inspección del perímetro.';
+    if (!_step3Completed) return _isReparacion ? 'Primero termina la reparación de la cerca.' : 'Primero termina la cerca eléctrica.';
+    if (!_isReparacion && !_wifiResuelto) return 'Primero guarda u omite la Wi‑Fi de la casa.';
+    if (_step5Completed) return _isReparacion ? 'La reparación ya se cerró.' : 'La instalación ya se cerró.';
+    return 'Este paso todavía no se puede abrir.';
+  }
+
+  /// Qué falta para «Terminar», en minúsculas para [FaltaParaSeguir].
+  List<String> get _faltantes => [
+    if (!_step1Completed) 'la llegada',
+    if (!_step2Completed) 'la inspección',
+    if (!_step3Completed) _isReparacion ? 'la reparación' : 'la cerca',
+    if (!_isReparacion && !_wifiResuelto) 'la Wi‑Fi de la casa',
+    if (!_step5Completed) 'el cierre',
+  ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
-    final details = widget.ticket["details"] as Map<String, String>;
+    final details = (widget.ticket["details"] as Map?)?.cast<String, String>() ?? const <String, String>{};
     final isUrgent = widget.ticket["isUrgent"] as bool? ?? false;
+    final cliente = (widget.ticket["user"] ?? '').toString();
+    final direccion = details["direccion"] ?? '';
+    final ciudadCp = [details["ciudad"] ?? '', details["cp"] ?? ''].where((x) => x.trim().isNotEmpty).join(' · ');
+    final destino = DestinoServicio.deDetalles(details);
+    final titulo = '${_isReparacion ? 'Reparación' : 'Instalación'}${_numero.isEmpty ? '' : ' $_numero'}';
+
+    final pasos = <_Paso>[
+      _Paso(
+        numero: "1",
+        titulo: "Ruta",
+        subtitulo: _step1Completed ? "Llegada marcada" : "Vas en camino al domicilio",
+        activo: !_step1Completed,
+        listo: _step1Completed,
+        onTap: !_step1Completed
+            ? () async {
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => RouteDetailsScreen(ticket: widget.ticket)));
+                if (result == 'arrived') {
+                  setState(() {
+                    _step1Completed = true;
+                  });
+                }
+              }
+            : null,
+      ),
+      _Paso(
+        numero: "2",
+        titulo: "Inspección del perímetro",
+        subtitulo: _step2Completed ? "Inspección guardada" : "Obstáculos y metraje real",
+        activo: _step1Completed && !_step2Completed,
+        listo: _step2Completed,
+        onTap: (_step1Completed && !_step2Completed)
+            ? () async {
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => PerimeterInspectionScreen(ticket: widget.ticket)));
+                if (result == 'perimeter_completed') {
+                  setState(() {
+                    _step2Completed = true;
+                  });
+                }
+              }
+            : null,
+      ),
+      _Paso(
+        numero: "3",
+        titulo: _isReparacion ? "Reparación de la cerca" : "Cerca eléctrica",
+        subtitulo: _isReparacion ? "Costeo de hilos, componentes y energizador" : "Postes, líneas y letreros que instalaste",
+        activo: _step2Completed && !_step3Completed,
+        listo: _step3Completed,
+        onTap: (_step2Completed && !_step3Completed)
+            ? () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => _isReparacion ? ReparacionScreen(ticket: widget.ticket) : FenceInstallationScreen(ticket: widget.ticket),
+                  ),
+                );
+                final expected = _isReparacion ? 'reparacion_completed' : 'installation_completed';
+                if (result == expected) {
+                  setState(() {
+                    _step3Completed = true;
+                  });
+                }
+              }
+            : null,
+      ),
+      // «Wi‑Fi de la casa» (Carlos, 2026-10-22): antes de agregar dispositivos; se omite con un
+      // toque y se puede volver a él hasta el cierre.
+      if (!_isReparacion)
+        _Paso(
+          numero: "4",
+          titulo: "Wi‑Fi de la casa",
+          subtitulo: _wifiEstado == 'lista'
+              ? "Lista: «$_wifiRed» · toca para cambiarla"
+              : _wifiEstado == 'omitida'
+              ? "Omitido · tócalo si la casa sí la necesita"
+              : "Opcional · para sensores, cámaras y el energizador",
+          activo: _step3Completed && !_wifiResuelto && !_step5Completed,
+          listo: _wifiResuelto,
+          onTap: (_step3Completed && !_step5Completed) ? () => _abrirWifiCasa(context) : null,
+        ),
+      // Energizador opcional (Carlos, 2026-10-20): vincular el energizador y su prueba viven
+      // dentro de «Agregar dispositivos», que se abre en cuanto se resuelve la Wi‑Fi de la casa.
+      if (!_isReparacion)
+        _Paso(
+          numero: "5",
+          titulo: "Agregar dispositivos",
+          subtitulo: _dispositivosHechos
+              ? "Listo. Puedes volver a entrar si el cliente compra algo más"
+              : "Energizador (si lleva), sensores, cámaras y sus pruebas",
+          activo: _step3Completed && _wifiResuelto && !_dispositivosHechos && !_step5Completed,
+          listo: _dispositivosHechos,
+          onTap: (_step3Completed && _wifiResuelto && !_step5Completed) ? () => _abrirDispositivos(context) : null,
+        ),
+      // Cierre: paso 4 en reparaciones o 6 en instalaciones; en instalaciones se habilita cuando
+      // la Wi‑Fi de la casa quedó lista u omitida («Agregar dispositivos» es opcional).
+      _Paso(
+        numero: _isReparacion ? "4" : "6",
+        titulo: "Cierre",
+        subtitulo: _isReparacion ? "Fotos, entrega y firma del cliente" : "Fotos, entrega del equipo y firma del cliente",
+        activo: _step3Completed && (_isReparacion || _wifiResuelto) && !_step5Completed,
+        listo: _step5Completed,
+        onTap: (_step3Completed && (_isReparacion || _wifiResuelto) && !_step5Completed) ? () => _abrirCierre(context) : null,
+      ),
+    ];
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -442,400 +564,62 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header (Logo centrado, icono notificaciones derecha)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "OHM",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: theme.textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            Text(
-                              "SAFE",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: cs.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
-                    ],
-                  ),
+                // v2 (2026-10-23): «Instalación i76» con cliente · dirección.
+                EncabezadoFlujo(
+                  titulo: titulo,
+                  subtitulo: [cliente, direccion].where((x) => x.trim().isNotEmpty).join(' · '),
+                  alVolver: () => Navigator.pop(context),
                 ),
-
-                // Back chevron and centered screen title "Detalle de Orden"
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: Text(
-                            _isReparacion ? "Reparaciones" : "Instalaciones",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.titleLarge?.color,
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Expanded Ticket details (identical layout to expanded ticket, without start route button)
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 100), // Extra bottom padding for floating bar space
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 40), // Sin barra inferior dentro del flujo (auditoría 2026-10-23)
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        elevation: 0,
-                        color: theme.cardColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: theme.dividerColor.withValues(alpha: 0.5),
-                            width: 1.5,
+                      if (isUrgent)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4, bottom: 12),
+                          child: Align(alignment: Alignment.centerLeft, child: InsigniaUrgente()),
+                        ),
+                      _BarraAvance(pasos: pasos),
+                      const SizedBox(height: 24),
+                      const EtiquetaSeccion("Pasos"),
+                      GrupoFilas(
+                        children: [
+                          for (var i = 0; i < pasos.length; i++)
+                            EntradaSuave(
+                              index: i,
+                              child: _filaPaso(
+                                pasos[i],
+                                // Bloqueado: vibra suave y dice qué falta en vez de «no hacer nada».
+                                alTocarBloqueado: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(() => _pasoAviso = pasos[i].numero);
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                      const EtiquetaSeccion("Cliente"),
+                      GrupoFilas(
+                        children: [
+                          FilaFlujo(
+                            leading: Icon(Icons.person_outline_rounded, color: cs.onSurfaceVariant),
+                            titulo: cliente.isEmpty ? 'Cliente' : cliente,
+                            subtitulo: details["telefono"],
                           ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                widget.ticket["title"]!,
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.4,
-                                  color: theme.textTheme.bodyLarge?.color,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                "Abierto por ${details["openDays"]} días",
-                                style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color),
-                              ),
-                              const SizedBox(height: 6),
-                              RichText(
-                                text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                  children: [
-                                    const TextSpan(text: "Fecha de creación: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                    TextSpan(text: FechasOdoo.fechaHora(details["createdDate"])),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              RichText(
-                                text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                  children: [
-                                    const TextSpan(text: "Dirección: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                    TextSpan(text: details["direccion"]),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  RichText(
-                                    text: TextSpan(
-                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                      children: [
-                                        const TextSpan(text: "Ciudad: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                        TextSpan(text: details["ciudad"]),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 24),
-                                  RichText(
-                                    text: TextSpan(
-                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                      children: [
-                                        const TextSpan(text: "CP: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                        TextSpan(text: details["cp"]),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              RichText(
-                                text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                  children: [
-                                    const TextSpan(text: "Teléfono: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                    TextSpan(text: details["telefono"]),
-                                  ],
-                                ),
-                              ),
-                              
-                              BotonComoLlegar(destino: DestinoServicio.deDetalles(details)),
-                              const SizedBox(height: 12),
-                              Divider(height: 1, color: theme.dividerColor),
-                              const SizedBox(height: 12),
-                              
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.person_outline_rounded,
-                                        size: 14,
-                                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        widget.ticket["user"]!,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (isUrgent)
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Text(
-                                          "Urgente",
-                                          style: TextStyle(
-                                            color: Colors.red,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                            ],
+                          FilaFlujo(
+                            leading: Icon(Icons.place_outlined, color: cs.onSurfaceVariant),
+                            titulo: direccion.isEmpty ? 'Sin dirección' : direccion,
+                            subtitulo: ciudadCp,
+                            trailing: destino.vacio ? null : BotonFila(etiqueta: 'Cómo llegar', onPressed: () => mostrarComoLlegar(context, destino)),
                           ),
-                        ),
+                        ],
                       ),
-                      
-                      // Order Steps Header
-                      Padding(
-                        padding: const EdgeInsets.only(left: 24, right: 24, top: 20, bottom: 8),
-                        child: Text(
-                          "PASOS DE LA ORDEN",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
+                      OhmGradientButton(
+                        label: _isReparacion ? "Terminar reparación" : "Terminar instalación",
+                        onPressed: _step5Completed ? _submitFinalInstallation : null,
                       ),
-
-                      // Step Items
-                      _buildStepItem(
-                        context,
-                        number: "1",
-                        title: "Técnico en ruta",
-                        subtitle: "El servicio está en camino",
-                        isActive: !_step1Completed,
-                        isCompleted: _step1Completed,
-                        onTap: !_step1Completed
-                            ? () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => RouteDetailsScreen(ticket: widget.ticket),
-                                  ),
-                                );
-                                if (result == 'arrived') {
-                                  setState(() {
-                                    _step1Completed = true;
-                                  });
-                                }
-                              }
-                            : null,
-                      ),
-                      _buildStepItem(
-                        context,
-                        number: "2",
-                        title: "Inspección del perímetro",
-                        subtitle: "Identificar obstáculos",
-                        isActive: _step1Completed && !_step2Completed,
-                        isCompleted: _step2Completed,
-                        onTap: (_step1Completed && !_step2Completed)
-                            ? () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => PerimeterInspectionScreen(ticket: widget.ticket),
-                                  ),
-                                );
-                                if (result == 'perimeter_completed') {
-                                  setState(() {
-                                    _step2Completed = true;
-                                  });
-                                }
-                              }
-                            : null,
-                      ),
-                      _buildStepItem(
-                        context,
-                        number: "3",
-                        title: _isReparacion
-                            ? "Reparación de cerca eléctrica"
-                            : "Instalación de cerca eléctrica",
-                        subtitle: _isReparacion
-                            ? "Costeo de hilos, componentes y energizador"
-                            : "Proceso de instalación de cerca en el perímetro",
-                        isActive: _step2Completed && !_step3Completed,
-                        isCompleted: _step3Completed,
-                        onTap: (_step2Completed && !_step3Completed)
-                            ? () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => _isReparacion
-                                        ? ReparacionScreen(ticket: widget.ticket)
-                                        : FenceInstallationScreen(ticket: widget.ticket),
-                                  ),
-                                );
-                                final expected = _isReparacion
-                                    ? 'reparacion_completed'
-                                    : 'installation_completed';
-                                if (result == expected) {
-                                  setState(() {
-                                    _step3Completed = true;
-                                  });
-                                }
-                              }
-                            : null,
-                      ),
-                      // Vinculación del energizador: solo aplica a instalaciones.
-                      // En reparaciones este paso no existe.
-                      if (!_isReparacion)
-                        _buildStepItem(
-                          context,
-                          number: "4",
-                          title: "Vincular el energizador",
-                          subtitle: "Escanea el QR del equipo y lígalo al cliente",
-                          isActive: _step3Completed && !_step4Completed,
-                          isCompleted: _step4Completed,
-                          onTap: (_step3Completed && !_step4Completed)
-                              ? () async {
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => LinkEnergizerScreen(ticket: widget.ticket),
-                                    ),
-                                  );
-                                  if (result == 'device_linked') {
-                                    setState(() {
-                                      _step4Completed = true;
-                                    });
-                                    // Vinculado → prueba del energizador → de vuelta a los pasos (build 40).
-                                    if (context.mounted) await _abrirPrueba(context);
-                                  }
-                                }
-                              : null,
-                        ),
-                      if (!_isReparacion)
-                        _buildStepItem(
-                          context,
-                          number: "5",
-                          title: "Prueba del energizador",
-                          subtitle: "Enciende y apaga la cerca frente al cliente",
-                          isActive: _step4Completed && !_pruebaHecha && !_step5Completed,
-                          isCompleted: _pruebaHecha,
-                          onTap: (_step4Completed && !_step5Completed) ? () => _abrirPrueba(context) : null,
-                        ),
-                      if (!_isReparacion)
-                        _buildStepItem(
-                          context,
-                          number: "6",
-                          title: "Agregar dispositivos",
-                          subtitle: _dispositivosHechos
-                              ? "Listo. Puedes volver a entrar si el cliente compra algo más"
-                              : "Opcional · sensores, sirena, cámaras u otro OhmBox",
-                          // Sólo después de la prueba; sigue tocable aunque ya esté hecho, hasta el cierre.
-                          isActive: _pruebaHecha && !_dispositivosHechos && !_step5Completed,
-                          isCompleted: _dispositivosHechos,
-                          onTap: (_pruebaHecha && !_step5Completed) ? () => _abrirDispositivos(context) : null,
-                        ),
-                      // Cierre: paso 4 en reparaciones (sin energizador) o 7 en
-                      // instalaciones. Se habilita tras el paso 3 en reparaciones.
-                      _buildStepItem(
-                        context,
-                        number: _isReparacion ? "4" : "7",
-                        title: _isReparacion ? "Cierre de la reparación" : "Cierre de la instalación",
-                        subtitle: _isReparacion ? "Fotos, entrega y firma del cliente" : "Fotos, entrega del equipo y firma del cliente",
-                        // Instalación: el cierre es lo último, después de la prueba (dispositivos es opcional).
-                        isActive: (_isReparacion ? _step3Completed : _pruebaHecha) && !_step5Completed,
-                        isCompleted: _step5Completed,
-                        onTap: ((_isReparacion ? _step3Completed : _pruebaHecha) && !_step5Completed)
-                            ? () => _abrirCierre(context)
-                            : null,
-                      ),
-
-                      // Bottom Terminar button (active if step 5 is completed)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                        child: OhmGradientButton(
-                          label: _isReparacion ? "Terminar reparación" : "Terminar instalación",
-                          onPressed: _step5Completed
-                              ? () => _submitFinalInstallation(context)
-                              : null,
-                        ),
-                      ),
+                      if (!_step5Completed) ...[const SizedBox(height: 12), FaltaParaSeguir(_faltantes)],
                     ],
                   ),
                 ),
@@ -843,325 +627,264 @@ class _ServiceStepsScreenState extends State<ServiceStepsScreen> {
             ),
           ),
 
-          // Barra de navegación compartida
-          const AppBottomNav(),
-
-          // Momentary Toast Notification (slides down from top, goes away in 4s)
+          // Aviso momentáneo arriba («Vas en camino al domicilio»); se va solo a los 4 s. v2: flota sobre
+          // el encabezado como los avisos de iPhone (blanco translúcido con sombra suave), no un bloque verde encima.
           AnimatedPositioned(
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOutBack,
-            top: _showToast ? 64 : -100, // Position top
-            left: 20,
-            right: 20,
+            duration: AppMotion.of(context, AppDurations.slow),
+            curve: AppCurves.standard,
+            top: _showToast ? MediaQuery.paddingOf(context).top + 8 : -100,
+            left: 16,
+            right: 16,
             child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 400),
+              duration: AppMotion.of(context, AppDurations.base),
+              curve: AppCurves.standard,
               opacity: _showToast ? 1.0 : 0.0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: isDark ? cs.surface : ohm.successContainer,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: ohm.success,
-                    width: 1.5,
+              child: Semantics(
+                liveRegion: true,
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: cs.surface.withValues(alpha: 0.96),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [BoxShadow(color: cs.shadow.withValues(alpha: 0.12), blurRadius: 30, offset: const Offset(0, 8))],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: ohm.success,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        "Técnico en camino al domicilio",
-                        style: TextStyle(
-                          color: isDark ? Colors.white : ohm.onSuccessContainer,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                  child: Row(
+                    children: [
+                      Icon(Icons.local_shipping_rounded, color: ohm.success, size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "Vas en camino al domicilio",
+                          style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurface, fontWeight: FontWeight.w600),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          if (_isSubmitting)
-            _buildLoadingOverlay(context),
         ],
       ),
     );
   }
 
-  Widget _buildLoadingOverlay(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      color: Colors.black.withValues(alpha: 0.6),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          margin: const EdgeInsets.symmetric(horizontal: 40),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 10)),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                color: cs.primary,
-                strokeWidth: 3.5,
+  /// Fila de un paso (v2): círculo verde ✓ (listo), naranja con número (se puede hacer ahora) o
+  /// contorno gris con número (pendiente). Si está bloqueado y se tocó, dice qué falta.
+  Widget _filaPaso(_Paso paso, {required VoidCallback alTocarBloqueado}) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
+    final bloqueado = paso.onTap == null && !paso.listo;
+    final aviso = bloqueado && _pasoAviso == paso.numero;
+
+    final Widget circulo;
+    if (paso.listo) {
+      circulo = Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(color: ohm.success, shape: BoxShape.circle),
+        child: const Icon(Icons.check_rounded, size: 18, color: Colors.white),
+      );
+    } else if (paso.activo) {
+      circulo = Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
+        child: Text(paso.numero, style: theme.textTheme.titleSmall?.copyWith(color: cs.onPrimary, height: 1)),
+      );
+    } else {
+      circulo = Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: cs.outlineVariant, width: 1.5),
+        ),
+        child: Text(
+          paso.numero,
+          style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600, height: 1),
+        ),
+      );
+    }
+
+    final onTap = paso.onTap ?? (bloqueado ? alTocarBloqueado : null);
+    return Semantics(
+      button: onTap != null,
+      label: '${paso.titulo}. ${paso.listo ? 'Listo' : (paso.activo ? 'Se puede hacer ahora' : 'Pendiente')}',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Presionable(
+            activo: paso.onTap != null,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 64),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  CambioSuave(
+                    alineacion: Alignment.center,
+                    child: KeyedSubtree(key: ValueKey('${paso.numero}-${paso.listo}-${paso.activo}'), child: circulo),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          paso.titulo,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: paso.activo ? FontWeight.w600 : FontWeight.w500,
+                            color: bloqueado ? cs.onSurfaceVariant : cs.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(paso.subtitulo, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                        AnimatedSize(
+                          duration: AppMotion.of(context, AppDurations.base),
+                          curve: AppCurves.standard,
+                          alignment: Alignment.topLeft,
+                          child: aviso
+                              ? Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.lock_outline_rounded, size: 16, color: ohm.warning),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Semantics(
+                                          liveRegion: true,
+                                          child: Text(_primeroFalta(), style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurface)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : const SizedBox(width: double.infinity),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (paso.onTap != null) ...[const SizedBox(width: 8), Icon(Icons.chevron_right_rounded, size: 22, color: cs.onSurfaceVariant)],
+                ],
               ),
-              const SizedBox(height: 20),
-              const Text(
-                "Enviando el cierre…",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                "Subiendo fotos, ubicación y firma",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Future<void> _submitFinalInstallation(BuildContext context) async {
-    setState(() {
-      _isSubmitting = true;
-    });
+  /// Fin de la visita: borra la Wi‑Fi de este teléfono, la anota en el historial y muestra el éxito.
+  /// No envía nada: el cierre ya se mandó (y se confirmó) en su pantalla.
+  Future<void> _submitFinalInstallation() async {
+    // La contraseña de la Wi‑Fi de la casa sólo vive durante la visita (opción A, 2026-10-22).
+    await WifiCasaLocal.instancia.borrar((widget.ticket['id'] ?? '').toString());
 
-    // Simulated network delay (2.5 seconds)
-    await Future.delayed(const Duration(milliseconds: 2500));
+    if (!mounted) return;
+    final bool isRep = _isReparacion;
+    // Registra el ticket completado en el historial del instalador.
+    AppStateProvider.of(context).addCompletedTicket(widget.ticket);
 
-    if (mounted) {
-      setState(() {
-        _isSubmitting = false;
-      });
-
-      final bool isRep = _isReparacion;
-      // Registra el ticket completado en el historial del instalador.
-      AppStateProvider.of(context).addCompletedTicket(widget.ticket);
-
-      // Show beautiful success dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          final cs = Theme.of(context).colorScheme;
-          return Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
+    // Aviso de éxito (v2): verde, centrado; no es una decisión, sólo un aviso con una salida.
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final theme = Theme.of(context);
+        final cs = theme.colorScheme;
+        final ohm = context.ohm;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          backgroundColor: cs.surface,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(color: ohm.successContainer, shape: BoxShape.circle),
+                  child: Icon(Icons.check_circle_rounded, color: ohm.success, size: 48),
+                ),
+                const SizedBox(height: 20),
+                Text(isRep ? "¡Reparación terminada!" : "¡Instalación terminada!", style: theme.textTheme.headlineSmall, textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                Text(
+                  isRep
+                      ? "Enviamos el costeo, las fotos con su ubicación y la firma del cliente."
+                      : "Enviamos las fotos con su ubicación, la entrega del equipo y la firma del cliente.",
+                  style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                OhmGradientButton(
+                  label: isRep ? "Volver a reparaciones" : "Volver a instalaciones",
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    volverAListado(context, isRep ? const ReparacionesScreen() : InstalacionesScreen(completedTicketTitle: widget.ticket["title"]));
+                  },
+                ),
+              ],
             ),
-            backgroundColor: cs.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(28.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.check_circle_rounded,
-                      color: Colors.green.shade600,
-                      size: 48,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    isRep ? "¡Reparación terminada!" : "¡Instalación terminada!",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    isRep
-                        ? "Enviamos el costeo, las fotos con su ubicación y la firma del cliente."
-                        : "Enviamos las fotos con su ubicación, la entrega del equipo y la firma del cliente.",
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                      height: 1.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  OhmGradientButton(
-                    label: isRep ? "Volver a reparaciones" : "Volver a instalaciones",
-                    onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      volverAListado(context, isRep ? const ReparacionesScreen() : InstalacionesScreen(completedTicketTitle: widget.ticket["title"]));
-                    },
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    }
+          ),
+        );
+      },
+    );
   }
+}
 
-  Widget _buildStepItem(
-    BuildContext context, {
-    required String number,
-    required String title,
-    required String subtitle,
-    required bool isActive,
-    bool isCompleted = false,
-    VoidCallback? onTap,
-  }) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+/// Un paso del servicio: lo que se pinta y qué abre. [onTap] null = no se puede abrir hoy.
+class _Paso {
+  const _Paso({required this.numero, required this.titulo, required this.subtitulo, required this.activo, required this.listo, this.onTap});
+
+  final String numero;
+  final String titulo;
+  final String subtitulo;
+  final bool activo;
+  final bool listo;
+  final VoidCallback? onTap;
+}
+
+/// Barra de avance (v2): un segmento por paso; verde listo, naranja lo que se puede hacer ahora y
+/// gris lo pendiente.
+class _BarraAvance extends StatelessWidget {
+  const _BarraAvance({required this.pasos});
+
+  final List<_Paso> pasos;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
-
-    Color cardBg;
-    BorderSide borderSide;
-    Color badgeBg;
-    Color badgeTextColor;
-    Color titleColor;
-    Color subtitleColor;
-    Color chevronColor;
-
-    if (isCompleted) {
-      // Lienzo de Carlos (2026-10-15): fondo blanco; el verde queda en borde, número y texto.
-      cardBg = isDark ? ohm.success.withValues(alpha: 0.2) : theme.cardColor;
-      borderSide = BorderSide(
-        color: ohm.success,
-        width: 1.5,
-      );
-      badgeBg = ohm.success;
-      badgeTextColor = Colors.white;
-      titleColor = ohm.success;
-      subtitleColor = ohm.success.withValues(alpha: 0.8);
-      chevronColor = ohm.success;
-    } else if (isActive) {
-      cardBg = theme.cardColor;
-      borderSide = BorderSide(
-        color: cs.primary,
-        width: 1.5,
-      );
-      badgeBg = cs.primary;
-      badgeTextColor = Colors.white;
-      titleColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-      subtitleColor = theme.textTheme.bodyMedium?.color ?? Colors.black54;
-      chevronColor = cs.primary;
-    } else {
-      cardBg = isDark ? cs.surface.withValues(alpha: 0.4) : ohm.surfaceContainer;
-      borderSide = BorderSide(
-        color: theme.dividerColor.withValues(alpha: 0.5),
-        width: 1.0,
-      );
-      badgeBg = isDark ? cs.outline : cs.outlineVariant;
-      badgeTextColor = isDark ? Colors.white70 : cs.onSurfaceVariant;
-      titleColor = theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.4) ?? Colors.black45;
-      subtitleColor = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4) ?? Colors.black38;
-      chevronColor = theme.iconTheme.color?.withValues(alpha: 0.3) ?? Colors.grey;
-    }
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      elevation: 0,
-      color: cardBg,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: borderSide,
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+    final listos = pasos.where((p) => p.listo).length;
+    return Semantics(
+      label: '$listos de ${pasos.length} pasos listos',
+      child: ExcludeSemantics(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
             children: [
-              // Number Badge
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: badgeBg,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    number,
-                    style: TextStyle(
-                      color: badgeTextColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+              for (var i = 0; i < pasos.length; i++) ...[
+                if (i > 0) const SizedBox(width: 6),
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: AppMotion.of(context, AppDurations.base),
+                    curve: AppCurves.standard,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: pasos[i].listo ? ohm.success : (pasos[i].activo ? cs.primary : cs.outlineVariant),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              // Texts
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: titleColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: subtitleColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Chevron Right
-              Icon(
-                Icons.chevron_right,
-                color: chevronColor,
-                size: 20,
-              ),
+              ],
             ],
           ),
         ),

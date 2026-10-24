@@ -19,3 +19,27 @@ String serieDesdeQr(String crudo) {
   }
   return t;
 }
+
+/// Serie de la etiqueta de un sensor o cámara Wi‑Fi (2026-10-22). Cada fabricante pone otra cosa en
+/// el QR: la serie sola, un enlace con `?sn=`/`serial=`/`serie=`/`uuid=`, o un enlace cuyo último
+/// tramo es la serie. Se queda con eso, sin espacios y en mayúsculas (máx. 64); '' si no hay nada.
+String serieDeEtiqueta(String crudo) {
+  final t = crudo.trim();
+  if (t.isEmpty) return '';
+  var v = t;
+  final uri = Uri.tryParse(t);
+  if (uri != null && uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https')) {
+    String? q;
+    for (final k in const ['sn', 'serial', 'serie', 'uuid', 'id']) {
+      final x = uri.queryParameters[k];
+      if (x != null && x.trim().isNotEmpty) {
+        q = x;
+        break;
+      }
+    }
+    final tramos = uri.pathSegments.where((p) => p.trim().isNotEmpty).toList();
+    v = q ?? (tramos.isNotEmpty ? tramos.last : t);
+  }
+  v = v.replaceAll(RegExp(r'\s+'), '').toUpperCase();
+  return v.length > 64 ? v.substring(0, 64) : v;
+}
