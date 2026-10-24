@@ -2,7 +2,7 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
-## Próxima build (en preparación) — 23 de octubre de 2026
+## Build 60 (TestFlight y APK, servidor de pruebas) — 23 de octubre de 2026
 
 - **Nuevo diseño (sistema v2).** Toda la app adopta un estilo más sobrio y fino, como las listas de iPhone. Así se ve ahora:
   - Fondo gris claro con grupos blancos y título grande arriba.
