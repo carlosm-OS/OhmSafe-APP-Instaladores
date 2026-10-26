@@ -2,6 +2,10 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 61 (App Store, PRODUCCIÓN) — 26 de octubre de 2026
+
+- Mismo código que la build 60, apuntando al servidor de producción. Es la que se envía a revisión de Apple para la distribución no listada (link directo de la App Store).
+
 ## Build 60 (TestFlight y APK, servidor de pruebas) — 23 de octubre de 2026
 
 - **Nuevo diseño (sistema v2).** Toda la app adopta un estilo más sobrio y fino, como las listas de iPhone. Así se ve ahora:
