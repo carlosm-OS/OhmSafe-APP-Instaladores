@@ -21,6 +21,8 @@ import os from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const RAIZ_PUBLICA = 'Manual App OHMSAFE INSTALLER';
+// La interna vive dentro de «Manuales de operación OhmSafe (interno)» (sección del backend, regla de Carlos 2026-10-28:
+// todo manual de operación es un capítulo de esa sección; la publica Back-/scripts/publicar-manuales-operacion.mjs).
 const RAIZ_INTERNA = 'Manual App OHMSAFE INSTALLER — Guía SAC (interno)';
 const dirManual = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'manual');
 
@@ -129,12 +131,19 @@ async function odoo() {
 }
 
 async function upsert(x, nombre, vals, parentId, alias) {
-  // Las raíces se buscan también por `alias` (ilike): si alguien las renombra en Odoo (la interna
-  // pasó a «Manual Asignaciones… — Guía SAC (interno)» el 2026-10-06) no se crea una raíz duplicada.
-  const dom = [['name', '=', nombre], ['parent_id', '=', parentId || false]];
-  let [ya] = await x('knowledge.article', 'search_read', [dom], { fields: ['id'], limit: 1 });
-  if (!ya && alias) [ya] = await x('knowledge.article', 'search_read', [[['name', 'ilike', alias], ['parent_id', '=', false]]], { fields: ['id'], order: 'id asc', limit: 1 });
-  if (ya) { await x('knowledge.article', 'write', [[ya.id], vals]); return ya.id; }
+  // Hijos: por nombre bajo su raíz. Raíces (parentId null): por nombre o `alias` (ilike) en CUALQUIER parte del árbol:
+  // si alguien las renombra (la interna pasó a «Manual Asignaciones… — Guía SAC (interno)» el 2026-10-06) o las
+  // mueve (la interna vive desde 2026-10-28 dentro de «Manuales de operación OhmSafe (interno)», la sección que
+  // publica el backend), no se crea una raíz duplicada.
+  const dom = parentId ? [['name', '=', nombre], ['parent_id', '=', parentId]] : [['name', '=', nombre]];
+  let [ya] = await x('knowledge.article', 'search_read', [dom], { fields: ['id', 'parent_id'], order: 'id asc', limit: 1 });
+  if (!ya && alias) [ya] = await x('knowledge.article', 'search_read', [[['name', 'ilike', alias]]], { fields: ['id', 'parent_id'], order: 'id asc', limit: 1 });
+  if (ya) {
+    // Dentro de otra sección hereda los permisos de ella: no se le fija uno propio.
+    const { internal_permission, ...resto } = vals;
+    await x('knowledge.article', 'write', [[ya.id], !parentId && ya.parent_id ? resto : vals]);
+    return ya.id;
+  }
   return x('knowledge.article', 'create', [{ name: nombre, ...(parentId ? { parent_id: parentId } : {}), ...vals }]);
 }
 
