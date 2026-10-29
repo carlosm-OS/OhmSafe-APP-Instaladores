@@ -1,15 +1,12 @@
 import '../widgets/cancellation_flow.dart';
 import '../core/utils/como_llegar.dart';
-import '../core/navigation/volver_a_listado.dart';
 import 'package:flutter/material.dart';
-import '../widgets/notification_bell.dart';
-import '../core/theme/app_theme_extension.dart';
-import '../widgets/app_bottom_nav.dart';
+import '../widgets/ayuda.dart';
 import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/utils/ubicacion.dart';
-import 'instalaciones_screen.dart';
+import 'instalaciones_screen.dart' show InsigniaUrgente;
 
 class RouteDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> ticket;
@@ -22,12 +19,18 @@ class RouteDetailsScreen extends StatefulWidget {
 class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   bool _isSending = false;
 
+  /// Mensaje humano del repositorio cuando no se pudo marcar la llegada; va junto al botón (v2).
+  String? _error;
+
   /// Marca la llegada al sitio en el backend (paso "En sitio" en Odoo) y,
   /// solo si tiene éxito, regresa 'arrived' para avanzar el flujo. Ante un
   /// fallo muestra el error y NO avanza (la orden sigue en su estado previo).
   Future<void> _marcarLlegada() async {
     if (_isSending) return;
-    setState(() => _isSending = true);
+    setState(() {
+      _isSending = true;
+      _error = null;
+    });
     final id = (widget.ticket["id"] ?? widget.ticket["ticket_id"] ?? "").toString();
     // La posición de la llegada es la referencia del cierre (radio de 300 m).
     final ubicacion = ubicacionJson(await ubicacionActual());
@@ -36,295 +39,76 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
     if (!mounted) return;
     result.fold(
       (_) => Navigator.pop(context, 'arrived'),
-      (failure) {
-        setState(() => _isSending = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("No se pudo marcar la llegada: ${failure.message}")),
-        );
-      },
+      (failure) => setState(() {
+        _isSending = false;
+        _error = failure.message;
+      }),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
     final details = widget.ticket["details"] as Map<String, String>;
     final isUrgent = widget.ticket["isUrgent"] as bool? ?? false;
+    final cliente = (widget.ticket["user"] ?? '').toString();
+    final direccion = details["direccion"] ?? '';
+    final ciudadCp = [details["ciudad"] ?? '', details["cp"] ?? ''].where((x) => x.trim().isNotEmpty).join(' · ');
+    final destino = DestinoServicio.deDetalles(details);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header (Logo centrado, icono notificaciones derecha)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "OHM",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: theme.textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            Text(
-                              "SAFE",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: cs.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Back arrow and centered Title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: Text(
-                            "Detalles de Ruta",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.titleLarge?.color,
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              padding: const EdgeInsets.all(6),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: theme.iconTheme.color,
-                            ),
-                          ),
-                        ),
-                      ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // v2 (2026-10-23): encabezado único.
+            EncabezadoFlujo(titulo: "Ruta", subtitulo: (widget.ticket["title"] ?? '').toString(), alVolver: () => Navigator.pop(context)),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  if (isUrgent)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4, bottom: 12),
+                      child: Align(alignment: Alignment.centerLeft, child: InsigniaUrgente()),
                     ),
-                  ),
-                ),
-
-                // Content View
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                    physics: const BouncingScrollPhysics(),
+                  const EtiquetaSeccion("Cliente"),
+                  GrupoFilas(
+                    pie: "Al llegar, marca tu llegada: tu ubicación de ese momento es la referencia del cierre.",
                     children: [
-                      // Ticket details card for consistency and clarity
-                      Card(
-                        elevation: 0,
-                        color: theme.cardColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: theme.dividerColor.withValues(alpha: 0.5),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                widget.ticket["title"]!,
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.4,
-                                  color: theme.textTheme.bodyLarge?.color,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                "Abierto por ${details["openDays"]} días",
-                                style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color),
-                              ),
-                              const SizedBox(height: 6),
-                              RichText(
-                                text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                  children: [
-                                    const TextSpan(text: "Fecha de Creación: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                    TextSpan(text: details["createdDate"]),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              RichText(
-                                text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                  children: [
-                                    const TextSpan(text: "Dirección: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                    TextSpan(text: details["direccion"]),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  RichText(
-                                    text: TextSpan(
-                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                      children: [
-                                        const TextSpan(text: "Ciudad: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                        TextSpan(text: details["ciudad"]),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 24),
-                                  RichText(
-                                    text: TextSpan(
-                                      style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                      children: [
-                                        const TextSpan(text: "CP: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                        TextSpan(text: details["cp"]),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              RichText(
-                                text: TextSpan(
-                                  style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-                                  children: [
-                                    const TextSpan(text: "Teléfono: ", style: TextStyle(fontWeight: FontWeight.w700)),
-                                    TextSpan(text: details["telefono"]),
-                                  ],
-                                ),
-                              ),
-                              BotonComoLlegar(destino: DestinoServicio.deDetalles(details)),
-                              const SizedBox(height: 12),
-                              Divider(height: 1, color: theme.dividerColor),
-                              const SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.person_outline_rounded,
-                                        size: 14,
-                                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        widget.ticket["user"]!,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (isUrgent)
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Text(
-                                          "Urgente",
-                                          style: TextStyle(
-                                            color: Colors.red,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                      FilaFlujo(
+                        leading: Icon(Icons.person_outline_rounded, color: cs.onSurfaceVariant),
+                        titulo: cliente.isEmpty ? 'Cliente' : cliente,
+                        subtitulo: details["telefono"],
                       ),
-                      const SizedBox(height: 24),
-
-                      // Route Details Actions Box
-                        OhmGradientButton(
-                          label: "Marcar llegada",
-                          onPressed: _isSending ? null : _marcarLlegada,
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: TextButton(
-                            onPressed: () => showCancellationFlow(context, widget.ticket),
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.red,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: const Text(
-                              "Cancelar instalación",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
+                      FilaFlujo(
+                        leading: Icon(Icons.place_outlined, color: cs.onSurfaceVariant),
+                        titulo: direccion.isEmpty ? 'Sin dirección' : direccion,
+                        subtitulo: ciudadCp,
+                        trailing: destino.vacio ? null : BotonFila(etiqueta: 'Cómo llegar', onPressed: () => mostrarComoLlegar(context, destino)),
+                      ),
                     ],
                   ),
-                ),
-              ],
+                  // Lo que pasa, pasa junto al botón (v2): el error con qué hacer y el botón que dice qué hace.
+                  if (_error != null) MensajeFlujo(icono: Icons.error_outline_rounded, color: cs.error, titulo: "No pudimos marcar tu llegada", texto: _error),
+                  OhmGradientButton(
+                    label: "Marcar llegada",
+                    icon: Icons.place_rounded,
+                    loading: _isSending,
+                    loadingLabel: "Tomando tu ubicación…",
+                    onPressed: _marcarLlegada,
+                  ),
+                  const SizedBox(height: 12),
+                  BotonSecundario(etiqueta: "Cancelar instalación", peligro: true, onPressed: () => showCancellationFlow(context, widget.ticket)),
+                ],
+              ),
             ),
-          ),
-
-          // Shared bottom navigation bar
-          const AppBottomNav(),
-        ],
+          ],
+        ),
       ),
     );
   }

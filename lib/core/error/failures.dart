@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Fallos de dominio que la UI consume (a través de [Result]).
 ///
 /// Son la contraparte "de negocio" de las excepciones de datos: el
@@ -29,4 +31,16 @@ class NetworkFailure extends Failure {
 /// Error de caché/almacenamiento local.
 class CacheFailure extends Failure {
   const CacheFailure([super.message = "Error de caché local"]);
+}
+
+/// Mensaje único cuando algo truena del lado de la app o del servidor (auditoría 2026-10-23): el
+/// instalador nunca ve el texto técnico («type 'Null' is not a subtype…»); el detalle va al registro.
+const mensajeFallaInesperada = 'Algo falló de nuestro lado. Vuelve a intentar; si sigue, avisa a soporte.';
+
+/// Sesión vencida, con las mismas palabras en toda la app (glosario 2026-10-23).
+const mensajeSesionVencida = 'Tu sesión venció. Entra de nuevo con tu contraseña.';
+
+ServerFailure fallaInesperada(Object e) {
+  debugPrint('Falla inesperada: $e');
+  return const ServerFailure(mensajeFallaInesperada);
 }

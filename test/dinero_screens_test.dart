@@ -62,7 +62,7 @@ void main() {
     await tester.pumpWidget(_app(const PagosScreen()));
     await tester.pumpAndSettle();
     expect(find.text('Mis pagos'), findsOneWidget);
-    expect(find.text('Intervención i12 · S00157'), findsOneWidget);
+    expect(find.text('Instalación i12 · S00157'), findsOneWidget); // «Intervención» de Odoo se dice «Instalación» (glosario v2)
     expect(find.text('En revisión'), findsWidgets); // total + etiqueta del pago
     expect(find.text('Pagado'), findsWidgets);
     expect(find.text(r'$650.00'), findsWidgets);

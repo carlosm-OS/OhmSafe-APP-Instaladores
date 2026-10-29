@@ -46,7 +46,7 @@ void main() {
     expect(find.textContaining('Motivo: No hay nadie en el domicilio'), findsOneWidget);
     expect(find.text('Instalación · Fortress'), findsOneWidget); // una sola vez (deduplicada por id)
     expect(find.text('Reparación local'), findsOneWidget);
-    expect(find.textContaining('Completado el'), findsNWidgets(2));
+    expect(find.textContaining('Completada el'), findsNWidgets(2)); // v2: «instalación» es femenino
   });
 
   test('entradaHistorial convierte la fila del backend (fecha UTC de Odoo → local)', () {

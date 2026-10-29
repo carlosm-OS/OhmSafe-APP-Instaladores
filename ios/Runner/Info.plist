@@ -11,7 +11,7 @@
 		<string>es</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>Ohmsafe App</string>
+	<string>OhmSafe Installer</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -82,6 +82,11 @@
 	<string>Esta aplicación usa tu ubicación para registrar dónde se realizó la instalación al cerrar el servicio y para leer el nombre de la red Wi-Fi al conectar una cámara.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Esta aplicación se comunica con la cámara en la red local para conectarla a la Wi-Fi de la casa.</string>
+	<!-- ITMS-90683 (Apple, build 50): el SDK de Tuya referencia Bluetooth (su modo de emparejamiento BLE); aunque no se use, Apple exige el texto. -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Esta aplicación puede usar Bluetooth para conectar sensores y cámaras Wi-Fi de la casa durante la instalación.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Esta aplicación puede usar Bluetooth para conectar sensores y cámaras Wi-Fi de la casa durante la instalación.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

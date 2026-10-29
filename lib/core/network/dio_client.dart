@@ -186,7 +186,8 @@ class DioClient {
     if (statusCode >= 200 && statusCode < 300) {
       return jsonDecode(responseBody) as Map<String, dynamic>;
     }
-    String msg = "Respuesta fallida: $statusCode";
+    // Sin mensaje del backend, nunca el código crudo («Respuesta fallida: 502»); auditoría 2026-10-23.
+    String msg = statusCode >= 500 ? 'Algo falló de nuestro lado. Vuelve a intentar; si sigue, avisa a soporte.' : 'No se pudo completar. Vuelve a intentar.';
     String code = '';
     Map<String, dynamic> details = const {};
     try {

@@ -12,9 +12,11 @@ ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 # TRAMPA: el xcframework trae UNA sola slice (`ios-arm64`), sin simulador. Enlazarlo deja la app
 # sin simulador de Apple silicon. Para trabajar la interfaz en el simulador:
 #     OHMSAFE_EZVIZ=0 pod install
-# y el puente contesta EZVIZ_NOT_LINKED. Por omisión va enlazado (dispositivo y TestFlight).
+# y el puente contesta EZVIZ_NOT_LINKED.
+# 2026-10-20 (Carlos: la app sólo ofrece Tuya): el pod queda FUERA por omisión; se reincorpora con
+#     OHMSAFE_EZVIZ=1 pod install
 OHMSAFE_EZVIZ_POD_VERSION = '~> 5.32'
-OHMSAFE_EZVIZ_LINKED = ENV['OHMSAFE_EZVIZ'] != '0'
+OHMSAFE_EZVIZ_LINKED = ENV['OHMSAFE_EZVIZ'] == '1'
 
 # --- Tuya Smart Life App SDK (2026-10-17: emparejar sensores/cámaras Tuya) -----
 # El paquete de seguridad propio de la app (ThingSmartCryption) vive FUERA del repo, como el

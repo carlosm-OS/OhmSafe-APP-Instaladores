@@ -18,13 +18,13 @@ class NotificacionesRepository {
           .toList();
       return Success((items: items, noLeidas: (data['noLeidas'] as num?)?.toInt() ?? 0));
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 
@@ -34,13 +34,13 @@ class NotificacionesRepository {
       await dioClient.post('/instalador/notificaciones/leidas');
       return const Success(true);
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 }

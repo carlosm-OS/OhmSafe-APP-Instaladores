@@ -36,13 +36,13 @@ class IncidenciasRepository {
     try {
       return Success(await fn());
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message, e.code, e.details));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 }

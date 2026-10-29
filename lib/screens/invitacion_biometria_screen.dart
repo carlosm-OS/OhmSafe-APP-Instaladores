@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../core/auth/biometria.dart';
 import '../core/auth/session_manager.dart';
 import '../core/di/injection_container.dart';
+import '../widgets/ayuda.dart';
+import '../widgets/ohm_gradient_button.dart';
 
 /// «Entra con Face ID»: aparece una vez tras el primer inicio de sesión.
 /// Activar exige pasar la biometría ahí mismo; «Ahora no» sigue al home y se
@@ -20,6 +22,9 @@ class _InvitacionBiometriaScreenState extends State<InvitacionBiometriaScreen> {
   String _nombre = 'biometría';
   bool _ocupado = false;
 
+  /// No se pudo confirmar: el aviso va junto al botón (v2: los errores no van en SnackBar).
+  String? _error;
+
   @override
   void initState() {
     super.initState();
@@ -29,7 +34,11 @@ class _InvitacionBiometriaScreenState extends State<InvitacionBiometriaScreen> {
   }
 
   Future<void> _activar() async {
-    setState(() => _ocupado = true);
+    if (_ocupado) return;
+    setState(() {
+      _ocupado = true;
+      _error = null;
+    });
     final ok = await sl.get<BiometriaService>().autenticar('Confirma para entrar con $_nombre', soloBiometria: true);
     if (!mounted) return;
     if (ok) {
@@ -38,52 +47,56 @@ class _InvitacionBiometriaScreenState extends State<InvitacionBiometriaScreen> {
       widget.onTerminar(context);
       return;
     }
-    setState(() => _ocupado = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No se pudo confirmar con $_nombre. Puedes activarlo después en Perfil › Seguridad.')),
-    );
+    setState(() {
+      _ocupado = false;
+      _error = 'No se pudo confirmar con $_nombre';
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final esCara = _nombre == 'Face ID';
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              Icon(esCara ? Icons.face_retouching_natural : Icons.fingerprint, size: 96, color: cs.primary),
+              Icon(esCara ? Icons.face_rounded : Icons.fingerprint_rounded, size: 96, color: cs.primary),
               const SizedBox(height: 28),
-              Text('Entra con $_nombre', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+              Semantics(
+                header: true,
+                child: Text('Entra con $_nombre', textAlign: TextAlign.center, style: theme.textTheme.displayMedium),
+              ),
               const SizedBox(height: 12),
               Text(
                 'La próxima vez no tendrás que escribir tu correo ni tu contraseña. Tu sesión se queda protegida en este teléfono.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, height: 1.4, color: cs.onSurfaceVariant),
+                style: theme.textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant),
               ),
               const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _ocupado ? null : _activar,
-                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                  child: _ocupado
-                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                      : Text('Activar $_nombre', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              if (_error != null)
+                Semantics(
+                  liveRegion: true,
+                  child: MensajeFlujo(
+                    icono: Icons.error_outline_rounded,
+                    color: cs.error,
+                    titulo: _error!,
+                    texto: 'Vuelve a intentar, o actívalo después en Mi cuenta › Seguridad.',
+                  ),
                 ),
+              OhmGradientButton(
+                label: _error != null ? 'Volver a intentar' : 'Activar $_nombre',
+                loading: _ocupado,
+                loadingLabel: 'Esperando tu $_nombre…',
+                onPressed: _activar,
               ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: _ocupado ? null : () => widget.onTerminar(context),
-                  style: TextButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                  child: const Text('Ahora no', style: TextStyle(fontSize: 16)),
-                ),
-              ),
+              const SizedBox(height: 12),
+              BotonSecundario(etiqueta: 'Ahora no', onPressed: _ocupado ? null : () => widget.onTerminar(context)),
             ],
           ),
         ),

@@ -6,12 +6,12 @@ Cancela solo cuando la instalación no se puede hacer hoy: no hay nadie, no pued
 
 ## Dónde está el botón
 
-«Cancelar instalación» aparece en estas pantallas:
+«Cancelar instalación» (botón gris con letras rojas, abajo de todo) aparece en estas pantallas:
 
-- «Detalles de Ruta» (paso 1, antes de «Marcar llegada»),
+- «Ruta» (paso 1, antes de «Marcar llegada»),
 - «Inspección del perímetro» (paso 2),
-- «Instalación de cerca eléctrica» (paso 3),
-- «Vincular energizador» (paso 4).
+- «Cerca eléctrica» (paso 3),
+- «Vincular energizador» (dentro de «Agregar dispositivos», paso 5).
 
 ## Cómo cancelar
 

@@ -24,9 +24,9 @@ abstract final class AppSpacing {
 /// evita tanto lo demasiado redondo (juguete) como lo cuadrado (brutalista).
 abstract final class AppRadius {
   static const double xs = 8; // chips, badges
-  static const double sm = 12; // inputs, chips grandes
-  static const double md = 16; // tarjetas, botones
-  static const double lg = 20; // contenedores destacados
+  static const double sm = 10; // inputs, chips grandes
+  static const double md = 14; // v2: botones, grupos, filas y avisos
+  static const double lg = 18; // contenedores destacados
   static const double xl = 28; // bottom sheets, diálogos
   static const double pill = 999; // FAB extendido, toggles
 
@@ -45,7 +45,7 @@ abstract final class AppRadius {
 /// Grosores de borde. En "Faena" el borde reemplaza a la sombra como señal
 /// de contención, porque sobrevive al sol directo.
 abstract final class AppBorders {
-  static const double hairline = 1; // separadores, tarjetas en reposo
+  static const double hairline = 0.5; // v2: línea fina entre filas
   static const double regular = 1.5; // inputs
   static const double strong = 2; // foco, estado activo, seleccionado
 }
@@ -64,6 +64,6 @@ abstract final class AppElevation {
 /// con guantes al aire libre.
 abstract final class AppTouch {
   static const double min = 48; // mínimo absoluto (iconos, chips)
-  static const double primary = 56; // botón de acción principal
+  static const double primary = 52; // v2: botón de acción principal
   static const double comfortable = 64; // filas de lista accionables
 }

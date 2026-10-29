@@ -138,6 +138,9 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono}) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/cableado/sirena/confirmar', body: {'sono': sono}));
   @override
+  Future<Map<String, dynamic>> cableadoSirena(String id, {required bool encender}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/cableado/sirena/${encender ? 'encender' : 'apagar'}', body: const {}));
+  @override
   Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/cableado/salidas/$index/probar', body: const {}));
   @override
@@ -147,8 +150,8 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   @override
   Future<Map<String, dynamic>> dispositivosEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/dispositivos'));
   @override
-  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre}) async =>
-      _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender', body: {'tipo': tipo, if (nombre != null && nombre.isNotEmpty) 'nombre': nombre}));
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre, int? botones}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/rf/aprender', body: {'tipo': tipo, if (nombre != null && nombre.isNotEmpty) 'nombre': nombre, if (botones != null) 'botones': botones}));
   @override
   Future<Map<String, dynamic>> rfSesion(String id, String sid) async => _data(await dioClient.get('/instalador/ordenes/$id/rf/aprender/$sid'));
   @override
@@ -176,7 +179,7 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> tuyaTokenResultado(String id, String token) async =>
       _data(await dioClient.get('/instalador/ordenes/$id/wifi/tuya/token/${Uri.encodeComponent(token)}', sinReintento: true));
   @override
-  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category}) async =>
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie}) async =>
       _data(await dioClient.post('/instalador/ordenes/$id/dispositivos-wifi', body: {
         'proveedor': proveedor,
         'clase': clase,
@@ -187,6 +190,8 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
         if (tipo != null && tipo.isNotEmpty) 'tipo': tipo,
         if (productId != null && productId.isNotEmpty) 'productId': productId,
         if (category != null && category.isNotEmpty) 'category': category,
+        // Serie de la etiqueta (opcional, 2026-10-22). Sólo si la hay: un backend viejo rechaza campos que no conoce.
+        if (serie != null && serie.isNotEmpty) 'serie': serie,
       }));
   @override
   Future<Map<String, dynamic>> ohmboxEstado(String id) async => _data(await dioClient.get('/instalador/ordenes/$id/ohmbox'));
@@ -229,4 +234,10 @@ class OrdenesRemoteDataSource implements OrdenesDataSource {
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre) async {
     await dioClient.post('/instalador/ordenes/$id/cierre', body: cierre);
   }
+  @override
+  Future<Map<String, dynamic>> wifiCasaGuardar(String id, {String? red, bool omitir = false}) async =>
+      _data(await dioClient.put('/instalador/ordenes/$id/wifi-casa', body: omitir ? {'omitir': true} : {'red': red ?? ''}));
+  @override
+  Future<Map<String, dynamic>> ohmboxWifi(String id, {required String red, String? contrasena}) async =>
+      _data(await dioClient.post('/instalador/ordenes/$id/ohmbox/wifi', body: {'red': red, if (contrasena != null && contrasena.isNotEmpty) 'contrasena': contrasena}));
 }

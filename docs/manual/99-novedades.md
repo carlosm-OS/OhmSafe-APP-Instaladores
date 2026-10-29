@@ -2,6 +2,88 @@
 
 De la más reciente a la más antigua. Todas son versión 1.0.0; cambia el número de build.
 
+## Build 61 (App Store, PRODUCCIÓN) — 26 de octubre de 2026
+
+- Mismo código que la build 60, apuntando al servidor de producción. Es la que se envía a revisión de Apple para la distribución no listada (link directo de la App Store).
+
+## Build 60 (TestFlight y APK, servidor de pruebas) — 23 de octubre de 2026
+
+- **Nuevo diseño (sistema v2).** Toda la app adopta un estilo más sobrio y fino, como las listas de iPhone. Así se ve ahora:
+  - Fondo gris claro con grupos blancos y título grande arriba.
+  - Estados como un punto de color y una palabra, y acciones de fila como botones grises.
+  - Un solo botón naranja por pantalla.
+  - Las decisiones aparecen en una hoja desde abajo.
+  - Letra más legible: Inter en sus grosores reales, que antes no se veían en iPhone.
+- **La sirena y las salidas de 12 V preguntan dentro de su fila** («¿La escuchaste?», «¿Prendió?»), en vez de ventanas que salían solas.
+- **El tipo de sensor Wi‑Fi lo dice el equipo.** Ya no eliges puerta, movimiento o humo: la app lo toma del sensor al conectarlo. Si el equipo no es un sensor (por ejemplo, una alarma multifunción), no se registra y te lo dice.
+- **No se pierde ni se duplica trabajo.**
+  - Durante la instalación ya no aparece la barra de abajo: tocar «Home» a media prueba o firma te sacaba sin preguntar.
+  - El atrás del teléfono hace lo mismo que la flecha en el cierre, en vincular energizador y en agregar dispositivos. Regresar de agregar dispositivos ya no marca el paso como listo.
+  - Si sales del cierre con fotos tomadas, la app pregunta antes.
+- **Un solo envío.**
+  - «Iniciar ruta» abre una hoja desde abajo, dice «Avisando al cliente…» y no deja avisar dos veces. Al volver, la lista se actualiza.
+  - «Terminar instalación» se bloquea desde el primer toque y va diciendo qué hace: «Subiendo las fotos…», «Preparando la firma…», «Tomando tu ubicación…», «Enviando el cierre…».
+  - Ya no hay un segundo «Terminar» que fingía enviar.
+- **Los botones dicen qué está pasando.** Por ejemplo: «Vinculando el energizador…», «Encendiendo la cerca…», «Guardando la Wi‑Fi de la casa…», «Tomando tu ubicación…», «Entrando…».
+- **Errores en palabras claras.** Ya no aparecen textos técnicos: «Algo falló de nuestro lado. Vuelve a intentar; si sigue, avisa a soporte.» y «Tu sesión venció. Entra de nuevo con tu contraseña.».
+- **iPhone:** vuelve el gesto de deslizar desde el borde para regresar. Con «Reducir movimiento» las pantallas sólo se funden.
+- **Sin avisos falsos.** Se quitó el punto azul que siempre aparecía sobre la campana en Mi cuenta.
+- El botón que decía «Reportar incidencias (opcional)» y abría la cancelación ahora dice «Cancelar instalación».
+- **Zonas de estado de la Wi‑Fi.** La Wi‑Fi de la casa se muestra como una zona de color con ícono y etiqueta: verde «EN ORDEN» cuando está lista (con «Cambiar red»), roja «FALTA» cuando impide seguir (al conectar una cámara o un sensor: «Ir al paso 4 · Wi‑Fi de la casa», y bajo el botón apagado «Para seguir falta: …») y gris «OPCIONAL» cuando no es obligatoria (en «Agregar dispositivos» y en la segunda conexión del OhmBox). El rojo sólo aparece cuando algo bloquea.
+
+## Build 59 (TestFlight servidor de pruebas; APK de producción) — 22 de octubre de 2026
+
+- **«Conectar cámara o sensor Wi‑Fi» en 4 pasos** (Datos → Prepara el equipo → Conectando → Listo): cada botón dice qué está pasando, una línea de etapas marca lo hecho y lo que falta, y el contador muestra cuánto llevas de los 5 minutos. Si algo falla, dice en qué etapa y ofrece «Volver a intentar» o «Cambiar el modo o los datos».
+- «Antes de empezar» según el modo y tiempos alineados a 5 minutos.
+
+## Build 58 (TestFlight y APK, servidor de pruebas) — 22 de octubre de 2026
+
+- **La Wi‑Fi no se vuelve a pedir.** Al conectar una cámara o un sensor Wi‑Fi ya no aparecen los campos de red y contraseña: sale «Conectado a la Wi‑Fi de la casa» con la red del paso 4 y el botón «Cambiar». Si todavía no la capturaste, la pantalla te manda al paso con «Ir a Wi‑Fi de la casa».
+- **Modo punto de acceso, paso a paso.** Si eliges «Punto de acceso», la app pide el permiso de la casa y luego te pide conectar el teléfono a la red del equipo: «Abrir ajustes de Wi‑Fi», eliges la red nueva y abierta del equipo y regresas; la app sigue sola. Si el teléfono ve esa red desde el principio, elige «Punto de acceso» por ti.
+- **«Antes de empezar» según el modo.** El tercer punto cambia con el modo elegido (Bluetooth, rápido o punto de acceso).
+- **Más tiempo para que el equipo llegue.** La app espera lo que dura el permiso (unos 5 minutos), no sólo 1 minuto.
+- **Mensaje claro si la nube de los equipos rechaza el permiso**, con su código para soporte.
+
+## Build 57 (TestFlight y APK, servidor de pruebas) — 22 de octubre de 2026
+
+- **Número de intervención en el historial.** Cada tarjeta del historial muestra su número (por ejemplo «i67»), igual que en la lista de instalaciones; también puedes buscarlo.
+- **El reporte dice lo que de verdad instalaste.** En el cierre ya no se contestan «Cámaras», «Sensores» y «Sirena»: el reporte del cliente lista lo que diste de alta en «Agregar dispositivos» (energizador, sensores cableados, salidas, sensores 433, controles, sensores Wi‑Fi, cámaras y la prueba de sirena).
+- **Salidas auxiliares de 12 V.** Al registrar una salida, las opciones ahora son «Estrobo», «Sirena extra» u «Otro equipo de 12 V» (ya no luz, bomba ni portón).
+- **Control remoto desde la app.** En «Agregar dispositivos › Sensores inalámbricos» vuelve la opción «Control remoto»: la app pide cada botón y lo deja con botón 1 = encender y apagar la cerca, botón 2 = pánico.
+- **Nuevo paso 4: «Wi‑Fi de la casa».** Antes de «Agregar dispositivos» capturas la Wi‑Fi una vez (el cliente escribe la contraseña, que se queda sólo en tu teléfono y se borra al terminar) o la omites si la casa no la necesita. Los sensores y cámaras Wi‑Fi la usan sin volver a pedirla y el OhmBox puede conectarse a ella como segunda conexión además de la red celular. Puedes volver al paso hasta el cierre. «Agregar dispositivos» pasa a ser el paso 5 y el cierre el 6.
+- **Serie de los equipos Wi‑Fi.** Al conectar un sensor o una cámara Wi‑Fi puedes escanear o escribir su número de serie (opcional). Queda en la ficha del equipo, en el dashboard y en el reporte de servicio: sirve para inventario y garantía.
+- **«Equipo conectado».** Al terminar de conectar un sensor o cámara Wi‑Fi ya no sólo sale un aviso: aparece una tarjeta con qué es, el modelo, la serie, el ID del equipo y la red, para confirmar que es el que tienes en la mano. Si no es, «No es este equipo» te dice qué avisar a operaciones.
+- **Emparejar por Bluetooth.** Al conectar un sensor o una cámara Wi‑Fi, el modo normal ahora es «Bluetooth»: el teléfono busca el equipo cerca y le pasa la red. Si no lo ve en 20 segundos, sigue solo en modo rápido. La primera vez el teléfono pide permiso de Bluetooth.
+- **Sin nombres de marca.** La ayuda para conectar sensores y cámaras Wi‑Fi ya no menciona marcas: en el modo «Punto de acceso» dice que te conectes a la red nueva que crea el equipo.
+- **Sirena de demostración.** En «Agregar dispositivos › Sirena» hay «Encender» y «Apagar»: puedes hacerla sonar las veces que quieras frente al cliente (se apaga sola a los 15 segundos). La primera vez la app pregunta si sonó, como antes.
+
+## Build 56 (TestFlight, servidor de pruebas) — 20 de octubre de 2026
+
+- **Sólo ves instalaciones con fecha.** Desaparece la sección «Pendientes de agendar»: una intervención asignada pero sin día y hora ya no aparece (antes salía todos los días). Cuando operaciones le ponga fecha, aparece en su día y te llega el aviso.
+- **Movimiento como en OhmSafe GO.** Las pantallas entran fundiendo y deslizándose un poco desde la derecha; las filas y tarjetas aparecen escalonadas; los botones se encogen al presionarlos; los cambios de estado (marcar, probar) se funden en vez de saltar. Con «Reducir movimiento» del teléfono todo es instantáneo.
+- **RFC de sólo lectura en «Datos generales».** Desaparece la pantalla «Facturación» de Mi cuenta: el RFC se ve junto a nombre, teléfono, correo y CURP, y sólo el equipo de OhmSafe lo corrige en Odoo (como el resto de los datos).
+
+## Build 55 (servidor de pruebas) — 20 de octubre de 2026
+
+- **Agregar dispositivos avisa si no pudo leer la casa.** En la 54, cuando el servidor no podía resolver la casa, la pantalla se quedaba sólo con «Vincular energizador» y sin sensores Wi‑Fi ni cámaras, sin explicar nada. Ahora muestra el motivo. (El servidor de pruebas también se corrigió: ya no crea casas repetidas.)
+- **Cierre › Fotos:** las dos fotos de la cerca se llaman «Foto cerca 1» y «Foto cerca 2» (antes «Perfil izquierdo» y «Perfil derecho»).
+- **Sin marcas en pantalla.** Los sensores y cámaras Wi‑Fi se llaman así, sin el nombre del fabricante, en filas, avisos y listas.
+
+## Build 54 (servidor de pruebas) — 20 de octubre de 2026
+
+- **El energizador ya no es obligatorio.** Los pasos «Vincular el energizador» y «Prueba del energizador» desaparecen de la lista: ahora la instalación tiene 5 pasos (ruta y llegada, inspección, instalación, **Agregar dispositivos**, cierre). En «Agregar dispositivos», la primera sección es **Energizador (OhmBox)**: si la casa lleva energizador, toca «Vincular» (y la prueba de la cerca se abre sola); si no, sigue con sensores Wi‑Fi y cámaras. Sensores cableados, sirena, salidas y sensores inalámbricos sólo aparecen cuando hay energizador. «Probar» y «Agregar otro OhmBox» están en esa misma sección.
+- Requiere el servidor con el cambio «energizador opcional» (ya en el servidor de pruebas).
+
+## Build 53 (servidor de pruebas) — 20 de octubre de 2026
+
+- **Buscador de redes Wi‑Fi** al conectar un sensor o cámara Wi‑Fi: en Android, el icono junto a «Nombre de la red» abre la lista de redes cercanas (las de 2.4 GHz primero, con su señal; las de 5 GHz se ven apagadas porque el equipo no las ve) y tocas una. En iPhone Apple no permite listar redes: el campo sigue leyendo la red del teléfono, se actualiza solo al volver de Ajustes › Wi‑Fi y el icono la relee a mano.
+- **Aviso de 5 GHz:** si el nombre elegido o escrito parece de 5 GHz («…5G»), la app lo dice debajo del campo (no impide continuar).
+
+## Build 52 — 20 de octubre de 2026
+
+- **Una sola plataforma de cámaras y sensores Wi‑Fi.** Por decisión de dirección, la app deja de ofrecer las otras dos plataformas de cámaras: en «Agregar dispositivos» → Cámaras ya no aparecen «Conectar cámara a la Wi‑Fi» (otra plataforma), «Conectar cámara (otra plataforma)» ni «Cámara ya conectada». Queda **«Conectar cámara Wi‑Fi»** y, en Sensores Wi‑Fi, **«Conectar sensor Wi‑Fi»**. Las cámaras de otras marcas que ya estaban registradas se siguen viendo en la lista.
+- **App más ligera:** un programa de cámaras que ya no se usa dejó de viajar dentro de la app (unos 40 MB menos de descarga).
+
 ## Build 51 (TestFlight, servidor de pruebas) — 20 de octubre de 2026
 
 Sólo para pruebas internas: apunta al **servidor de pruebas** (api-dev).

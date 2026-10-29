@@ -1,13 +1,17 @@
 import '../core/utils/como_llegar.dart';
 import 'package:flutter/material.dart';
 import 'service_steps_screen.dart';
+import '../core/theme/app_motion.dart';
 import '../core/theme/app_theme_extension.dart';
 import '../widgets/app_bottom_nav.dart';
-import '../widgets/notification_bell.dart';
+import '../widgets/ayuda.dart';
+import '../widgets/movimiento.dart';
+import '../widgets/ohm_gradient_button.dart';
 import '../core/di/injection_container.dart';
 import '../features/ordenes/domain/entities/orden.dart';
 import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import '../core/utils/fechas_odoo.dart';
+import '../widgets/hoja_decision.dart';
 
 /// Sección Instalaciones. Carga las órdenes de instalación desde el
 /// repositorio (Mock o Api según `EnvConfig.useMock`). Cada orden arranca
@@ -15,16 +19,11 @@ import '../core/utils/fechas_odoo.dart';
 class InstalacionesScreen extends StatefulWidget {
   final String? cancelledTicketTitle;
   final String? completedTicketTitle;
+
   /// Tipo de servicio que lista: instalacion (por defecto), mantenimiento, reparacion, reemplazo.
   final String tipo;
   final String titulo;
-  const InstalacionesScreen({
-    super.key,
-    this.cancelledTicketTitle,
-    this.completedTicketTitle,
-    this.tipo = 'instalacion',
-    this.titulo = 'Instalaciones',
-  });
+  const InstalacionesScreen({super.key, this.cancelledTicketTitle, this.completedTicketTitle, this.tipo = 'instalacion', this.titulo = 'Instalaciones'});
 
   @override
   State<InstalacionesScreen> createState() => _InstalacionesScreenState();
@@ -44,7 +43,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   /// agendadas para ese día. Por defecto, hoy.
   late DateTime _selectedDate;
 
-  /// Id de la tarjeta abierta (expandida). null = todas cerradas.
+  /// Id de la tarjeta abierta (con todos sus datos). null = todas con lo esencial.
   String? _openId;
 
   /// El calendario arranca compacto (la semana en curso) y se puede expandir
@@ -60,10 +59,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom', // weekday 1..7
   ];
 
-  static const List<String> _mesesLargos = [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-  ];
+  static const List<String> _diasLargos = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
   @override
   void initState() {
@@ -104,10 +100,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     final primero = DateTime(mes.year, mes.month, 1);
     final diasEnMes = DateUtils.getDaysInMonth(mes.year, mes.month);
     final huecoInicial = primero.weekday - 1; // lunes = 0
-    final celdas = <DateTime?>[
-      ...List.filled(huecoInicial, null),
-      ...List.generate(diasEnMes, (i) => DateTime(mes.year, mes.month, i + 1)),
-    ];
+    final celdas = <DateTime?>[...List.filled(huecoInicial, null), ...List.generate(diasEnMes, (i) => DateTime(mes.year, mes.month, i + 1))];
     while (celdas.length % 7 != 0) {
       celdas.add(null);
     }
@@ -170,12 +163,12 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     }
   }
 
+  /// «instalaciones» en los textos de vacío y error (o el título de la sección, si lista otro tipo).
+  String get _plural => widget.tipo == 'instalacion' ? 'instalaciones' : widget.titulo.toLowerCase();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -186,64 +179,11 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Image.asset(
-                        isDark ? 'assets/assets/logo_white.png' : 'assets/assets/logo_light.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text("OHM", style: TextStyle(fontWeight: FontWeight.w900, color: theme.textTheme.bodyLarge?.color)),
-                            Text("SAFE", style: TextStyle(fontWeight: FontWeight.w900, color: cs.primary)),
-                          ],
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: const NotificationBell(),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Back + title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: SizedBox(
-                    height: 48,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: Text(
-                            widget.titulo,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.textTheme.titleLarge?.color),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.maybePop(context),
-                            style: IconButton.styleFrom(padding: const EdgeInsets.all(6), shape: const CircleBorder()),
-                            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: theme.iconTheme.color),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // v2 (2026-10-23): encabezado único, sin logo repetido.
+                EncabezadoFlujo(titulo: widget.titulo),
 
                 // Calendario: semana compacta o mes completo (ver _buildCalendario).
-                _buildCalendario(theme, cs, ohm, isDark),
+                _buildCalendario(theme),
 
                 // Lista / carga / error / vacío
                 Expanded(child: _buildBody(theme)),
@@ -258,57 +198,49 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
 
   Widget _buildBody(ThemeData theme) {
     if (_loading) {
-      return Center(child: CircularProgressIndicator(color: theme.colorScheme.primary));
+      return const AgendaCargando(frase: 'Cargando tu agenda…');
     }
+    // Jalar hacia abajo vuelve a pedir las ordenes al backend: un ticket que
+    // se agrega, cambia de etapa o se borra en Odoo se refleja sin salir de
+    // la pantalla. v2: también en vacío y en error.
+    Future<void> recargar() => _cargar(silencioso: true);
     if (_error != null) {
-      return _buildErrorState(theme);
+      return AgendaError(titulo: 'No pudimos cargar tus $_plural', texto: _error!, alRecargar: recargar, alVolverAIntentar: _cargar);
     }
     // Agendadas para el día seleccionado.
     // REGLA 1 — la lista de trabajo solo muestra órdenes vivas. Una terminada
     // o cancelada ya no es trabajo por hacer: vive en Historial. Antes seguía
     // apareciendo en su día y ofreciendo "Iniciar ruta" sobre un servicio ya
     // cerrado (y esa acción vuelve a avisarle al cliente).
-    final activas = _ordenes.where(_esTrabajoVivo).toList();
+    // Opción A de Carlos (2026-10-20): lo que no tiene fecha no se muestra (el backend ya no lo manda;
+    // se filtra también aquí por si el servidor es viejo). Antes salía todos los días como
+    // «Pendientes de agendar» y confundía al instalador.
+    final activas = _ordenes.where(_esTrabajoVivo).where((o) => _agendadaDate(o) != null).toList();
 
     final agendadasDia = activas.where((o) => _ocupaDia(o, _selectedDate)).toList();
-    // Pendientes de agendar (sin fecha): sección aparte, siempre visible.
-    final pendientes = activas.where((o) => _agendadaDate(o) == null).toList();
 
-    if (agendadasDia.isEmpty && pendientes.isEmpty) {
-      return _buildEmptyState(theme);
-    }
-
-    final children = <Widget>[];
-
-    // Sección: instalaciones del día.
-    children.add(_sectionHeader(theme, _tituloDia(), Icons.event_available_rounded));
     if (agendadasDia.isEmpty) {
-      children.add(_sinAgendadasHint(theme));
-    } else {
-      children.addAll(agendadasDia.map((o) => _buildTicketCard(o, _openId == o.id)));
+      return AgendaVacia(
+        icono: Icons.event_available_rounded,
+        titulo: 'Sin $_plural este día',
+        texto: 'Cuando operaciones te asigne una, aparece aquí y te llega un aviso.',
+        alRecargar: recargar,
+      );
     }
 
-    // Sección: pendientes de agendar.
-    if (pendientes.isNotEmpty) {
-      children.add(const SizedBox(height: 8));
-      children.add(_sectionHeader(theme, 'Pendientes de agendar', Icons.schedule_rounded));
-      children.addAll(pendientes.map((o) => _buildTicketCard(o, _openId == o.id)));
-    }
-
-    // Jalar hacia abajo vuelve a pedir las ordenes al backend: un ticket que
-    // se agrega, cambia de etapa o se borra en Odoo se refleja sin salir de
-    // la pantalla.
     return RefreshIndicator(
-      onRefresh: () => _cargar(silencioso: true),
-      color: Theme.of(context).colorScheme.primary,
+      onRefresh: recargar,
+      color: theme.colorScheme.primary,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         // AlwaysScrollable: el gesto debe funcionar aunque haya una sola
         // orden y la lista no llegue a desbordar la pantalla.
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        children: children,
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        children: [
+          EtiquetaSeccion(_tituloDia()),
+          for (var i = 0; i < agendadasDia.length; i++)
+            EntradaSuave(key: ValueKey('tarjeta-${agendadasDia[i].id}'), index: i, child: _buildTicketCard(agendadasDia[i], _openId == agendadasDia[i].id)),
+        ],
       ),
     );
   }
@@ -331,32 +263,25 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     });
   }
 
-  Widget _buildCalendario(ThemeData theme, ColorScheme cs, dynamic ohm, bool isDark) {
-    final mesTitulo =
-        '${_mesesLargos[_mesVisible.month - 1]} ${_mesVisible.year}';
+  Widget _buildCalendario(ThemeData theme) {
+    final mesTitulo = '${mesesLargos[_mesVisible.month - 1]} ${_mesVisible.year}';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Container(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      // v2: grupo blanco sin borde.
+      child: TarjetaFlujo(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-        decoration: BoxDecoration(
-          color: isDark ? cs.surface : ohm.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildCabeceraMes(theme, cs, mesTitulo),
+            _buildCabeceraMes(theme, mesTitulo),
             // El cambio entre semana y mes se anima para que se lea como la
             // misma superficie creciendo, no como dos pantallas distintas.
             AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
+              duration: AppMotion.of(context, AppDurations.spring),
+              curve: AppCurves.standard,
               alignment: Alignment.topCenter,
-              child: _mesExpandido
-                  ? _buildCuadriculaMes(theme, cs, isDark)
-                  : _buildTiraSemana(theme, cs, isDark),
+              child: _mesExpandido ? _buildCuadriculaMes(theme) : _buildTiraSemana(theme),
             ),
           ],
         ),
@@ -366,43 +291,27 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
 
   /// Encabezado: mes visible, navegación entre meses (solo con el mes abierto)
   /// y el botón que alterna semana/mes.
-  Widget _buildCabeceraMes(ThemeData theme, ColorScheme cs, String mesTitulo) {
-    final color = theme.textTheme.bodyLarge?.color;
+  Widget _buildCabeceraMes(ThemeData theme, String mesTitulo) {
+    final color = theme.colorScheme.onSurface;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 2, 4, 6),
+      padding: const EdgeInsets.fromLTRB(10, 0, 4, 2),
       child: Row(
         children: [
           Expanded(
             child: Text(
               // Se capitaliza solo la inicial: "septiembre 2026" -> "Septiembre 2026".
               mesTitulo[0].toUpperCase() + mesTitulo.substring(1),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
+              style: theme.textTheme.titleSmall,
             ),
           ),
           if (_mesExpandido) ...[
-            _botonIcono(
-              icono: Icons.chevron_left_rounded,
-              tooltip: 'Mes anterior',
-              color: color,
-              onTap: () => _cambiarMes(-1),
-            ),
-            _botonIcono(
-              icono: Icons.chevron_right_rounded,
-              tooltip: 'Mes siguiente',
-              color: color,
-              onTap: () => _cambiarMes(1),
-            ),
+            _botonIcono(icono: Icons.chevron_left_rounded, tooltip: 'Mes anterior', color: color, onTap: () => _cambiarMes(-1)),
+            _botonIcono(icono: Icons.chevron_right_rounded, tooltip: 'Mes siguiente', color: color, onTap: () => _cambiarMes(1)),
           ],
           _botonIcono(
-            icono: _mesExpandido
-                ? Icons.expand_less_rounded
-                : Icons.calendar_month_rounded,
+            icono: _mesExpandido ? Icons.expand_less_rounded : Icons.calendar_month_rounded,
             tooltip: _mesExpandido ? 'Ver solo la semana' : 'Ver el mes completo',
-            color: _mesExpandido ? cs.primary : color,
+            color: theme.colorScheme.primary,
             onTap: () => setState(() {
               _mesExpandido = !_mesExpandido;
               // Al abrir el mes se muestra el del día seleccionado, no uno
@@ -418,12 +327,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
   }
 
   /// Botón de icono con área táctil de 44x44 (mínimo de la guía).
-  Widget _botonIcono({
-    required IconData icono,
-    required String tooltip,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
+  Widget _botonIcono({required IconData icono, required String tooltip, required VoidCallback onTap, Color? color}) {
     return Semantics(
       button: true,
       label: tooltip,
@@ -432,21 +336,18 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(22),
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icono, size: 20, color: color),
-          ),
+          child: SizedBox(width: 44, height: 44, child: Icon(icono, size: 22, color: color)),
         ),
       ),
     );
   }
 
   /// Vista compacta: los días desde hoy, desplazable en horizontal.
-  Widget _buildTiraSemana(ThemeData theme, ColorScheme cs, bool isDark) {
+  Widget _buildTiraSemana(ThemeData theme) {
     return SizedBox(
       key: const ValueKey('tira-semana'),
-      height: 70,
+      // Crece con la letra grande del teléfono (accesibilidad): 72 con la letra normal.
+      height: 30 + MediaQuery.textScalerOf(context).scale(42),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -454,19 +355,15 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         separatorBuilder: (_, _) => const SizedBox(width: 4),
         itemBuilder: (context, i) {
           final day = _calendarDays[i];
-          return SizedBox(
-            width: 52,
-            child: _celdaDia(theme, cs, isDark, day, mostrarNombreDia: true),
-          );
+          return SizedBox(width: 52, child: _celdaDia(theme, day, mostrarNombreDia: true));
         },
       ),
     );
   }
 
   /// Vista expandida: el mes completo en cuadrícula.
-  Widget _buildCuadriculaMes(ThemeData theme, ColorScheme cs, bool isDark) {
+  Widget _buildCuadriculaMes(ThemeData theme) {
     final celdas = _celdasDelMes(_mesVisible);
-    final tenue = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5);
 
     return Column(
       key: const ValueKey('cuadricula-mes'),
@@ -476,16 +373,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
           children: [
             for (final d in _diasSemana)
               Expanded(
-                child: Center(
-                  child: Text(
-                    d,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: tenue,
-                    ),
-                  ),
-                ),
+                child: Center(child: Text(d, style: theme.textTheme.bodySmall)),
               ),
           ],
         ),
@@ -498,13 +386,7 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
                   child: celdas[fila * 7 + col] == null
                       // Hueco de relleno: ocupa lugar para no descuadrar la fila.
                       ? const SizedBox(height: 48)
-                      : _celdaDia(
-                          theme,
-                          cs,
-                          isDark,
-                          celdas[fila * 7 + col]!,
-                          mostrarNombreDia: false,
-                        ),
+                      : _celdaDia(theme, celdas[fila * 7 + col]!, mostrarNombreDia: false),
                 ),
             ],
           ),
@@ -515,21 +397,19 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
 
   /// Celda de un día, compartida por la tira y la cuadrícula: mismo aspecto y
   /// mismo significado del punto (hay instalaciones agendadas ese día).
-  Widget _celdaDia(
-    ThemeData theme,
-    ColorScheme cs,
-    bool isDark,
-    DateTime day, {
-    required bool mostrarNombreDia,
-  }) {
+  /// v2 (2026-10-23): el día elegido va en tinta (`inverseSurface`), sin naranja.
+  Widget _celdaDia(ThemeData theme, DateTime day, {required bool mostrarNombreDia}) {
+    final cs = theme.colorScheme;
     final isActive = DateUtils.isSameDay(day, _selectedDate);
     final isToday = DateUtils.isSameDay(day, _today);
     final count = _countForDay(day);
+    final tinta = isActive ? cs.onInverseSurface : cs.onSurface;
 
     return Semantics(
       button: true,
       selected: isActive,
-      label: '${day.day} de ${_mesesLargos[day.month - 1]}'
+      label:
+          '${day.day} de ${mesesLargos[day.month - 1]}'
           '${count > 0 ? ', $count ${count == 1 ? 'instalación' : 'instalaciones'}' : ''}'
           '${isToday ? ', hoy' : ''}',
       child: GestureDetector(
@@ -537,18 +417,16 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
         // El hueco entre celdas tambien debe responder al toque: sin esto el
         // objetivo real es menor que la celda que se ve.
         behavior: HitTestBehavior.opaque,
-        child: Container(
+        child: AnimatedContainer(
+          duration: AppMotion.of(context, AppDurations.base),
+          curve: AppCurves.standard,
           height: mostrarNombreDia ? null : 48,
           margin: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
           padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-            color: isActive
-                ? (isDark ? cs.onSurfaceVariant : cs.onSurface)
-                : Colors.transparent,
+            color: isActive ? cs.inverseSurface : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: isToday && !isActive
-                ? Border.all(color: cs.primary.withValues(alpha: 0.6), width: 1.4)
-                : null,
+            border: isToday && !isActive ? Border.all(color: cs.outlineVariant, width: 1.5) : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -557,37 +435,17 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
               if (mostrarNombreDia) ...[
                 Text(
                   _diasSemana[day.weekday - 1],
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: isActive
-                        ? Colors.white.withValues(alpha: 0.8)
-                        : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(height: 1.1, color: isActive ? cs.onInverseSurface : cs.onSurfaceVariant),
                 ),
                 const SizedBox(height: 3),
               ],
-              Text(
-                '${day.day}',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: isActive
-                      ? Colors.white
-                      : theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
-                ),
-              ),
+              Text('${day.day}', style: theme.textTheme.titleSmall?.copyWith(height: 1.1, color: tinta)),
               const SizedBox(height: 3),
               // Punto indicador si hay instalaciones agendadas ese día.
               Container(
                 width: 6,
                 height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: count > 0
-                      ? (isActive ? Colors.white : cs.primary)
-                      : Colors.transparent,
-                ),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: count > 0 ? (isActive ? cs.onInverseSurface : cs.primary) : Colors.transparent),
               ),
             ],
           ),
@@ -596,262 +454,60 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
     );
   }
 
-  /// Título del día seleccionado ("Hoy", "Mañana" o "Vie 12 sep").
+  /// Título del día seleccionado, en tipo oración: «Hoy · miércoles 21», «Mañana · jueves 22» o
+  /// «Viernes 24 de octubre».
   String _tituloDia() {
-    if (DateUtils.isSameDay(_selectedDate, _today)) return 'Hoy';
-    if (DateUtils.isSameDay(_selectedDate, _today.add(const Duration(days: 1)))) return 'Mañana';
-    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-    return '${_diasSemana[_selectedDate.weekday - 1]} ${_selectedDate.day} ${meses[_selectedDate.month - 1]}';
-  }
-
-  Widget _sectionHeader(ThemeData theme, String label, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10, top: 2, left: 2),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.2, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Aviso cuando el día seleccionado no tiene instalaciones agendadas.
-  Widget _sinAgendadasHint(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        'Sin instalaciones agendadas para este día.',
-        style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.55), height: 1.4),
-      ),
-    );
+    final dia = _diasLargos[_selectedDate.weekday - 1];
+    if (DateUtils.isSameDay(_selectedDate, _today)) return 'Hoy · $dia ${_selectedDate.day}';
+    if (DateUtils.isSameDay(_selectedDate, _today.add(const Duration(days: 1)))) return 'Mañana · $dia ${_selectedDate.day}';
+    return '${dia[0].toUpperCase()}${dia.substring(1)} ${_selectedDate.day} de ${mesesLargos[_selectedDate.month - 1]}';
   }
 
   Widget _buildTicketCard(Orden orden, bool isOpen) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final ohm = context.ohm;
-    final isDark = theme.brightness == Brightness.dark;
     final status = _estadoDisplay(orden);
-
-    Color statusBgColor;
-    Color statusTextColor;
-    switch (status) {
-      case "Por hacer":
-        statusBgColor = ohm.infoContainer;
-        statusTextColor = ohm.info;
-        break;
-      case "Completo":
-        statusBgColor = ohm.successContainer;
-        statusTextColor = ohm.success;
-        break;
-      case "En curso":
-        statusBgColor = ohm.warningContainer;
-        statusTextColor = isDark ? ohm.warning : ohm.onWarningContainer;
-        break;
-      case "Cancelado":
-        statusBgColor = cs.errorContainer;
-        statusTextColor = cs.error;
-        break;
-      default:
-        statusBgColor = ohm.surfaceContainer;
-        statusTextColor = cs.onSurfaceVariant;
-    }
     final cancelado = status == "Cancelado";
+    final destino = DestinoServicio.deDetalles(orden.toTicketMap()['details'] as Map);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
-      color: theme.cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1.5),
-      ),
-      child: InkWell(
-        onTap: () => setState(() => _openId = isOpen ? null : orden.id),
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(orden.titulo, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, height: 1.4, color: theme.textTheme.bodyLarge?.color)),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: statusBgColor, borderRadius: BorderRadius.circular(12)),
-                    child: Text(status == "Cancelado" ? "CANCELADO" : status, style: TextStyle(color: statusTextColor, fontSize: 11, fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ),
-              if (isOpen) ...[
-                const SizedBox(height: 16),
-                Text("Abierto por ${orden.diasAbierto} días", style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color)),
-                const SizedBox(height: 6),
-                _detailRow(theme, "Fecha de Creación: ", FechasOdoo.fechaHora(orden.fechaCreacion)),
-                const SizedBox(height: 6),
-                _detailRow(theme, "Metraje: ", orden.metraje),
-                const SizedBox(height: 6),
-                _detailRow(theme, "Dirección: ", orden.direccion),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    _detailRow(theme, "Ciudad: ", orden.ciudad),
-                    const SizedBox(width: 24),
-                    _detailRow(theme, "CP: ", orden.cp),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                _detailRow(theme, "Teléfono: ", orden.telefono),
-                BotonComoLlegar(destino: DestinoServicio.deDetalles(orden.toTicketMap()['details'] as Map)),
-                if (orden.plan.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  _detailRow(theme, "Plan: ", orden.plan),
-                ],
-                if (orden.ordenVenta.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  _detailRow(theme, "Orden de venta: ", orden.ordenVenta),
-                ],
-                // Hoja de trabajo de Odoo (intervenciones): lo que ya se registró en sitio.
-                for (final campo in orden.hojaTrabajo.where((c) => c['valor'] != null && c['valor'] != false && '${c['valor']}'.isNotEmpty)) ...[
-                  const SizedBox(height: 6),
-                  _detailRow(theme, "${campo['etiqueta']}: ", campo['valor'] == true ? 'Sí' : '${campo['valor']}'),
-                ],
-                if (orden.agendado && (orden.fechaAgendada?.isNotEmpty ?? false)) ...[
-                  const SizedBox(height: 6),
-                  _detailRow(theme, "Agendada: ", FechasOdoo.rango(orden.fechaAgendada, orden.fechaFin)),
-                ],
-                if (orden.fechaPagoConfirmado?.isNotEmpty ?? false) ...[
-                  const SizedBox(height: 6),
-                  _detailRow(theme, "Pago confirmado: ", _formatFechaAgendada(orden.fechaPagoConfirmado!)),
-                ],
-                const SizedBox(height: 6),
-                _detailRow(theme, "Contrato firmado: ", orden.contratoFirmado ? "Sí" : "Pendiente"),
-                // Lo que el instalador debe saber ANTES de llegar: malla,
-                // vegetación, mascotas, acceso... Se resalta si hay algo.
-                if (orden.condicionesTerreno.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  _detailRow(theme, "Condiciones del terreno: ", orden.condicionesTerreno.join(', ')),
-                ],
-              ],
-              const SizedBox(height: 12),
-              Divider(height: 1, color: theme.dividerColor),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.person_outline_rounded, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(orden.cliente, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
-                  ),
-                  // Número de intervención («i69»): el mismo que ve operaciones
-                  // en Odoo, para hablar de la misma orden por teléfono.
-                  if (orden.numero.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    _numeroPill(cs, orden.numero),
-                  ],
-                ],
-              ),
-              if (isOpen) ...[
-                const SizedBox(height: 18),
-                if (!orden.agendado)
-                  _pendienteAgendarPill(theme, cs, ohm)
-                else
-                  ElevatedButton(
-                    // Si el servicio ya arrancó, la acción retoma el paso
-                    // pendiente; "iniciar ruta" solo aplica al primer paso
-                    // (y es el único que avisa al cliente).
-                    // Sin acción cuando no hay trabajo que hacer: cerrada,
-                    // cancelada o aún sin agendar.
-                    onPressed: (cancelado || !_esTrabajoVivo(orden) || orden.pasoActual == 'agendar')
-                        ? null
-                        : orden.enCurso
-                            ? () => _retomarServicio(orden)
-                            : () => _showConfirmationDialog(context, orden),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cancelado ? (isDark ? cs.outline : cs.outlineVariant) : cs.primary,
-                      foregroundColor: cancelado ? (isDark ? Colors.white30 : Colors.white70) : Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
-                    ),
-                    child: Text(_etiquetaAccion(orden), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                  ),
-              ]
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    final extras = <(String, String)>[
+      if (orden.plan.isNotEmpty) ('Plan', orden.plan),
+      if (orden.ordenVenta.isNotEmpty) ('Orden de venta', orden.ordenVenta),
+      // Hoja de trabajo de Odoo (intervenciones): lo que ya se registró en sitio.
+      for (final campo in orden.hojaTrabajo.where((c) => c['valor'] != null && c['valor'] != false && '${c['valor']}'.isNotEmpty))
+        ('${campo['etiqueta']}', campo['valor'] == true ? 'Sí' : '${campo['valor']}'),
+      if (orden.agendado && (orden.fechaAgendada?.isNotEmpty ?? false)) ('Agendada', FechasOdoo.rango(orden.fechaAgendada, orden.fechaFin)),
+      if (orden.fechaPagoConfirmado?.isNotEmpty ?? false) ('Pago confirmado', _formatFechaAgendada(orden.fechaPagoConfirmado!)),
+      ('Contrato firmado', orden.contratoFirmado ? "Sí" : "Pendiente"),
+    ];
 
-  /// Pastilla con el número de intervención, a la derecha del cliente.
-  Widget _numeroPill(ColorScheme cs, String numero) {
-    return Semantics(
-      label: 'Intervención $numero',
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: cs.primary.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(numero, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.primary, letterSpacing: 0.2)),
-      ),
-    );
-  }
-
-  Widget _detailRow(ThemeData theme, String label, String? value) {
-    return RichText(
-      text: TextSpan(
-        style: TextStyle(fontSize: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.85)),
-        children: [
-          TextSpan(text: label, style: const TextStyle(fontWeight: FontWeight.w700)),
-          TextSpan(text: value),
-        ],
-      ),
+    return TarjetaOrden(
+      orden: orden,
+      estado: status,
+      abierta: isOpen,
+      alTocar: () => setState(() => _openId = isOpen ? null : orden.id),
+      extras: extras,
+      destino: destino,
+      accion: !orden.agendado
+          ? const PendienteDeAgendar()
+          : OhmGradientButton(
+              // Si el servicio ya arrancó, la acción retoma el paso
+              // pendiente; "iniciar ruta" solo aplica al primer paso
+              // (y es el único que avisa al cliente).
+              // Sin acción cuando no hay trabajo que hacer: cerrada,
+              // cancelada o aún sin agendar.
+              label: _etiquetaAccion(orden),
+              icon: orden.enCurso || cancelado || !_esTrabajoVivo(orden) ? null : Icons.local_shipping_rounded,
+              onPressed: (cancelado || !_esTrabajoVivo(orden) || orden.pasoActual == 'agendar')
+                  ? null
+                  : orden.enCurso
+                  ? () => _retomarServicio(orden)
+                  : () => _showConfirmationDialog(context, orden),
+            ),
     );
   }
 
   /// Fecha UTC de Odoo ("2026-09-15 16:00:00") en hora local del dispositivo,
   /// legible como "15/09/2026 10:00". Si no parsea, devuelve el texto original.
   String _formatFechaAgendada(String raw) => FechasOdoo.fechaHora(raw);
-
-  /// Píldora informativa (no interactiva) cuando la orden aún no está agendada.
-  /// El instalador no puede iniciar la ruta hasta que servicio confirme día/hora.
-  Widget _pendienteAgendarPill(ThemeData theme, ColorScheme cs, OhmColors ohm) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: ohm.surfaceContainer,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.6)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.schedule_rounded, size: 18, color: cs.onSurfaceVariant),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              "Pendiente de agendar — el equipo de servicio confirmará día y hora",
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, height: 1.35, color: cs.onSurfaceVariant),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   /// Reporta el inicio de ruta al backend (repo) y, si va bien, entra al flujo.
   /// Texto del botón según el paso pendiente. "Continuar ·" deja claro que
@@ -884,140 +540,385 @@ class _InstalacionesScreenState extends State<InstalacionesScreen> {
       case 'cierre':
         return "Continuar · Cierre y firma";
       default:
-        return "Iniciar ruta de servicio";
+        return "Iniciar ruta";
     }
   }
 
   /// Abre el flujo directamente en el paso pendiente, sin la animación de
   /// salida ni volver a marcar "en ruta" (eso ya quedó registrado en Odoo).
   Future<void> _retomarServicio(Orden orden) async {
-    const paso = {
-      'marcar_llegada': 1,
-      'inspeccion': 2,
-      'instalacion': 3,
-      'vinculacion': 4,
-      'prueba': 5,
-      'dispositivos': 6,
-      'cierre': 7,
-    };
+    // Energizador opcional (2026-10-20): «vincular» y «prueba» viven dentro de «Agregar dispositivos» (paso 4).
+    const paso = {'marcar_llegada': 1, 'inspeccion': 2, 'instalacion': 3, 'vinculacion': 4, 'prueba': 4, 'dispositivos': 4, 'cierre': 5};
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ServiceStepsScreen(
-          ticket: orden.toTicketMap(),
-          pasoInicial: paso[orden.pasoActual] ?? 1,
-        ),
+        builder: (_) => ServiceStepsScreen(ticket: orden.toTicketMap(), pasoInicial: paso[orden.pasoActual] ?? 1),
       ),
     );
     // Al volver, la orden pudo avanzar o completarse: se refresca.
     if (mounted) _cargar(silencioso: true);
   }
 
-  Future<void> _iniciarServicio(Orden orden) async {
-    final result = await _repo.iniciarRuta(orden.id);
-    if (!mounted) return;
-    result.fold(
-      (_) => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: orden.toTicketMap())),
-      ),
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("No se pudo iniciar la ruta: ${failure.message}")),
-      ),
+  /// «Iniciar ruta»: hoja desde abajo que avisa al cliente UNA vez (auditoría 2026-10-23: antes el
+  /// botón seguía vivo mientras enviaba y un segundo toque avisaba dos veces; al volver no se refrescaba).
+  Future<void> _showConfirmationDialog(BuildContext context, Orden orden) async {
+    final nombre = orden.cliente.trim().split(' ').first;
+    final ok = await mostrarHojaDecision(
+      context,
+      titulo: '¿Salir hacia el domicilio?',
+      texto: nombre.isEmpty ? 'Le avisamos al cliente que vas en camino.' : 'Le avisamos a $nombre que vas en camino.',
+      seguir: 'Iniciar ruta',
+      salir: 'Ahora no',
+      cargandoTexto: 'Avisando al cliente…',
+      alSeguir: () async {
+        final r = await _repo.iniciarRuta(orden.id);
+        return r.isSuccess ? null : 'No pudimos avisar al cliente. Revisa tu señal y vuelve a intentar.';
+      },
     );
+    if (ok != true || !mounted) return;
+    await Navigator.push(this.context, MaterialPageRoute(builder: (_) => TruckAnimationPage(ticket: orden.toTicketMap())));
+    if (mounted) _cargar(silencioso: true);
   }
+}
 
-  void _showConfirmationDialog(BuildContext context, Orden orden) {
+// =============================================================================
+// Piezas de la agenda v2 (2026-10-23), compartidas con Reparaciones.
+// =============================================================================
+
+const List<String> mesesLargos = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/// «Creada el 14 de octubre, 9:00» (hora del teléfono). Vacío si la fecha no parsea.
+String creadaEl(String? raw) {
+  final f = FechasOdoo.aLocal(raw);
+  if (f == null) return '';
+  return 'Creada el ${f.day} de ${mesesLargos[f.month - 1]}, ${f.hour}:${f.minute.toString().padLeft(2, '0')}';
+}
+
+/// Tarjeta de una instalación o reparación en la agenda (v2): título y estado (punto + palabra),
+/// «i76 · Creada el …», los datos en columnas etiqueta/valor, «Cómo llegar» como píldora y la acción
+/// principal. Al tocarla muestra los datos de más ([extras]).
+class TarjetaOrden extends StatelessWidget {
+  const TarjetaOrden({
+    super.key,
+    required this.orden,
+    required this.estado,
+    required this.abierta,
+    required this.alTocar,
+    required this.destino,
+    this.accion,
+    this.extras = const [],
+  });
+
+  final Orden orden;
+
+  /// «Por hacer», «En curso», «Completo», «Cancelado».
+  final String estado;
+  final bool abierta;
+  final VoidCallback alTocar;
+  final DestinoServicio destino;
+  final Widget? accion;
+  final List<(String, String)> extras;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: theme.cardColor,
+    final cs = theme.colorScheme;
+    final ohm = context.ohm;
+    final colorEstado = switch (estado) {
+      'Por hacer' => ohm.info,
+      'En curso' => ohm.warning,
+      'Completo' => ohm.success,
+      'Cancelado' => cs.error,
+      _ => cs.onSurfaceVariant,
+    };
+    final creada = creadaEl(orden.fechaCreacion);
+    final linea = [if (orden.numero.isNotEmpty) orden.numero, if (creada.isNotEmpty) creada].join(' · ');
+    final direccion = [orden.direccion, orden.ciudad, orden.cp].where((s) => s.trim().isNotEmpty).join(', ');
+    final datos = <(String, String)>[
+      ('Cliente', orden.cliente),
+      if (direccion.isNotEmpty) ('Dirección', direccion),
+      if (orden.telefono.isNotEmpty) ('Teléfono', orden.telefono),
+      if (orden.metraje.isNotEmpty) ('Metraje', orden.metraje),
+      // Lo que el instalador debe saber ANTES de llegar: malla, vegetación, mascotas, acceso...
+      if (orden.condicionesTerreno.isNotEmpty) ('Terreno', orden.condicionesTerreno.join(', ')),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: alTocar,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text("¿Estás seguro de iniciar la ruta?", textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
-                const SizedBox(height: 12),
-                Text("El cliente será notificado que tu servicio está en camino", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), height: 1.4)),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _iniciarServicio(orden);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: Text(orden.titulo, style: theme.textTheme.titleLarge)),
+                    const SizedBox(width: 12),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: EstadoPunto(estado, color: colorEstado),
                     ),
-                    child: const Text("Iniciar ruta de servicio", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  ],
+                ),
+                if (linea.isNotEmpty || orden.urgente) ...[
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (linea.isNotEmpty) Text(linea, style: theme.textTheme.bodySmall),
+                      if (orden.urgente) const InsigniaUrgente(),
+                    ],
                   ),
-                ),
+                ],
                 const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: TextButton.styleFrom(foregroundColor: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), padding: const EdgeInsets.symmetric(vertical: 8)),
-                  child: Text("Cancelar", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7))),
+                for (final d in datos) DatoColumna(etiqueta: d.$1, valor: d.$2),
+                AnimatedSize(
+                  duration: AppMotion.of(context, AppDurations.spring),
+                  curve: AppCurves.standard,
+                  alignment: Alignment.topCenter,
+                  child: abierta
+                      ? Column(
+                          children: [for (final d in extras) DatoColumna(etiqueta: d.$1, valor: d.$2)],
+                        )
+                      : const SizedBox(width: double.infinity),
                 ),
+                if (extras.isNotEmpty)
+                  Semantics(
+                    button: true,
+                    child: SizedBox(
+                      height: 44,
+                      child: Row(
+                        children: [
+                          Text(abierta ? 'Ver menos' : 'Ver más datos', style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                          Icon(abierta ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20, color: cs.onSurfaceVariant),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (!destino.vacio || accion != null) const SizedBox(height: 4),
+                if (!destino.vacio)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: BotonFila(etiqueta: 'Cómo llegar', icono: Icons.directions_rounded, onPressed: () => mostrarComoLlegar(context, destino)),
+                  ),
+                if (accion != null) ...[const SizedBox(height: 8), accion!],
               ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
+}
 
-  Widget _buildErrorState(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+/// Renglón «Dirección   Av. Reforma 222…»: etiqueta gris en su columna y el valor al lado (v2).
+class DatoColumna extends StatelessWidget {
+  const DatoColumna({super.key, required this.etiqueta, required this.valor});
+
+  final String etiqueta;
+  final String valor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.cloud_off_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
-          const SizedBox(height: 12),
-          Text("No se pudieron cargar las instalaciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0),
-            child: Text(_error ?? '', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4)),
+          SizedBox(
+            width: 96,
+            child: Text(etiqueta, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: _cargar,
-            icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text("Reintentar"),
-            style: OutlinedButton.styleFrom(foregroundColor: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(child: Text(valor, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Insignia «Urgente»: texto rojo sobre rojo claro (v2).
+class InsigniaUrgente extends StatelessWidget {
+  const InsigniaUrgente({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(999)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline_rounded, size: 14, color: cs.error),
+          const SizedBox(width: 4),
+          Text(
+            'Urgente',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.error, fontWeight: FontWeight.w600),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildEmptyState(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inbox_rounded, size: 48, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)),
-          const SizedBox(height: 12),
-          Text("Sin instalaciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textTheme.bodyLarge?.color)),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0),
-            child: Text(
-              "No tienes tickets de instalaciones asignados para este día.",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), height: 1.4),
-            ),
+/// Aviso (no tocable) cuando la orden aún no está agendada: el instalador no puede iniciar la ruta
+/// hasta que operaciones confirme día y hora.
+class PendienteDeAgendar extends StatelessWidget {
+  const PendienteDeAgendar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.schedule_rounded, size: 20, color: cs.onSurfaceVariant),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'Pendiente de agendar. Operaciones confirmará el día y la hora con el cliente.',
+            style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Cargando con frase: nunca un círculo mudo (v2).
+class AgendaCargando extends StatelessWidget {
+  const AgendaCargando({super.key, required this.frase});
+
+  final String frase;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Center(
+        child: Semantics(
+          liveRegion: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: theme.colorScheme.primary)),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(frase, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Lista desplazable que siempre acepta «jalar para recargar», aunque su contenido no la llene.
+class _Recargable extends StatelessWidget {
+  const _Recargable({required this.alRecargar, required this.child, this.alineacion = Alignment.center});
+
+  final Future<void> Function() alRecargar;
+  final Widget child;
+  final AlignmentGeometry alineacion;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: alRecargar,
+      color: Theme.of(context).colorScheme.primary,
+      child: LayoutBuilder(
+        builder: (context, c) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: (c.maxHeight - 108).clamp(0, double.infinity)),
+            child: Align(alignment: alineacion, child: child),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Vacío: qué es, por qué está vacío y qué sigue. Se jala para recargar.
+class AgendaVacia extends StatelessWidget {
+  const AgendaVacia({super.key, required this.icono, required this.titulo, required this.texto, required this.alRecargar});
+
+  final IconData icono;
+  final String titulo;
+  final String texto;
+  final Future<void> Function() alRecargar;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return _Recargable(
+      alRecargar: alRecargar,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(color: cs.surfaceContainerHighest, shape: BoxShape.circle),
+              child: Icon(icono, size: 32, color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            Text(titulo, textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: Text(
+                texto,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Error al cargar: qué pasó, el mensaje humano del repositorio y «Volver a intentar».
+class AgendaError extends StatelessWidget {
+  const AgendaError({super.key, required this.titulo, required this.texto, required this.alRecargar, required this.alVolverAIntentar});
+
+  final String titulo;
+  final String texto;
+  final Future<void> Function() alRecargar;
+  final VoidCallback alVolverAIntentar;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return _Recargable(
+      alRecargar: alRecargar,
+      alineacion: Alignment.topCenter,
+      child: MensajeFlujo(
+        icono: Icons.error_outline_rounded,
+        color: cs.error,
+        titulo: titulo,
+        texto: texto,
+        accion: BotonFila(etiqueta: 'Volver a intentar', icono: Icons.refresh_rounded, onPressed: alVolverAIntentar),
       ),
     );
   }

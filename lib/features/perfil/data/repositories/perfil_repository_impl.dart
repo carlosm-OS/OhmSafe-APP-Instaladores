@@ -14,13 +14,13 @@ class PerfilRepositoryImpl implements PerfilRepository {
     try {
       return Success(await run());
     } on UnauthorizedException {
-      return const FailureResult(AuthFailure("Sesión expirada, vuelve a iniciar sesión"));
+      return const FailureResult(AuthFailure(mensajeSesionVencida));
     } on ServerException catch (e) {
       return FailureResult(ServerFailure(e.message));
     } on NetworkException {
       return const FailureResult(NetworkFailure());
     } catch (e) {
-      return FailureResult(ServerFailure(e.toString()));
+      return FailureResult(fallaInesperada(e));
     }
   }
 

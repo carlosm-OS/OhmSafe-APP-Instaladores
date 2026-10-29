@@ -177,16 +177,19 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   Future<Map<String, dynamic>> dispositivosEstado(String id) async {
     await _ok();
     return {
+      // Energizador opcional (2026-10-20): null cuando la casa aún no tiene energizador vinculado.
+      'energizador': {'id': 'dev-1', 'serie': 'OS-PRUEBA-0005'},
+     
       'equipo': {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'firmware': '2.11.0.14'},
       'rf': {'soportado': true, 'dispositivos': _mockRf, 'limites': {}, 'aprendizaje': null},
       'wifi': {'sensores': _mockWifi, 'limites': {}, 'usados': {}},
       'camaras': {'habilitadas': true, 'proveedores': {'ezviz': true, 'imou': true}, 'lista': _mockCams, 'max': 32},
     };
   }
-  Map<String, dynamic> _sesion(String tipo, {String status = 'listening'}) => {'sid': 'mock1', 'kind': tipo, 'status': status, 'phase': tipo == 'door' ? (_mockPaso == 0 ? 'open' : 'close') : 'btn', 'step': _mockPaso + 1, 'steps': tipo == 'door' ? 2 : 1, 'frames': 0, 'need': 2, 'addr': status == 'listening' ? null : 'A1B2C3', 'captured': []};
+  Map<String, dynamic> _sesion(String tipo, {String status = 'listening'}) => {'sid': 'mock1', 'kind': tipo, 'status': status, 'phase': tipo == 'door' ? (_mockPaso == 0 ? 'open' : 'close') : 'btn', 'step': _mockPaso + 1, 'steps': tipo == 'door' ? 2 : tipo == 'fob' ? 3 : 1, 'frames': 0, 'need': 2, 'addr': status == 'listening' ? null : 'A1B2C3', 'captured': []};
   String _mockTipo = 'door';
   @override
-  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre}) async { await _ok(); _mockTipo = tipo; _mockPaso = 0; return {'sesion': _sesion(tipo)}; }
+  Future<Map<String, dynamic>> rfAprender(String id, {required String tipo, String? nombre, int? botones}) async { await _ok(); _mockTipo = tipo; _mockPaso = 0; return {'sesion': _sesion(tipo)}; }
   @override
   Future<Map<String, dynamic>> rfSesion(String id, String sid) async { await _ok(); _mockPaso++; return {'sesion': _sesion(_mockTipo, status: _mockPaso >= 2 ? 'done' : 'listening')}; }
   @override
@@ -206,7 +209,7 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   @override
   Future<Map<String, dynamic>> tuyaTokenResultado(String id, String token) async { await _ok(); return {'successDevices': [{'id': 'ebmock1', 'name': 'Sensor', 'category': 'mcs'}], 'errorDevices': []}; }
   @override
-  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category}) async { await _ok(); _mockCams.add({'id': externalId, 'proveedor': proveedor, 'nombre': nombre, 'serie': externalId, 'estado': 'online', 'red': red}); return {'dispositivo': {'name': nombre}}; }
+  Future<Map<String, dynamic>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category, String? serie}) async { await _ok(); _mockCams.add({'id': externalId, 'proveedor': proveedor, 'nombre': nombre, 'serie': serie ?? externalId, 'estado': 'online', 'red': red}); return {'dispositivo': {'name': nombre, 'pairing': {'ssid': red, 'serial': serie}}}; }
   final List<Map<String, dynamic>> _mockOhmbox = [
     {'id': 'dev-mock', 'serie': 'OS-PRUEBA-0001', 'nombre': 'Cerca', 'enLinea': true, 'principal': true},
   ];
@@ -257,6 +260,12 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   @override
   Future<Map<String, dynamic>> cableadoConfirmarSirena(String id, {required bool sono}) async { await _ok(); return _cableado(); }
   @override
+  Future<Map<String, dynamic>> cableadoSirena(String id, {required bool encender}) async {
+    await _ok();
+    final c = _cableado();
+    return {...c, 'sirena': {'sonando': encender, 'probada': true, 'sono': null}};
+  }
+  @override
   Future<Map<String, dynamic>> cableadoProbarSalida(String id, int index) async { await _ok(); _salidasProbadas.add(index); return _cableado(); }
   @override
   Future<Map<String, dynamic>> cableadoRegistrarSalida(String id, int index, {required String nombre, required String tipo, required String modo, int? pulsoSeg, required bool funciono}) async { await _ok(); return _cableado(); }
@@ -284,4 +293,14 @@ class OrdenesMockDataSource implements OrdenesDataSource {
 
   @override
   Future<void> guardarCierre(String id, Map<String, dynamic> cierre) => _ok();
+  @override
+  Future<Map<String, dynamic>> wifiCasaGuardar(String id, {String? red, bool omitir = false}) async {
+    await _ok();
+    return omitir ? {'estado': 'omitida', 'red': null} : {'estado': 'lista', 'red': red};
+  }
+  @override
+  Future<Map<String, dynamic>> ohmboxWifi(String id, {required String red, String? contrasena}) async {
+    await _ok();
+    return {'ok': true, 'red': red, 'ip': '192.168.1.40'};
+  }
 }

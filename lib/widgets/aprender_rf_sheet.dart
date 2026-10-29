@@ -9,21 +9,26 @@ import '../features/ordenes/domain/repositories/ordenes_repository.dart';
 import 'botones_dialogo.dart';
 import 'ayuda.dart';
 
-/// Tipos de sensor 433 que el instalador da de alta en sitio (2026-10-14). El control remoto
-/// (llavero) se queda en el dashboard por ahora: necesita asignar función a cada botón.
+/// Tipos de sensor 433 que el instalador da de alta en sitio (2026-10-14). El control remoto volvió
+/// el 2026-10-22: el backend le pone las funciones por omisión de GO (botón 1 cerca, botón 2 pánico)
+/// y el cliente las cambia en su app.
 const tiposRf = <({String id, String etiqueta, IconData icono})>[
-  (id: 'door', etiqueta: 'Contacto de puerta', icono: Icons.sensor_door_outlined),
-  (id: 'pir', etiqueta: 'Movimiento', icono: Icons.directions_walk),
-  (id: 'smoke', etiqueta: 'Humo', icono: Icons.local_fire_department_outlined),
-  (id: 'panic_button', etiqueta: 'Botón de pánico', icono: Icons.emergency_outlined),
+  (id: 'door', etiqueta: 'Contacto de puerta', icono: Icons.sensor_door_rounded),
+  (id: 'pir', etiqueta: 'Movimiento', icono: Icons.directions_walk_rounded),
+  (id: 'smoke', etiqueta: 'Humo', icono: Icons.local_fire_department_rounded),
+  (id: 'panic_button', etiqueta: 'Botón de pánico', icono: Icons.emergency_rounded),
+  (id: 'fob', etiqueta: 'Control remoto', icono: Icons.settings_remote_rounded),
 ];
 
+/// El control que vende OhmSafe es de 3 botones; si tiene menos, se guarda en cuanto capta el primero.
+const botonesControl = 3;
+
 const _fase = <String, String>{
-  'btn': 'Pulsa el botón del aparato',
+  'btn': 'Presiona el botón del aparato',
   'open': 'Abre la puerta (separa el imán)',
   'close': 'Cierra la puerta (junta el imán)',
   'motion': 'Pasa frente al sensor',
-  'alarm': 'Pulsa el botón de prueba del detector',
+  'alarm': 'Presiona el botón de prueba del detector',
 };
 
 /// Asistente de aprendizaje 433: el energizador escucha, el instalador dispara el sensor y, cuando
@@ -57,6 +62,11 @@ class _AprenderRfState extends State<_AprenderRf> {
   bool _guardando = false;
   Timer? _sondeo;
 
+  /// Error al guardar, junto a los botones (v2: antes en un SnackBar).
+  String? _errorGuardar;
+
+  bool get _esControl => widget.tipo == 'fob';
+  String get _textoGuardar => _esControl ? 'Guardar control' : 'Guardar sensor';
   String? get _sid => _s?['sid']?.toString();
   String get _status => (_s?['status'] ?? '').toString();
   bool get _viva => const {'listening', 'captured', 'awaiting_next'}.contains(_status);
@@ -81,7 +91,7 @@ class _AprenderRfState extends State<_AprenderRf> {
       _s = null;
       _error = null;
     });
-    final r = await _repo.rfAprender(widget.ordenId, tipo: widget.tipo);
+    final r = await _repo.rfAprender(widget.ordenId, tipo: widget.tipo, botones: _esControl ? botonesControl : null);
     if (!mounted) return;
     r.fold((d) {
       setState(() => _s = (d['sesion'] as Map?)?.cast<String, dynamic>());
@@ -112,14 +122,17 @@ class _AprenderRfState extends State<_AprenderRf> {
     final sid = _sid;
     final nombre = _nombre.text.trim();
     if (sid == null || nombre.isEmpty) return;
-    setState(() => _guardando = true);
+    setState(() {
+      _guardando = true;
+      _errorGuardar = null;
+    });
     final r = await _repo.rfTerminar(widget.ordenId, sid, nombre: nombre);
     if (!mounted) return;
     setState(() => _guardando = false);
     r.fold((_) {
       _sondeo?.cancel();
       Navigator.pop(context, nombre);
-    }, (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))));
+    }, (f) => setState(() => _errorGuardar = f.message));
   }
 
   @override
@@ -129,41 +142,74 @@ class _AprenderRfState extends State<_AprenderRf> {
     final ohm = context.ohm;
     final paso = (_s?['step'] as num?)?.toInt() ?? 1;
     final pasos = (_s?['steps'] as num?)?.toInt() ?? 1;
-    final fase = _fase[(_s?['phase'] ?? '').toString()] ?? 'Dispara el sensor';
+    final faseId = (_s?['phase'] ?? '').toString();
+    final fase = _esControl && (faseId == 'btn' || faseId.isEmpty)
+        ? 'Mantén presionado el botón $paso del control 1 segundo'
+        : _fase[faseId] ?? 'Dispara el sensor';
     final frames = (_s?['frames'] as num?)?.toInt() ?? 0;
     final need = (_s?['need'] as num?)?.toInt() ?? 0;
 
     Widget estado;
     if (_error != null) {
-      estado = _Caja(color: cs.error, icono: Icons.error_outline, titulo: 'No pudimos empezar', texto: _error!);
+      estado = _Caja(color: cs.error, icono: Icons.error_outline_rounded, titulo: 'No pudimos empezar', texto: '${_error!} Toca «Volver a intentar».');
     } else if (_s == null) {
-      estado = const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator()),
+      estado = _Caja(
+        color: cs.onSurfaceVariant,
+        icono: Icons.hearing_rounded,
+        titulo: 'Preparando el energizador…',
+        texto: 'En un momento empieza a escuchar el sensor.',
+        cargando: true,
       );
     } else if (_viva) {
       estado = _Caja(
         color: cs.primary,
-        icono: Icons.wifi_tethering,
+        icono: Icons.wifi_tethering_rounded,
         titulo: 'Paso $paso de $pasos: $fase',
-        texto: _status == 'captured' ? '¡Lo captó! Sigue con lo que dice arriba.' : 'El energizador está escuchando ($frames de $need señales). Si tarda, acércate con el sensor.',
+        texto: _status == 'captured'
+            ? '¡Lo captó! Sigue con lo que dice arriba.'
+            : 'El energizador está escuchando ($frames de $need señales). Si tarda, acércate con el sensor.',
         cargando: true,
       );
     } else if (_status == 'done') {
       estado = _Caja(
         color: ohm.success,
-        icono: Icons.check_circle,
+        icono: Icons.check_circle_rounded,
         titulo: 'Aprendido',
-        texto: 'El energizador ya reconoce el sensor.${_s?['openOnly'] == true ? ' Este sensor sólo avisa cuando se abre.' : ''} Ponle nombre y guárdalo.',
+        texto: _esControl
+            ? 'El energizador ya reconoce el control. Botón 1: enciende y apaga la cerca. Botón 2: pánico. El cliente puede cambiarlos en su app. Ponle nombre y guárdalo.'
+            : 'El energizador ya reconoce el sensor.${_s?['openOnly'] == true ? ' Este sensor sólo avisa cuando se abre.' : ''} Ponle nombre y guárdalo.',
       );
     } else if (_status == 'duplicate') {
-      estado = _Caja(color: cs.error, icono: Icons.copy_all, titulo: 'Ya estaba aprendido', texto: 'Es «${(_s?['duplicateOf'] as Map?)?['name'] ?? 'otro sensor'}». No hace falta agregarlo otra vez.');
+      estado = _Caja(
+        color: cs.error,
+        icono: Icons.copy_all_rounded,
+        titulo: 'Ya estaba aprendido',
+        texto: 'Es «${(_s?['duplicateOf'] as Map?)?['name'] ?? 'otro sensor'}». No hace falta agregarlo otra vez: cierra y sigue con el siguiente.',
+      );
     } else if (_status == 'timeout') {
-      estado = _Caja(color: cs.error, icono: Icons.timer_off_outlined, titulo: 'Se acabó el tiempo', texto: 'No llegó ninguna señal. Acércate al energizador con el sensor y vuelve a intentar.');
+      estado = _Caja(
+        color: cs.error,
+        icono: Icons.timer_off_rounded,
+        titulo: 'Se acabó el tiempo',
+        texto: 'No llegó ninguna señal. Acércate al energizador con el sensor y toca «Volver a intentar».',
+      );
     } else if (_status == 'full') {
-      estado = _Caja(color: cs.error, icono: Icons.block, titulo: 'Ya no caben más', texto: 'El energizador llegó al máximo de sensores de este tipo.');
+      // v2 (2026-10-23): además de qué pasó, cómo seguir.
+      estado = _Caja(
+        color: cs.error,
+        icono: Icons.block_rounded,
+        titulo: 'Ya no caben más',
+        texto:
+            'El energizador llegó al máximo de sensores de este tipo. Cierra y avisa a soporte para liberar un lugar; los demás tipos sí los puedes agregar.',
+      );
     } else {
-      estado = _Caja(color: cs.error, icono: Icons.error_outline, titulo: 'Se detuvo', texto: (_s?['error'] ?? 'Se canceló.').toString());
+      final motivo = (_s?['error'] ?? '').toString().trim();
+      estado = _Caja(
+        color: cs.error,
+        icono: Icons.error_outline_rounded,
+        titulo: 'Se detuvo',
+        texto: '${motivo.isEmpty ? 'El energizador dejó de escuchar.' : motivo} Toca «Volver a intentar» para empezar de nuevo.',
+      );
     }
 
     return SafeArea(
@@ -175,11 +221,11 @@ class _AprenderRfState extends State<_AprenderRf> {
           children: [
             Row(
               children: [
-                Expanded(child: Text('Agregar ${widget.etiqueta.toLowerCase()}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, height: 1.35))),
+                Expanded(child: Text('Agregar ${widget.etiqueta.toLowerCase()}', style: theme.textTheme.headlineSmall)),
                 const InfoAyuda(
                   titulo: 'Cómo se agrega un sensor inalámbrico',
                   puntos: [
-                    'El energizador escucha la señal del sensor por radio.',
+                    'El energizador escucha la señal del sensor inalámbrico.',
                     'Haz lo que diga la pantalla: abrir la puerta, pasar frente al sensor o apretar su botón.',
                     'Cuando lo reconoce, le pones nombre y se guarda.',
                     'Si tarda, acércate al energizador con el sensor.',
@@ -194,24 +240,30 @@ class _AprenderRfState extends State<_AprenderRf> {
               TextField(
                 controller: _nombre,
                 maxLength: 40,
-                decoration: const InputDecoration(labelText: 'Nombre del sensor', hintText: 'Ej. Puerta de la cocina'),
+                decoration: InputDecoration(
+                  labelText: _esControl ? 'Nombre del control' : 'Nombre del sensor',
+                  hintText: _esControl ? 'Ej. Control de Carlos' : 'Ej. Puerta de la cocina',
+                ),
               ),
             ],
             const SizedBox(height: 16),
-            if (!_viva && !_puedeGuardar && _s != null)
-              BotonesDialogo(
-                secundario: 'Cerrar',
-                onSecundario: _cancelar,
-                primario: 'Intentar de nuevo',
-                onPrimario: _empezar,
-              )
+            if (_errorGuardar != null)
+              MensajeFlujo(
+                icono: Icons.error_outline_rounded,
+                color: cs.error,
+                titulo: 'No se guardó',
+                texto: '${_errorGuardar!} Toca «$_textoGuardar» otra vez.',
+              ),
+            if ((!_viva && !_puedeGuardar && _s != null) || _error != null)
+              BotonesDialogo(secundario: 'Cerrar', onSecundario: _cancelar, primario: 'Volver a intentar', onPrimario: _empezar)
             else
               BotonesDialogo(
-                secundario: _viva || _s == null ? 'Cancelar' : 'Cerrar',
+                secundario: _viva || _s == null ? 'Dejar de escuchar' : 'Cerrar',
                 onSecundario: _guardando ? null : _cancelar,
-                primario: 'Guardar',
+                primario: _textoGuardar,
                 onPrimario: _puedeGuardar ? _guardar : null,
                 primarioCargando: _guardando,
+                primarioCargandoTexto: _esControl ? 'Guardando el control…' : 'Guardando el sensor…',
               ),
           ],
         ),
@@ -230,33 +282,35 @@ class _Caja extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      // Tarjeta blanca con borde tenue (como el resto del flujo); sólo el ícono y el título llevan color.
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          cargando ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: color)) : Icon(icono, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: color),
-                ),
-                const SizedBox(height: 4),
-                Text(texto, style: theme.textTheme.bodySmall),
-              ],
+    final cs = theme.colorScheme;
+    // v2 (2026-10-23): grupo gris claro sin borde sobre la hoja blanca; el color va en el ícono y,
+    // sólo si es error o éxito, en el título.
+    final colorTitulo = color == cs.error || color == context.ohm.success ? color : cs.onSurface;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: context.ohm.surfaceContainer, borderRadius: BorderRadius.circular(14)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            cargando ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: color)) : Icon(icono, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: colorTitulo),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(texto, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

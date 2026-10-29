@@ -18,7 +18,7 @@ Toca «Mi cuenta» en la barra inferior o tu foto en el inicio. En «Perfil» ve
 - Tu foto y «Instalador [tu número]». El número de instalador es tu identificador en OhmSafe; lo asigna el sistema.
 - Tu calificación: el promedio de las encuestas que contestan tus clientes al terminar cada servicio, con el número de respuestas entre paréntesis. Sin respuestas: «Sin calificaciones aún».
 - «Código de ventas: …» — tu código personal; acompaña las cotizaciones que haces desde la app. Si aún no lo tienes asignado, no aparece.
-- «DATOS GENERALES»: «Nombre(s)», «Apellidos», «Teléfono», «Correo», «CURP». Son de solo lectura.
+- «DATOS GENERALES»: «Nombre(s)», «Apellidos», «Teléfono», «Correo», «CURP», «RFC». Son de solo lectura.
 
 Tus datos y tu foto solo los puede cambiar OhmSafe. «Si algún dato está mal, escríbenos desde Ayuda: sólo el equipo de OhmSafe puede corregirlo.»
 
@@ -30,7 +30,6 @@ Tus datos y tu foto solo los puede cambiar OhmSafe. «Si algún dato está mal, 
 | «Contraseñas» | Cambiar tu contraseña (ver [01](01-acceso.md#cambiar-tu-contraseña-desde-la-app)). |
 | «Seguridad» | Activar o quitar la entrada con Face ID / huella (ver [01](01-acceso.md#face-id--huella)). |
 | «Mis pagos» | Lo que OhmSafe te paga por cada servicio. |
-| «Facturación» | Tu RFC. |
 | «Cerrar sesión» | Salir de la app en este teléfono (ver [01](01-acceso.md#cerrar-sesión)). |
 
 ## Mis pagos
@@ -46,10 +45,6 @@ Tus datos y tu foto solo los puede cambiar OhmSafe. «Si algún dato está mal, 
 - «Los pagos «En revisión» se confirman cuando operaciones valida la intervención. Si un importe no coincide, repórtalo como incidencia.» (ver [06](06-reparaciones-y-mantenimiento.md#reportar-una-incidencia)).
 - Sin pagos todavía: «Aún no hay pagos».
 - Jala hacia abajo para actualizar.
-
-## Facturación
-
-**Mi cuenta › Facturación.** Escribe tu RFC en «RFC» y toca «Guardar». Verás «RFC guardado». Es el único dato fiscal que capturas desde la app.
 
 ## Cotizar venta
 
