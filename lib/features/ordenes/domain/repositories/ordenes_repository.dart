@@ -69,6 +69,9 @@ abstract class OrdenesRepository {
   /// Emparejamiento Wi‑Fi desde el teléfono (2026-10-17): ver [OrdenesDataSource.wifiSesion].
   Future<Result<Map<String, dynamic>>> wifiSesion(String id, String proveedor);
   Future<Result<Map<String, dynamic>>> ezvizSondeo(String id, String serie);
+  /// Imou (2026-10-20): sesión del SDK (host + accessToken de la cuenta) y sondeo de llegada a la nube.
+  Future<Result<Map<String, dynamic>>> imouSesion(String id);
+  Future<Result<Map<String, dynamic>>> imouSondeo(String id, String serie);
   Future<Result<Map<String, dynamic>>> tuyaToken(String id, {required String modo, String? zonaHoraria});
   Future<Result<Map<String, dynamic>>> tuyaTokenResultado(String id, String token);
   Future<Result<Map<String, dynamic>>> dispositivoWifiAgregar(String id, {required String proveedor, required String clase, required String externalId, required String nombre, String? codigo, String? red, String? tipo, String? productId, String? category});

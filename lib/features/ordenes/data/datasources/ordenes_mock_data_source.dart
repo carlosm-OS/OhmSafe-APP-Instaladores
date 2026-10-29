@@ -202,6 +202,10 @@ class OrdenesMockDataSource implements OrdenesDataSource {
   @override
   Future<Map<String, dynamic>> ezvizSondeo(String id, String serie) async { await _ok(); return {'state': 'online_unbound'}; }
   @override
+  Future<Map<String, dynamic>> imouSesion(String id) async { await _ok(); return {'provider': 'imou', 'accessToken': 'mock', 'host': 'openapi-or.easy4ip.com', 'port': 443}; }
+  @override
+  Future<Map<String, dynamic>> imouSondeo(String id, String serie) async { await _ok(); return {'serie': serie, 'state': 'online'}; }
+  @override
   Future<Map<String, dynamic>> tuyaToken(String id, {required String modo, String? zonaHoraria}) async { await _ok(); return {'provider': 'tuya', 'authToken': 'AZmocktokmocksec', 'region': 'AZ', 'token': 'mocktok', 'secret': 'mocksec', 'expiresAt': DateTime.now().add(const Duration(minutes: 10)).toIso8601String(), 'homeId': '1'}; }
   @override
   Future<Map<String, dynamic>> tuyaTokenResultado(String id, String token) async { await _ok(); return {'successDevices': [{'id': 'ebmock1', 'name': 'Sensor', 'category': 'mcs'}], 'errorDevices': []}; }

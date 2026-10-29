@@ -86,7 +86,57 @@ se lleva a la otra.
 
 - Probar con una cámara EZVIZ real y una casa de dev (api-dev tiene EZVIZ encendido).
 - Tuya (sensores y cámaras Tuya): espera la app de Tuya del instalador y sus llaves (Dan).
-- Imou: v1 sigue siendo «Cámara ya conectada» (conectar con Imou Life y registrar aquí).
+- ~~Imou: v1 sigue siendo «Cámara ya conectada»~~ → desde la build 52 Imou se empareja desde la app
+  (sección siguiente).
+
+---
+
+# Cámaras Imou: emparejar con el SDK de Imou (2026-10-20, build 52)
+
+Regla de Carlos (ratificada dos veces): **nunca Imou Life**; la cámara se conecta a la Wi‑Fi desde
+Installer, «como con Tuya». La cuenta es la institucional de OhmSafe (`admin@ohmsafe.com`, una sola
+app Imou): el backend entrega a la app el **accessToken** de esa cuenta y el host, la app arranca el
+SDK (LCOpenSDK 3.15) con eso y le pasa la red a la cámara; el **alta** (`bindDevice` con el SC) la
+hace el backend como siempre. El AppSecret nunca sale del servidor.
+
+| Pieza | Archivo |
+|---|---|
+| Backend | `POST /instalador/ordenes/:id/wifi/imou/sesion` → `{provider, accessToken, host, port}`; `POST …/wifi/imou/sondeo {serie}` → `{state: online\|offline\|unknown}` (Back-#133, en prod desde 2026-10-20) |
+| Puente Dart | `lib/core/imou/imou_puente.dart` (`ohmsafe/imou`: `configure {host, port, accessToken}`, `wifiConfigStart {mode: smart\|ap, serial, verifyCode, ssid, password, hotspotPrefix, timeoutS}`, `wifiConfigStop`, `currentSsid`; eventos `wifiConfig` con pasos `sending_config`, `joining_hotspot`, `joined_hotspot`, `found_on_lan`, `sent_over_hotspot`, `timeout`, `failed`; códigos `IMOU_*`) |
+| Lógica | `lib/core/imou/emparejador_imou.dart` (sesión → configure → sondeo → Wi‑Fi → sondeo de la nube cada 5 s hasta 150 s → `POST …/dispositivos-wifi {proveedor: imou, clase: camara, externalId, codigo (SC tal cual), nombre, red}`) |
+| Pantalla | `lib/screens/conectar_imou_wifi_screen.dart` («Conectar cámara Imou»: QR de la guía → serie + SC, red, contraseña, modo Rápido / Por hotspot). `conectar_imou_screen.dart` queda como «Cámara ya conectada» (sólo registrar). |
+| Android | `ImouPlugin.kt` (común) + `src/imouOn|imouOff/…/ImouBridgeFactory.kt`. `LCOpenSDK.aar` **fuera del repo** (`~/dev/ohmsafe/keys/imou-sdk/android/`, o `OHMSAFE_IMOU_ANDROID_SDK`); sin él compila `imouOff` → `IMOU_NOT_LINKED`. `OHMSAFE_IMOU=0` lo deja fuera a propósito. |
+| iOS | **Pendiente** (`LCOpenSDKDynamic.framework` ya descargado en `~/dev/ohmsafe/keys/imou-sdk/ios/core/`). El modo rápido en iOS exige el entitlement `com.apple.developer.networking.multicast`: solicitud a Apple **QN7AHWA6RR** (2026-10-20, cuenta Ohm Safe). El modo AP no lo necesita. |
+| Pruebas | `test/imou_wifi_test.dart` (contrato con el puente, SC sin tocar, contraseña nunca al backend, plazos, DV1001) |
+
+## Cómo lo hace el SDK (orden del demo oficial `DeviceAddModule`)
+
+- **Rápido (`smart`)**: `LCOpenSDK_ConfigWifi.configWifiStart(ctx, sn, ssid, pwd, "", 11000, 0)`
+  (SmartConfig: multicast + onda de sonido) y a la vez
+  `LCOpenSDK_SearchDevices.startSearchDevices(ctx, sn, timeout, listener)`; cuando `onDeviceSearched`
+  ve la serie, la cámara ya está en la red de la casa (`found_on_lan`). Android toma un
+  `MulticastLock` mientras dura. El SDK no avisa de fallos: si no la ve en `timeoutS` (90 s) manda
+  `IMOU_WIFI_TIMEOUT` y el emparejador sondea la nube igual.
+- **Por hotspot (`ap`, Android 10+)**: `WifiNetworkSpecifier` con prefijo `DAP-` (sale el diálogo del
+  sistema «Conectarse»), `bindProcessToNetwork`, puerta de enlace = la cámara, y
+  `LCOpenSDK_SoftAPConfig.startSoftAPConfig(ssid, pwd, ipCámara, SC, true, handler, timeoutMs)`;
+  `msg.arg1 == 0` es éxito (−2 cámara no responde, −3 no encuentra la red). Al terminar se suelta la
+  red para volver a la Wi‑Fi de la casa.
+- El éxito final (cámara **en la nube**) lo decide el backend con `deviceOnline`; `DV1002` = la nube
+  aún no la conoce (sigue esperando). Luego `bindDevice` con el SC en el alta.
+
+## Trampas
+
+- El AAR de Imou declara `bluetooth_le` como **obligatorio** en su manifiesto (su modo Bluetooth, que
+  no usamos): el manifiesto de la app lo pone en `required=false` con `tools:replace`.
+- El AAR pesa 74 MB y sus MD5 no coinciden con la tabla de la consola (tabla desactualizada): se trata
+  como descarga no verificada, sólo se enlaza, nunca se ejecuta en la Mac. Trae su `libc++_shared`
+  (`pickFirst`) y bouncycastle 1.58 embebido.
+- Sólo `arm64-v8a`/`armeabi-v7a` (y `armeabi`, que AGP ignora): en emulador x86_64 el init revienta →
+  `IMOU_UNSUPPORTED`. Probar en teléfono.
+- El SC de Imou **distingue mayúsculas y minúsculas** («L2VqC2QF»): no se normaliza en ningún lado.
+- `configWifiStart` (SmartConfig) no necesita el SC; `startSoftAPConfig` sí (es la «contraseña» de la
+  cámara en los equipos con SC).
 
 ---
 
